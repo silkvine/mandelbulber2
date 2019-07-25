@@ -1,7 +1,7 @@
 /**
  * Mandelbulber v2, a 3D fractal generator       ,=#MKNmMMKmmßMNWy,
  *                                             ,B" ]L,,p%%%,,,§;, "K
- * Copyright (C) 2018 Mandelbulber Team        §R-==%w["'~5]m%=L.=~5N
+ * Copyright (C) 2018-19 Mandelbulber Team     §R-==%w["'~5]m%=L.=~5N
  *                                        ,=mm=§M ]=4 yJKA"/-Nsaj  "Bw,==,,
  * This file is part of Mandelbulber.    §R.r= jw",M  Km .mM  FW ",§=ß., ,TN
  *                                     ,4R =%["w[N=7]J '"5=],""]]M,w,-; T=]M
@@ -157,11 +157,12 @@ cl_float CalculateColorIndex(bool isHybrid, cl_float r, cl_float4 z, cl_float co
 			{
 				if (colorValue > fractalColoring->addStartValue)
 				{
-					colorValue += (1.0f
-													- 1.0f / (1.0f
-																		 + (colorValue - fractalColoring->addStartValue)
-																				 / fractalColoring->addSpread))
-												* fractalColoring->addMax;
+					colorValue +=
+						(1.0f
+							- 1.0f
+									/ (1.0f
+											+ (colorValue - fractalColoring->addStartValue) / fractalColoring->addSpread))
+						* fractalColoring->addMax;
 				}
 			}
 
@@ -182,8 +183,9 @@ cl_float CalculateColorIndex(bool isHybrid, cl_float r, cl_float4 z, cl_float co
 				if (colorValue > fractalColoring->cosStartValue)
 				{
 					float trig = (0.5f
-												 - 0.5f * cos((colorValue - fractalColoring->cosStartValue) * M_PI_F
-																			/ (fractalColoring->cosPeriod * 2.0f)))
+												 - 0.5f
+														 * cos((colorValue - fractalColoring->cosStartValue) * M_PI_F
+																	 / (fractalColoring->cosPeriod * 2.0f)))
 											 * fractalColoring->cosAdd;
 					colorValue += trig;
 				}

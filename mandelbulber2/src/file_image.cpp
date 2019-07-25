@@ -48,15 +48,6 @@
 #include "tiff.h"
 #include "tiffio.h"
 #endif // USE_TIFF
-#ifdef USE_EXR
-#include <ImfAttribute.h>
-#include <ImfChannelList.h>
-#include <ImfFrameBuffer.h>
-#include <ImfInputFile.h>
-#include <ImfOutputFile.h>
-#include <ImfStringAttribute.h>
-#include <half.h>
-#endif // USE_EXR
 
 #define PNG_DEBUG 3
 
@@ -111,13 +102,15 @@ QString ImageFileSave::ImageChannelName(enumImageContentType imageContentType)
 		case IMAGE_CONTENT_ZBUFFER: return "zbuffer";
 		case IMAGE_CONTENT_NORMAL: return "normal";
 		case IMAGE_CONTENT_SPECULAR: return "specular";
+		case IMAGE_CONTENT_DIFFUSE: return "diffuse";
+		case IMAGE_CONTENT_WORLD_POSITION: return "world";
 	}
 	return "";
 }
 
 QStringList ImageFileSave::ImageChannelNames()
 {
-	return QStringList({"color", "alpha", "zbuffer", "normal", "specular"});
+	return QStringList({"color", "alpha", "zbuffer", "normal", "specular", "diffuse", "world"});
 }
 
 ImageFileSave::enumImageFileType ImageFileSave::ImageFileType(QString imageFileExtension)
@@ -247,6 +240,8 @@ void ImageFileSavePNG::SaveImage()
 			case IMAGE_CONTENT_ZBUFFER:
 			case IMAGE_CONTENT_NORMAL:
 			case IMAGE_CONTENT_SPECULAR:
+			case IMAGE_CONTENT_DIFFUSE:
+			case IMAGE_CONTENT_WORLD_POSITION:
 			default: SavePNG(fullFilename, image, channel.value()); break;
 		}
 		currentChannel++;
@@ -274,23 +269,51 @@ void ImageFileSaveJPG::SaveImage()
 		switch (currentChannelKey)
 		{
 			case IMAGE_CONTENT_COLOR:
-				SaveJPEGQt(fullFilename, image->ConvertTo8bit(), image->GetWidth(), image->GetHeight(),
-					gPar->Get<int>("jpeg_quality"), image->getMeta());
+				SaveJPEGQt(fullFilename, image->ConvertTo8bit(), int(image->GetWidth()),
+					int(image->GetHeight()), gPar->Get<int>("jpeg_quality"), image->getMeta());
 				break;
 			case IMAGE_CONTENT_ALPHA:
-				SaveJPEGQtGreyscale(fullFilename, image->ConvertAlphaTo8bit(), image->GetWidth(),
-					image->GetHeight(), gPar->Get<int>("jpeg_quality"), image->getMeta());
+				SaveJPEGQtGreyscale(fullFilename, image->ConvertAlphaTo8bit(), int(image->GetWidth()),
+					int(image->GetHeight()), gPar->Get<int>("jpeg_quality"), image->getMeta());
 				break;
 			case IMAGE_CONTENT_ZBUFFER:
-				qWarning() << "JPG cannot save zbuffer (loss of precision to strong)";
+			{
+				float *zbuffer = image->GetZBufferPtr();
+				quint64 size = image->GetWidth() * image->GetHeight();
+				unsigned char *zBuffer8Bit = new unsigned char[size];
+				float minZ = float(1.0e50);
+				float maxZ = 0.0;
+				for (quint64 i = 0; i < size; i++)
+				{
+					float z = zbuffer[i];
+					if (z > maxZ && z < 1e19f) maxZ = z;
+					if (z < minZ) minZ = z;
+				}
+				float kZ = log(maxZ / minZ);
+
+				for (quint64 y = 0; y < image->GetHeight(); y++)
+				{
+					for (quint64 x = 0; x < image->GetWidth(); x++)
+					{
+						quint64 ptr = (x + y * image->GetWidth());
+						float z = image->GetPixelZBuffer(x, y);
+						float z1 = log(z / minZ) / kZ;
+						int intZ = int(z1 * 240);
+						if (z > 1e19f) intZ = 255;
+						zBuffer8Bit[ptr] = uchar(intZ);
+					}
+				}
+				SaveJPEGQtGreyscale(fullFilename, zBuffer8Bit, image->GetWidth(), image->GetHeight(),
+					gPar->Get<int>("jpeg_quality"), image->getMeta());
+				delete[] zBuffer8Bit;
 				break;
+			}
 			case IMAGE_CONTENT_NORMAL:
-				SaveJPEGQt(fullFilename, image->ConvertNormalTo8Bit(), image->GetWidth(),
-					image->GetHeight(), gPar->Get<int>("jpeg_quality"), image->getMeta());
-				break;
 			case IMAGE_CONTENT_SPECULAR:
-				SaveJPEGQt(fullFilename, image->ConvertSpecularTo8Bit(), image->GetWidth(),
-					image->GetHeight(), gPar->Get<int>("jpeg_quality"), image->getMeta());
+			case IMAGE_CONTENT_DIFFUSE:
+			case IMAGE_CONTENT_WORLD_POSITION:
+				SaveJPEGQt32(fullFilename, channel.value(), int(image->GetWidth()), int(image->GetHeight()),
+					gPar->Get<int>("jpeg_quality"), image->getMeta());
 				break;
 			default: qWarning() << "Unknown channel for JPG"; break;
 		}
@@ -330,6 +353,8 @@ void ImageFileSaveTIFF::SaveImage()
 			case IMAGE_CONTENT_ZBUFFER:
 			case IMAGE_CONTENT_NORMAL:
 			case IMAGE_CONTENT_SPECULAR:
+			case IMAGE_CONTENT_DIFFUSE:
+			case IMAGE_CONTENT_WORLD_POSITION:
 			default: SaveTIFF(fullFilename, image, channel.value()); break;
 		}
 		currentChannel++;
@@ -406,6 +431,8 @@ void ImageFileSavePNG::SavePNG(
 			case IMAGE_CONTENT_ZBUFFER: colorType = PNG_COLOR_TYPE_GRAY; break;
 			case IMAGE_CONTENT_NORMAL: colorType = PNG_COLOR_TYPE_RGB; break;
 			case IMAGE_CONTENT_SPECULAR: colorType = PNG_COLOR_TYPE_RGB; break;
+			case IMAGE_CONTENT_DIFFUSE: colorType = PNG_COLOR_TYPE_RGB; break;
+			case IMAGE_CONTENT_WORLD_POSITION: colorType = PNG_COLOR_TYPE_RGB; break;
 			default: colorType = PNG_COLOR_TYPE_RGB; break;
 		}
 
@@ -429,6 +456,8 @@ void ImageFileSavePNG::SavePNG(
 			case IMAGE_CONTENT_ZBUFFER: pixelSize *= 1; break;
 			case IMAGE_CONTENT_NORMAL: pixelSize *= 3; break;
 			case IMAGE_CONTENT_SPECULAR: pixelSize *= 3; break;
+			case IMAGE_CONTENT_DIFFUSE: pixelSize *= 3; break;
+			case IMAGE_CONTENT_WORLD_POSITION: pixelSize *= 3; break;
 		}
 
 		bool directOnBuffer = false;
@@ -467,6 +496,8 @@ void ImageFileSavePNG::SavePNG(
 				case IMAGE_CONTENT_ZBUFFER:
 				case IMAGE_CONTENT_NORMAL:
 				case IMAGE_CONTENT_SPECULAR:
+				case IMAGE_CONTENT_DIFFUSE:
+				case IMAGE_CONTENT_WORLD_POSITION:
 					// zbuffer and normals are float, so direct buffer write is not applicable
 					break;
 			}
@@ -494,7 +525,7 @@ void ImageFileSavePNG::SavePNG(
 					if (z < minZ) minZ = z;
 				}
 			}
-			double kZ = log(maxZ / minZ);
+			float kZ = log(maxZ / minZ);
 
 			for (uint64_t y = 0; y < height; y++)
 			{
@@ -539,8 +570,8 @@ void ImageFileSavePNG::SavePNG(
 							{
 								float z = image->GetPixelZBuffer(x, y);
 								float z1 = log(z / minZ) / kZ;
-								int intZ = z1 * 60000;
-								if (z > 1e19) intZ = 65535;
+								int intZ = int(z1 * 60000);
+								if (z > 1e19f) intZ = 65535;
 
 								unsigned short *typedColorPtr = reinterpret_cast<unsigned short *>(&colorPtr[ptr]);
 								*typedColorPtr = static_cast<unsigned short>(intZ);
@@ -549,7 +580,7 @@ void ImageFileSavePNG::SavePNG(
 							{
 								float z = image->GetPixelZBuffer(x, y);
 								float z1 = log(z / minZ) / kZ;
-								int intZ = z1 * 240;
+								int intZ = int(z1 * 240);
 								if (z > 1e19) intZ = 255;
 
 								unsigned char *typedColorPtr = reinterpret_cast<unsigned char *>(&colorPtr[ptr]);
@@ -558,37 +589,17 @@ void ImageFileSavePNG::SavePNG(
 						}
 						break;
 						case IMAGE_CONTENT_NORMAL:
-						{
-							if (imageChannel.channelQuality == IMAGE_CHANNEL_QUALITY_16)
-							{
-								if (x == 0 && y == 0) image->ConvertNormalTo16Bit();
-								sRGB16 *typedColorPtr = reinterpret_cast<sRGB16 *>(&colorPtr[ptr]);
-								*typedColorPtr = sRGB16(image->GetPixelNormal16(x, y));
-							}
-							else
-							{
-								if (x == 0 && y == 0) image->ConvertNormalTo8Bit();
-								sRGB8 *typedColorPtr = reinterpret_cast<sRGB8 *>(&colorPtr[ptr]);
-								*typedColorPtr = sRGB8(image->GetPixelNormal8(x, y));
-							}
-						}
-						break;
+							SavePngRgbPixel(imageChannel, &colorPtr[ptr], image->GetPixelNormal(x, y));
+							break;
 						case IMAGE_CONTENT_SPECULAR:
-						{
-							if (imageChannel.channelQuality == IMAGE_CHANNEL_QUALITY_16)
-							{
-								if (x == 0 && y == 0) image->ConvertSpecularTo16Bit();
-								sRGB16 *typedColorPtr = reinterpret_cast<sRGB16 *>(&colorPtr[ptr]);
-								*typedColorPtr = sRGB16(image->GetPixelSpecular16(x, y));
-							}
-							else
-							{
-								if (x == 0 && y == 0) image->ConvertSpecularTo8Bit();
-								sRGB8 *typedColorPtr = reinterpret_cast<sRGB8 *>(&colorPtr[ptr]);
-								*typedColorPtr = sRGB8(image->GetPixelSpecular8(x, y));
-							}
-						}
-						break;
+							SavePngRgbPixel(imageChannel, &colorPtr[ptr], image->GetPixelSpecular(x, y));
+							break;
+						case IMAGE_CONTENT_DIFFUSE:
+							SavePngRgbPixel(imageChannel, &colorPtr[ptr], image->GetPixelDiffuse(x, y));
+							break;
+						case IMAGE_CONTENT_WORLD_POSITION:
+							SavePngRgbPixel(imageChannel, &colorPtr[ptr], image->GetPixelWorld(x, y));
+							break;
 					}
 				}
 				row_pointers[y] = reinterpret_cast<png_byte *>(&colorPtr[y * width * pixelSize]);
@@ -828,8 +839,26 @@ void ImageFileSavePNG::SaveFromTilesPNG16(const char *filename, int width, int h
 	fclose(fp);
 }
 
-bool ImageFileSaveJPG::SaveJPEGQt(
-	QString filename, unsigned char *image, int width, int height, int quality, QMap<QString, QString> meta)
+void ImageFileSavePNG::SavePngRgbPixel(
+	structSaveImageChannel imageChannel, char *colorPtr, sRGBFloat pixel)
+{
+	if (imageChannel.channelQuality == IMAGE_CHANNEL_QUALITY_16
+			|| imageChannel.channelQuality == IMAGE_CHANNEL_QUALITY_32)
+	{
+		sRGB16 *typedColorPtr = reinterpret_cast<sRGB16 *>(colorPtr);
+		*typedColorPtr =
+			sRGB16(ushort(pixel.R * 65535.0f), ushort(pixel.G * 65535.0f), ushort(pixel.B * 65535.0f));
+	}
+	else
+	{
+		sRGB8 *typedColorPtr = reinterpret_cast<sRGB8 *>(colorPtr);
+		*typedColorPtr =
+			sRGB8(uchar(pixel.R * 255.0f), uchar(pixel.G * 255.0f), uchar(pixel.B * 255.0f));
+	}
+}
+
+bool ImageFileSaveJPG::SaveJPEGQt(QString filename, unsigned char *image, int width, int height,
+	int quality, QMap<QString, QString> meta)
 {
 	if (!image)
 	{
@@ -870,8 +899,65 @@ bool ImageFileSaveJPG::SaveJPEGQt(
 	return result;
 }
 
-bool ImageFileSaveJPG::SaveJPEGQtGreyscale(
-	QString filename, unsigned char *image, int width, int height, int quality, QMap<QString, QString> meta)
+bool ImageFileSaveJPG::SaveJPEGQt32(QString filename, structSaveImageChannel imageChannel,
+	int width, int height, int quality, QMap<QString, QString> meta)
+{
+
+	if (!image)
+	{
+		WriteLog(
+			"ImageFileSaveJPG::SaveJPEGQt(): "
+			"the image is a null pointer, this might be the case for optional channel(s). "
+			"If this is the case, just rerender the image with enabled channel(s).",
+			1);
+		return false;
+	}
+
+	QImage *qImage = new QImage(width, height, QImage::Format_RGB888);
+	QMapIterator<QString, QString> i(meta);
+	while (i.hasNext())
+	{
+		i.next();
+		qImage->setText(i.key(), i.value());
+	}
+	for (int y = 0; y < height; y++)
+	{
+		unsigned char *qScanLine = qImage->scanLine(y);
+
+		for (int x = 0; x < width; x++)
+		{
+			sRGBAfloat pixel;
+			switch (imageChannel.contentType)
+			{
+				case IMAGE_CONTENT_NORMAL: pixel = image->GetPixelNormal(x, y); break;
+				case IMAGE_CONTENT_SPECULAR: pixel = image->GetPixelSpecular(x, y); break;
+				case IMAGE_CONTENT_DIFFUSE: pixel = image->GetPixelDiffuse(x, y); break;
+				case IMAGE_CONTENT_WORLD_POSITION: pixel = image->GetPixelWorld(x, y); break;
+				default: pixel = sRGBAfloat();
+			}
+			sRGB8 pixel8 =
+				sRGB8(uchar(pixel.R * 255.0f), uchar(pixel.G * 255.0f), uchar(pixel.B * 255.0f));
+			qScanLine[3 * x + 0] = pixel8.R;
+			qScanLine[3 * x + 1] = pixel8.G;
+			qScanLine[3 * x + 2] = pixel8.B;
+		}
+	}
+	QFile file(filename);
+	file.open(QIODevice::WriteOnly);
+	bool result = qImage->save(&file, "JPEG", quality);
+	if (!result)
+	{
+		cErrorMessage::showMessage(
+			QObject::tr("Can't save image to JPEG file!\n") + filename + "\n" + file.errorString(),
+			cErrorMessage::errorMessage);
+	}
+	file.close();
+	delete qImage;
+	return result;
+}
+
+bool ImageFileSaveJPG::SaveJPEGQtGreyscale(QString filename, unsigned char *image, int width,
+	int height, int quality, QMap<QString, QString> meta)
 {
 
 	if (!image)
@@ -970,7 +1056,7 @@ void ImageFileSaveEXR::SaveEXR(
 		header.channels().insert("G", Imf::Channel(imfQuality, 1, 1, linear));
 		header.channels().insert("B", Imf::Channel(imfQuality, 1, 1, linear));
 
-		int pixelSize = sizeof(tsRGB<half>);
+		uint64_t pixelSize = sizeof(tsRGB<half>);
 		if (imfQuality == Imf::FLOAT) pixelSize = sizeof(tsRGB<float>);
 		char *buffer = new char[uint64_t(width) * height * pixelSize];
 		tsRGB<half> *halfPointer = reinterpret_cast<tsRGB<half> *>(buffer);
@@ -1017,7 +1103,7 @@ void ImageFileSaveEXR::SaveEXR(
 
 		header.channels().insert("A", Imf::Channel(imfQuality, 1, 1, linear));
 
-		int pixelSize = sizeof(half);
+		uint64_t pixelSize = sizeof(half);
 		if (imfQuality == Imf::FLOAT) pixelSize = sizeof(float);
 		char *buffer = new char[uint64_t(width) * height * pixelSize];
 		half *halfPointer = reinterpret_cast<half *>(buffer);
@@ -1064,7 +1150,7 @@ void ImageFileSaveEXR::SaveEXR(
 		}
 		else
 		{
-			int pixelSize = sizeof(half);
+			uint64_t pixelSize = sizeof(half);
 			char *buffer = new char[uint64_t(width) * height * pixelSize];
 			half *halfPointer = reinterpret_cast<half *>(buffer);
 
@@ -1083,96 +1169,29 @@ void ImageFileSaveEXR::SaveEXR(
 
 	if (imageConfig.contains(IMAGE_CONTENT_NORMAL))
 	{
-		// add rgb channel header
-		Imf::PixelType imfQuality =
-			imageConfig[IMAGE_CONTENT_NORMAL].channelQuality == IMAGE_CHANNEL_QUALITY_32 ? Imf::FLOAT
-																																									 : Imf::HALF;
-
-		header.channels().insert("n.X", Imf::Channel(imfQuality, 1, 1, linear));
-		header.channels().insert("n.Y", Imf::Channel(imfQuality, 1, 1, linear));
-		header.channels().insert("n.Z", Imf::Channel(imfQuality, 1, 1, linear));
-
-		int pixelSize = sizeof(tsRGB<half>);
-		if (imfQuality == Imf::FLOAT) pixelSize = sizeof(tsRGB<float>);
-		char *buffer = new char[uint64_t(width) * height * pixelSize];
-		tsRGB<half> *halfPointer = reinterpret_cast<tsRGB<half> *>(buffer);
-		tsRGB<float> *floatPointer = reinterpret_cast<tsRGB<float> *>(buffer);
-
-		for (uint64_t y = 0; y < height; y++)
-		{
-			for (uint64_t x = 0; x < width; x++)
-			{
-				uint64_t ptr = (x + y * width);
-				sRGBFloat pixel = image->GetPixelNormal(x, y);
-				if (imfQuality == Imf::FLOAT)
-				{
-					floatPointer[ptr] = pixel;
-				}
-				else
-				{
-					halfPointer[ptr].R = pixel.R;
-					halfPointer[ptr].G = pixel.G;
-					halfPointer[ptr].B = pixel.B;
-				}
-			}
-		}
-
-		// point EXR frame buffer to rgb
-		size_t compSize = (imfQuality == Imf::FLOAT ? sizeof(float) : sizeof(half));
-		frameBuffer.insert("n.X", Imf::Slice(imfQuality, static_cast<char *>(buffer) + 0 * compSize,
-																3 * compSize, 3 * width * compSize));
-		frameBuffer.insert("n.Y", Imf::Slice(imfQuality, static_cast<char *>(buffer) + 1 * compSize,
-																3 * compSize, 3 * width * compSize));
-		frameBuffer.insert("n.Z", Imf::Slice(imfQuality, static_cast<char *>(buffer) + 2 * compSize,
-																3 * compSize, 3 * width * compSize));
+		SaveExrRgbChannel(QStringList{"n.X", "n.Y", "n.Z"}, imageConfig[IMAGE_CONTENT_NORMAL], &header,
+			&frameBuffer, width, height);
 	}
 
 	if (imageConfig.contains(IMAGE_CONTENT_SPECULAR))
 	{
-		// add rgb channel header
-		Imf::PixelType imfQuality =
-			imageConfig[IMAGE_CONTENT_SPECULAR].channelQuality == IMAGE_CHANNEL_QUALITY_32 ? Imf::FLOAT
-																																										 : Imf::HALF;
-
-		header.channels().insert("s.R", Imf::Channel(imfQuality, 1, 1, linear));
-		header.channels().insert("s.G", Imf::Channel(imfQuality, 1, 1, linear));
-		header.channels().insert("s.B", Imf::Channel(imfQuality, 1, 1, linear));
-
-		int pixelSize = sizeof(tsRGB<half>);
-		if (imfQuality == Imf::FLOAT) pixelSize = sizeof(tsRGB<float>);
-		char *buffer = new char[uint64_t(width) * height * pixelSize];
-		tsRGB<half> *halfPointer = reinterpret_cast<tsRGB<half> *>(buffer);
-		tsRGB<float> *floatPointer = reinterpret_cast<tsRGB<float> *>(buffer);
-
-		for (uint64_t y = 0; y < height; y++)
-		{
-			for (uint64_t x = 0; x < width; x++)
-			{
-				uint64_t ptr = (x + y * width);
-				sRGBFloat pixel = image->GetPixelSpecular(x, y);
-				if (imfQuality == Imf::FLOAT)
-				{
-					floatPointer[ptr] = pixel;
-				}
-				else
-				{
-					halfPointer[ptr].R = pixel.R;
-					halfPointer[ptr].G = pixel.G;
-					halfPointer[ptr].B = pixel.B;
-				}
-			}
-		}
-
-		// point EXR frame buffer to rgb
-		size_t compSize = (imfQuality == Imf::FLOAT ? sizeof(float) : sizeof(half));
-		frameBuffer.insert("s.R", Imf::Slice(imfQuality, static_cast<char *>(buffer) + 0 * compSize,
-																3 * compSize, 3 * width * compSize));
-		frameBuffer.insert("s.G", Imf::Slice(imfQuality, static_cast<char *>(buffer) + 1 * compSize,
-																3 * compSize, 3 * width * compSize));
-		frameBuffer.insert("s.B", Imf::Slice(imfQuality, static_cast<char *>(buffer) + 2 * compSize,
-																3 * compSize, 3 * width * compSize));
+		SaveExrRgbChannel(QStringList{"s.X", "s.Y", "s.Z"}, imageConfig[IMAGE_CONTENT_SPECULAR],
+			&header, &frameBuffer, width, height);
 	}
 
+	if (imageConfig.contains(IMAGE_CONTENT_DIFFUSE))
+	{
+		SaveExrRgbChannel(QStringList{"d.R", "d.G", "d.B"}, imageConfig[IMAGE_CONTENT_DIFFUSE], &header,
+			&frameBuffer, width, height);
+	}
+
+	if (imageConfig.contains(IMAGE_CONTENT_WORLD_POSITION))
+	{
+		SaveExrRgbChannel(QStringList{"p.X", "p.Y", "p.Z"}, imageConfig[IMAGE_CONTENT_WORLD_POSITION],
+			&header, &frameBuffer, width, height);
+	}
+
+	// insert meta data
 	QMapIterator<QString, QString> i(image->getMeta());
 	while (i.hasNext())
 	{
@@ -1184,7 +1203,6 @@ void ImageFileSaveEXR::SaveEXR(
 	Imf::OutputFile file(filename.toStdString().c_str(), header);
 	file.setFrameBuffer(frameBuffer);
 
-	// file.writePixels(height);
 	for (uint64_t r = 0; r < height; r += SAVE_CHUNK_SIZE)
 	{
 		uint64_t currentChunkSize = min(height - r, SAVE_CHUNK_SIZE);
@@ -1192,6 +1210,68 @@ void ImageFileSaveEXR::SaveEXR(
 		emit updateProgressAndStatus(getJobName(), QString("Saving all channels"), 1.0 * r / height);
 	}
 }
+
+void ImageFileSaveEXR::SaveExrRgbChannel(QStringList names, structSaveImageChannel imageChannel,
+	Imf::Header *header, Imf::FrameBuffer *frameBuffer, uint64_t width, uint64_t height)
+{
+	bool linear = gPar->Get<bool>("linear_colorspace");
+	// add rgb channel header
+	Imf::PixelType imfQuality =
+		imageChannel.channelQuality == IMAGE_CHANNEL_QUALITY_32 ? Imf::FLOAT : Imf::HALF;
+
+	header->channels().insert(
+		names.at(0).toStdString().c_str(), Imf::Channel(imfQuality, 1, 1, linear));
+	header->channels().insert(
+		names.at(1).toStdString().c_str(), Imf::Channel(imfQuality, 1, 1, linear));
+	header->channels().insert(
+		names.at(2).toStdString().c_str(), Imf::Channel(imfQuality, 1, 1, linear));
+
+	int pixelSize = sizeof(tsRGB<half>);
+	if (imfQuality == Imf::FLOAT) pixelSize = sizeof(tsRGB<float>);
+	char *buffer = new char[uint64_t(width) * height * pixelSize];
+	tsRGB<half> *halfPointer = reinterpret_cast<tsRGB<half> *>(buffer);
+	tsRGB<float> *floatPointer = reinterpret_cast<tsRGB<float> *>(buffer);
+
+	for (uint64_t y = 0; y < height; y++)
+	{
+		for (uint64_t x = 0; x < width; x++)
+		{
+			uint64_t ptr = (x + y * width);
+			sRGBFloat pixel;
+			switch (imageChannel.contentType)
+			{
+				case IMAGE_CONTENT_NORMAL: pixel = image->GetPixelNormal(x, y); break;
+				case IMAGE_CONTENT_SPECULAR: pixel = image->GetPixelSpecular(x, y); break;
+				case IMAGE_CONTENT_DIFFUSE: pixel = image->GetPixelDiffuse(x, y); break;
+				case IMAGE_CONTENT_WORLD_POSITION: pixel = image->GetPixelWorld(x, y); break;
+				default: pixel = sRGBFloat();
+			}
+			if (imfQuality == Imf::FLOAT)
+			{
+				floatPointer[ptr] = pixel;
+			}
+			else
+			{
+				halfPointer[ptr].R = pixel.R;
+				halfPointer[ptr].G = pixel.G;
+				halfPointer[ptr].B = pixel.B;
+			}
+		}
+	}
+
+	// point EXR frame buffer to rgb
+	size_t compSize = (imfQuality == Imf::FLOAT ? sizeof(float) : sizeof(half));
+	frameBuffer->insert(names.at(0).toStdString().c_str(),
+		Imf::Slice(
+			imfQuality, static_cast<char *>(buffer) + 0 * compSize, 3 * compSize, 3 * width * compSize));
+	frameBuffer->insert(names.at(1).toStdString().c_str(),
+		Imf::Slice(
+			imfQuality, static_cast<char *>(buffer) + 1 * compSize, 3 * compSize, 3 * width * compSize));
+	frameBuffer->insert(names.at(2).toStdString().c_str(),
+		Imf::Slice(
+			imfQuality, static_cast<char *>(buffer) + 2 * compSize, 3 * compSize, 3 * width * compSize));
+}
+
 #endif /* USE_EXR */
 
 #ifdef USE_TIFF
@@ -1234,6 +1314,8 @@ bool ImageFileSaveTIFF::SaveTIFF(
 		case IMAGE_CONTENT_ZBUFFER: colorType = PHOTOMETRIC_MINISBLACK; break;
 		case IMAGE_CONTENT_NORMAL: colorType = PHOTOMETRIC_RGB; break;
 		case IMAGE_CONTENT_SPECULAR: colorType = PHOTOMETRIC_RGB; break;
+		case IMAGE_CONTENT_DIFFUSE: colorType = PHOTOMETRIC_RGB; break;
+		case IMAGE_CONTENT_WORLD_POSITION: colorType = PHOTOMETRIC_RGB; break;
 		default: colorType = PHOTOMETRIC_RGB; break;
 	}
 
@@ -1245,6 +1327,8 @@ bool ImageFileSaveTIFF::SaveTIFF(
 		case IMAGE_CONTENT_ZBUFFER: samplesPerPixel = 1; break;
 		case IMAGE_CONTENT_NORMAL: samplesPerPixel = 3; break;
 		case IMAGE_CONTENT_SPECULAR: samplesPerPixel = 3; break;
+		case IMAGE_CONTENT_DIFFUSE: samplesPerPixel = 3; break;
+		case IMAGE_CONTENT_WORLD_POSITION: samplesPerPixel = 3; break;
 	}
 
 	TIFFSetField(tiff, TIFFTAG_IMAGEWIDTH, width);
@@ -1293,18 +1377,18 @@ bool ImageFileSaveTIFF::SaveTIFF(
 						{
 							sRGBAfloat *typedColorPtr = reinterpret_cast<sRGBAfloat *>(&colorPtr[ptr]);
 							sRGB16 rgbPointer = image->GetPixelImage16(x, y);
-							typedColorPtr->R = rgbPointer.R / 65536.0;
-							typedColorPtr->G = rgbPointer.G / 65536.0;
-							typedColorPtr->B = rgbPointer.B / 65536.0;
-							typedColorPtr->A = image->GetPixelAlpha(x, y) / 65536.0;
+							typedColorPtr->R = rgbPointer.R / 65536.0f;
+							typedColorPtr->G = rgbPointer.G / 65536.0f;
+							typedColorPtr->B = rgbPointer.B / 65536.0f;
+							typedColorPtr->A = image->GetPixelAlpha(x, y) / 65536.0f;
 						}
 						else
 						{
 							sRGBFloat *typedColorPtr = reinterpret_cast<sRGBFloat *>(&colorPtr[ptr]);
 							sRGB16 rgbPointer = image->GetPixelImage16(x, y);
-							typedColorPtr->R = rgbPointer.R / 65536.0;
-							typedColorPtr->G = rgbPointer.G / 65536.0;
-							typedColorPtr->B = rgbPointer.B / 65536.0;
+							typedColorPtr->R = rgbPointer.R / 65536.0f;
+							typedColorPtr->G = rgbPointer.G / 65536.0f;
+							typedColorPtr->B = rgbPointer.B / 65536.0f;
 						}
 					}
 					else if (imageChannel.channelQuality == IMAGE_CHANNEL_QUALITY_16)
@@ -1351,7 +1435,7 @@ bool ImageFileSaveTIFF::SaveTIFF(
 					if (imageChannel.channelQuality == IMAGE_CHANNEL_QUALITY_32)
 					{
 						float *typedColorPtr = reinterpret_cast<float *>(&colorPtr[ptr]);
-						*typedColorPtr = image->GetPixelAlpha(x, y) / 65536.0;
+						*typedColorPtr = image->GetPixelAlpha(x, y) / 65536.0f;
 					}
 					if (imageChannel.channelQuality == IMAGE_CHANNEL_QUALITY_16)
 					{
@@ -1391,47 +1475,17 @@ bool ImageFileSaveTIFF::SaveTIFF(
 				}
 				break;
 				case IMAGE_CONTENT_NORMAL:
-				{
-					if (imageChannel.channelQuality == IMAGE_CHANNEL_QUALITY_32)
-					{
-						sRGBFloat *typedColorPtr = reinterpret_cast<sRGBFloat *>(&colorPtr[ptr]);
-						*typedColorPtr = sRGBFloat(image->GetPixelNormal(x, y));
-					}
-					else if (imageChannel.channelQuality == IMAGE_CHANNEL_QUALITY_16)
-					{
-						if (x == 0 && y == 0) image->ConvertNormalTo16Bit();
-						sRGB16 *typedColorPtr = reinterpret_cast<sRGB16 *>(&colorPtr[ptr]);
-						*typedColorPtr = sRGB16(image->GetPixelNormal16(x, y));
-					}
-					else
-					{
-						if (x == 0 && y == 0) image->ConvertNormalTo8Bit();
-						sRGB8 *typedColorPtr = reinterpret_cast<sRGB8 *>(&colorPtr[ptr]);
-						*typedColorPtr = sRGB8(image->GetPixelNormal8(x, y));
-					}
-				}
-				break;
+					SaveTiffRgbPixel(imageChannel, &colorPtr[ptr], image->GetPixelNormal(x, y));
+					break;
 				case IMAGE_CONTENT_SPECULAR:
-				{
-					if (imageChannel.channelQuality == IMAGE_CHANNEL_QUALITY_32)
-					{
-						sRGBFloat *typedColorPtr = reinterpret_cast<sRGBFloat *>(&colorPtr[ptr]);
-						*typedColorPtr = sRGBFloat(image->GetPixelSpecular(x, y));
-					}
-					else if (imageChannel.channelQuality == IMAGE_CHANNEL_QUALITY_16)
-					{
-						if (x == 0 && y == 0) image->ConvertSpecularTo16Bit();
-						sRGB16 *typedColorPtr = reinterpret_cast<sRGB16 *>(&colorPtr[ptr]);
-						*typedColorPtr = sRGB16(image->GetPixelSpecular16(x, y));
-					}
-					else
-					{
-						if (x == 0 && y == 0) image->ConvertSpecularTo8Bit();
-						sRGB8 *typedColorPtr = reinterpret_cast<sRGB8 *>(&colorPtr[ptr]);
-						*typedColorPtr = sRGB8(image->GetPixelSpecular8(x, y));
-					}
-				}
-				break;
+					SaveTiffRgbPixel(imageChannel, &colorPtr[ptr], image->GetPixelSpecular(x, y));
+					break;
+				case IMAGE_CONTENT_DIFFUSE:
+					SaveTiffRgbPixel(imageChannel, &colorPtr[ptr], image->GetPixelDiffuse(x, y));
+					break;
+				case IMAGE_CONTENT_WORLD_POSITION:
+					SaveTiffRgbPixel(imageChannel, &colorPtr[ptr], image->GetPixelWorld(x, y));
+					break;
 			}
 		}
 	}
@@ -1450,6 +1504,28 @@ bool ImageFileSaveTIFF::SaveTIFF(
 	TIFFClose(tiff);
 	delete[] colorPtr;
 	return true;
+}
+
+void ImageFileSaveTIFF::SaveTiffRgbPixel(
+	structSaveImageChannel imageChannel, char *colorPtr, sRGBFloat pixel)
+{
+	if (imageChannel.channelQuality == IMAGE_CHANNEL_QUALITY_32)
+	{
+		sRGBFloat *typedColorPtr = reinterpret_cast<sRGBFloat *>(colorPtr);
+		*typedColorPtr = pixel;
+	}
+	else if (imageChannel.channelQuality == IMAGE_CHANNEL_QUALITY_16)
+	{
+		sRGB16 *typedColorPtr = reinterpret_cast<sRGB16 *>(colorPtr);
+		*typedColorPtr =
+			sRGB16(ushort(pixel.R * 65535.0f), ushort(pixel.G * 65535.0f), ushort(pixel.B * 65535.0f));
+	}
+	else
+	{
+		sRGB8 *typedColorPtr = reinterpret_cast<sRGB8 *>(colorPtr);
+		*typedColorPtr =
+			sRGB8(uchar(pixel.R * 255.0f), uchar(pixel.G * 255.0f), uchar(pixel.B * 255.0f));
+	}
 }
 
 #endif /* USE_TIFF */

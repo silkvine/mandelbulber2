@@ -136,7 +136,7 @@ enum enumFractalFormula
 	mandelbulbKali = 92,
 	mandelbulbKaliMulti = 93,
 	mandelbulbBermarte = 94,
-	mengerMiddleMod = 95, // add vary scale v2.19
+	mengerMiddleMod = 95,			// add vary scale v2.19
 	msltoeToroidalMulti = 96, // update DE v2.15
 	amazingSurfMulti = 97,
 	// V2.09
@@ -182,7 +182,7 @@ enum enumFractalFormula
 	// 2.14
 	mandelboxVariable = 133,
 	boxFold4dBulbPow2 = 134,
-	aboxModKaliV2 = 135,
+	aboxModKaliV2 = 135, // v2.18 add oldZ sign transform
 	// 2.15
 	aboxModKaliV3 = 136,
 	// 2.16
@@ -199,6 +199,10 @@ enum enumFractalFormula
 	mandeltorus = 146,
 	// 2.18
 	amazingSurfMod3 = 147,
+	// 2.19
+	mandelbulbPower1234 = 148,
+	mengerPolyFold = 149,
+	ifsXY = 150,
 
 	// 152 to 172 reserved for scator
 	scatorPower2Imaginary = 152, // fixed r calc v2.14
@@ -207,7 +211,6 @@ enum enumFractalFormula
 	scatorPower2StdR = 174,			 // added V2.15
 
 	mandelbulbEye = 800,
-	mandelbulbEyeTest = 810,
 
 	transfAddConstant = 1001,
 	transfRotation = 1002,
@@ -295,8 +298,8 @@ enum enumFractalFormula
 	transfAddCpixelRotated = 1078,
 	transfAddConstantMod1 = 1079,
 	// 2.14
-	transfPolyFoldSym = 1080,
-	transfPolyFoldSymMulti = 1081,
+	transfPolyFoldSymXY = 1080,		 // updated v2.19
+	transfPolyFoldSymMulti = 1081, // updated v2.19
 	// 2.15
 	transfSinOrCos = 1082,
 	transfSinAndCos = 1083,
@@ -313,13 +316,23 @@ enum enumFractalFormula
 	// 2.18
 	transfRotationIterControls = 1091,
 	transfClamp4d = 1092,
+	transfAbsAddMulti4d = 1093,
+	transfRotateAboutVec3 = 1094,
+	transfOffsetSCurve4d = 1095,
+	transfGnarl = 1096,
+	transfBoxTiling4d = 1097,
+	// 2.19
+	transfDiagonalFold = 1098,
+	transfPolyFoldAtan = 1099,
+	transfPolyFoldAtan2 = 1100,
+	transfAbsAddConditional2 = 1101,
 
 	// hybrid color trial
 	transfHybridColor = 2000,
 	transfHybridColor2 = 2001,
 	testing = 2100,
 	testing4d = 2101,
-	testingLog = 2102,
+	testingLog = 2103,
 };
 }
 

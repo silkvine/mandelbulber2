@@ -1,7 +1,7 @@
 /**
  * Mandelbulber v2, a 3D fractal generator       ,=#MKNmMMKmmßMNWy,
  *                                             ,B" ]L,,p%%%,,,§;, "K
- * Copyright (C) 2015-18 Mandelbulber Team     §R-==%w["'~5]m%=L.=~5N
+ * Copyright (C) 2015-19 Mandelbulber Team     §R-==%w["'~5]m%=L.=~5N
  *                                        ,=mm=§M ]=4 yJKA"/-Nsaj  "Bw,==,,
  * This file is part of Mandelbulber.    §R.r= jw",M  Km .mM  FW ",§=ß., ,TN
  *                                     ,4R =%["w[N=7]J '"5=],""]]M,w,-; T=]M
@@ -998,8 +998,8 @@ void cCommandLineInterface::handleImageFileFormat()
 	{
 		const ImageFileSave::enumImageFileType fileType =
 			ImageFileSave::ImageFileType(cliData.imageFileFormat);
-		gPar->Set("keyframe_animation_image_type", (int)fileType);
-		gPar->Set("flight_animation_image_type", (int)fileType);
+		gPar->Set("keyframe_animation_image_type", int(fileType));
+		gPar->Set("flight_animation_image_type", int(fileType));
 	}
 }
 

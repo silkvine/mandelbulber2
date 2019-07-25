@@ -100,6 +100,7 @@ typedef struct
 	cl_int delta_DE_method;
 	cl_int delta_DE_function;
 
+	cl_int advancedQuality;
 	cl_int antialiasingEnabled;
 	cl_int ambientOcclusionEnabled; // enable global illumination
 	cl_int auxLightPreEnabled[4];
@@ -128,6 +129,7 @@ typedef struct
 	cl_int mainLightEnable;
 	cl_int mainLightPositionAsRelative;
 	cl_int monteCarloSoftShadows;
+	cl_int monteCarloGIVolumetric;
 	cl_int penetratingLights;
 	cl_int raytracedReflections;
 	cl_int shadow;			// enable shadows
@@ -157,6 +159,8 @@ typedef struct
 	cl_float3 volFogColour2;
 	cl_float3 volFogColour3;
 
+	cl_float absMaxMarchingStep;
+	cl_float absMinMarchingStep;
 	cl_float ambientOcclusion;
 	cl_float ambientOcclusionFastTune;
 	cl_float auxLightPreIntensity[4];
@@ -172,8 +176,11 @@ typedef struct
 	cl_float backgroundTextureOffsetY;
 	cl_float cameraDistanceToTarget; // zoom
 	cl_float constantFactor;
-	cl_float DEFactor;		// factor for distance estimation steps
+	cl_float DEFactor; // factor for distance estimation steps
+	cl_float deltaDERelativeDelta;
 	cl_float detailLevel; // DE threshold factor
+	cl_float detailSizeMax;
+	cl_float detailSizeMin;
 	cl_float DEThresh;
 	cl_float DOFFocus;
 	cl_float DOFRadius;
@@ -202,6 +209,8 @@ typedef struct
 	cl_float mainLightIntensity;
 	cl_float mainLightVisibility;
 	cl_float mainLightVisibilitySize;
+	cl_float relMaxMarchingStep;
+	cl_float relMinMarchingStep;
 	cl_float resolution; // resolution of image in fractal coordinates
 	cl_float shadowConeAngle;
 	cl_float smoothness;
@@ -224,6 +233,7 @@ typedef struct
 	cl_float3 auxLightPre[4];
 	cl_float3 auxLightRandomCenter;
 	cl_float3 backgroundRotation;
+
 	cl_float3 formulaPosition[NUMBER_OF_FRACTALS];
 	cl_float3 formulaRotation[NUMBER_OF_FRACTALS];
 	cl_float3 formulaRepeat[NUMBER_OF_FRACTALS];
@@ -273,6 +283,7 @@ inline sParamRenderCl clCopySParamRenderCl(const sParamRender &source)
 	}
 	target.delta_DE_method = source.delta_DE_method;
 	target.delta_DE_function = source.delta_DE_function;
+	target.advancedQuality = source.advancedQuality;
 	target.antialiasingEnabled = source.antialiasingEnabled;
 	target.ambientOcclusionEnabled = source.ambientOcclusionEnabled;
 	for (int i = 0; i < 4; i++)
@@ -304,6 +315,7 @@ inline sParamRenderCl clCopySParamRenderCl(const sParamRender &source)
 	target.mainLightEnable = source.mainLightEnable;
 	target.mainLightPositionAsRelative = source.mainLightPositionAsRelative;
 	target.monteCarloSoftShadows = source.monteCarloSoftShadows;
+	target.monteCarloGIVolumetric = source.monteCarloGIVolumetric;
 	target.penetratingLights = source.penetratingLights;
 	target.raytracedReflections = source.raytracedReflections;
 	target.shadow = source.shadow;
@@ -337,6 +349,8 @@ inline sParamRenderCl clCopySParamRenderCl(const sParamRender &source)
 	target.volFogColour1 = toClFloat3(source.volFogColour1);
 	target.volFogColour2 = toClFloat3(source.volFogColour2);
 	target.volFogColour3 = toClFloat3(source.volFogColour3);
+	target.absMaxMarchingStep = source.absMaxMarchingStep;
+	target.absMinMarchingStep = source.absMinMarchingStep;
 	target.ambientOcclusion = source.ambientOcclusion;
 	target.ambientOcclusionFastTune = source.ambientOcclusionFastTune;
 	for (int i = 0; i < 4; i++)
@@ -356,7 +370,10 @@ inline sParamRenderCl clCopySParamRenderCl(const sParamRender &source)
 	target.cameraDistanceToTarget = source.cameraDistanceToTarget;
 	target.constantFactor = source.constantFactor;
 	target.DEFactor = source.DEFactor;
+	target.deltaDERelativeDelta = source.deltaDERelativeDelta;
 	target.detailLevel = source.detailLevel;
+	target.detailSizeMax = source.detailSizeMax;
+	target.detailSizeMin = source.detailSizeMin;
 	target.DEThresh = source.DEThresh;
 	target.DOFFocus = source.DOFFocus;
 	target.DOFRadius = source.DOFRadius;
@@ -388,6 +405,8 @@ inline sParamRenderCl clCopySParamRenderCl(const sParamRender &source)
 	target.mainLightIntensity = source.mainLightIntensity;
 	target.mainLightVisibility = source.mainLightVisibility;
 	target.mainLightVisibilitySize = source.mainLightVisibilitySize;
+	target.relMaxMarchingStep = source.relMaxMarchingStep;
+	target.relMinMarchingStep = source.relMinMarchingStep;
 	target.resolution = source.resolution;
 	target.shadowConeAngle = source.shadowConeAngle;
 	target.smoothness = source.smoothness;

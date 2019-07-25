@@ -1,7 +1,7 @@
 /**
  * Mandelbulber v2, a 3D fractal generator       ,=#MKNmMMKmmßMNWy,
  *                                             ,B" ]L,,p%%%,,,§;, "K
- * Copyright (C) 2016-18 Mandelbulber Team     §R-==%w["'~5]m%=L.=~5N
+ * Copyright (C) 2016-19 Mandelbulber Team     §R-==%w["'~5]m%=L.=~5N
  *                                        ,=mm=§M ]=4 yJKA"/-Nsaj  "Bw,==,,
  * This file is part of Mandelbulber.    §R.r= jw",M  Km .mM  FW ",§=ß., ,TN
  *                                     ,4R =%["w[N=7]J '"5=],""]]M,w,-; T=]M
@@ -42,9 +42,9 @@
 #include "global_data.hpp"
 #include "parameters.hpp"
 
-#include "qt/color_palette_widget.h"
 #include "qt/file_select_widget.h"
 #include "qt/formula_combo_box.h"
+#include "qt/gradient_edit_widget.h"
 #include "qt/material_selector.h"
 #include "qt/my_check_box.h"
 #include "qt/my_color_button.h"
@@ -82,8 +82,8 @@ void SynchronizeInterfaceWindow(QWidget *window, cParameterContainer *par, enumR
 	WriteLog("cInterface::SynchronizeInterface: MyColorButton", 3);
 	SynchronizeInterfaceMyColorButton(window->findChildren<MyColorButton *>(), par, mode);
 
-	WriteLog("cInterface::SynchronizeInterface: ColorPaletteWidget", 3);
-	SynchronizeInterfaceColorPaletteWidget(window->findChildren<ColorPaletteWidget *>(), par, mode);
+	WriteLog("cInterface::SynchronizeInterface: cGradientEditWidget", 3);
+	SynchronizeInterfaceColorGradientWidget(window->findChildren<cGradientEditWidget *>(), par, mode);
 
 	WriteLog("cInterface::SynchronizeInterface: QComboBox", 3);
 	SynchronizeInterfaceQComboBox(window->findChildren<QComboBox *>(), par, mode);
@@ -409,36 +409,6 @@ void SynchronizeInterfaceMyColorButton(
 	}
 }
 
-void SynchronizeInterfaceColorPaletteWidget(
-	QList<ColorPaletteWidget *> widgets, cParameterContainer *par, enumReadWrite mode)
-{
-	QList<ColorPaletteWidget *>::iterator it;
-	for (it = widgets.begin(); it != widgets.end(); ++it)
-	{
-		widgetProperties props = parseWidgetProperties((*it), {"ColorPaletteWidget"});
-		if (props.allowed)
-		{
-			ColorPaletteWidget *colorPaletteWidget = *it;
-			colorPaletteWidget->AssignParameterContainer(par);
-			colorPaletteWidget->AssignParameterName(props.paramName);
-
-			if (props.typeName == QString("colorpalette"))
-			{
-				if (mode == qInterface::read)
-				{
-					cColorPalette palette = colorPaletteWidget->GetPalette();
-					par->Set(props.paramName, palette);
-				}
-				else if (mode == qInterface::write)
-				{
-					cColorPalette palette = par->Get<cColorPalette>(props.paramName);
-					colorPaletteWidget->SetPalette(palette);
-				}
-			}
-		}
-	}
-}
-
 void SynchronizeInterfaceQComboBox(
 	QList<QComboBox *> widgets, cParameterContainer *par, enumReadWrite mode)
 {
@@ -551,6 +521,36 @@ void SynchronizeInterfaceQPlainTextEdit(
 			}
 		}
 	} // end foreach
+}
+
+void SynchronizeInterfaceColorGradientWidget(
+	QList<cGradientEditWidget *> widgets, cParameterContainer *par, qInterface::enumReadWrite mode)
+{
+	QList<cGradientEditWidget *>::iterator it;
+	for (it = widgets.begin(); it != widgets.end(); ++it)
+	{
+		widgetProperties props = parseWidgetProperties((*it), {"cGradientEditWidget"});
+		if (props.allowed)
+		{
+			cGradientEditWidget *colorGradientWidget = static_cast<cGradientEditWidget *>(*it);
+			colorGradientWidget->AssignParameterContainer(par);
+			colorGradientWidget->AssignParameterName(props.paramName);
+
+			if (props.typeName == QString("colorpalette"))
+			{
+				if (mode == qInterface::read)
+				{
+					QString palette = colorGradientWidget->GetColors();
+					par->Set(props.paramName, palette);
+				}
+				else if (mode == qInterface::write)
+				{
+					QString palette = par->Get<QString>(props.paramName);
+					colorGradientWidget->SetColors(palette);
+				}
+			}
+		}
+	}
 }
 
 // utility functions

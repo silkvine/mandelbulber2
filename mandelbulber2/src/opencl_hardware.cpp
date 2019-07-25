@@ -42,7 +42,6 @@ cOpenClHardware::cOpenClHardware(QObject *parent) : QObject(parent)
 {
 	openClAvailable = false;
 	contextReady = false;
-	// TODO: confirm initial value
 	// initialize multi-gpu devices' indices list with empty QList
 	selectedDevicesIndices = QList<int>();
 	missingOpenClDLL = false;
@@ -114,8 +113,8 @@ void cOpenClHardware::ListOpenClPlatforms()
 				platformInformation.version = platformVersion.c_str();
 				platformInformation.profile = platformProfile.c_str();
 
-				WriteLog(QString("OpenCL platform #") + i + ": " + platformInformation.name + " "
-									 + platformInformation.vendor + " " + platformInformation.version + " "
+				WriteLog(QString("OpenCL platform #") + QString::number(i) + ": " + platformInformation.name
+									 + " " + platformInformation.vendor + " " + platformInformation.version + " "
 									 + platformInformation.profile,
 					2);
 
@@ -377,7 +376,6 @@ void cOpenClHardware::EnableDevice(int index)
 
 void cOpenClHardware::DisableDevice(int index)
 {
-	// TODO
 	clDeviceWorkers[index].Disable();
 }
 

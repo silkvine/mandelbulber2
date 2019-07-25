@@ -44,7 +44,7 @@
 // http://csg.sph.umich.edu/abecasis/class/2006/615.14.pdf
 // Park-Miller Generator Without any Divisions
 // by D. Carta (1990)
-static unsigned int gRandomSeed = 1;
+unsigned int gRandomSeed = 1;
 int RandomInt()
 {
 	// After calculation below, (hi << 16) + lo = seed * 16807
@@ -170,9 +170,11 @@ template CVector4 SmoothCVector(const CVector4 &v1, const CVector4 &v2, double k
 double cubicInterpolate(double p[4], double x)
 {
 	return p[1]
-				 + 0.5 * x * (p[2] - p[0]
-											 + x * (2.0 * p[0] - 5.0 * p[1] + 4.0 * p[2] - p[3]
-															 + x * (3.0 * (p[1] - p[2]) + p[3] - p[0])));
+				 + 0.5 * x
+						 * (p[2] - p[0]
+								 + x
+										 * (2.0 * p[0] - 5.0 * p[1] + 4.0 * p[2] - p[3]
+												 + x * (3.0 * (p[1] - p[2]) + p[3] - p[0])));
 }
 
 double bicubicInterpolate(double p[4][4], double x, double y)
@@ -185,7 +187,7 @@ double bicubicInterpolate(double p[4][4], double x, double y)
 	return cubicInterpolate(yy, x);
 }
 
-CVector3 wrap(CVector3 x, CVector3 a, CVector3 s)
+CVector3 wrap(CVector3 x, const CVector3 &a, const CVector3 &s)
 {
 	x -= s;
 	CVector3 out(x.x - a.x * floor(x.x / a.x) + s.x, x.y - a.y * floor(x.y / a.y) + s.y,
@@ -195,7 +197,7 @@ CVector3 wrap(CVector3 x, CVector3 a, CVector3 s)
 
 double MagicRound(double val, double maxError)
 {
-	if (val != 0)
+	if (!qIsNull(val))
 	{
 		double multiplier = pow(10.0, -int(log10(fabs(val))));
 		double rounded = val * multiplier;

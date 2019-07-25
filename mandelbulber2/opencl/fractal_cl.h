@@ -96,6 +96,7 @@ typedef struct
 
 	cl_float r;
 	cl_float DE;
+	cl_float dist;
 	cl_float pseudoKleinianDE;
 	cl_float linearDE;
 
@@ -105,8 +106,7 @@ typedef struct
 	cl_float color;
 	cl_float colorHybrid;
 
-	// temp for trial
-	cl_float temp100;
+	cl_float temp1000;
 	cl_float addDist;
 } sExtendedAuxCl;
 
@@ -517,6 +517,7 @@ typedef struct
 	cl_float offset0005;
 	cl_float offset05;
 	cl_float offset1;
+	cl_float offsetA1;
 	cl_float offset105;
 	cl_float offset2;
 	cl_float offset4;
@@ -581,12 +582,22 @@ typedef struct
 	cl_int stopIterationsG;
 	cl_int startIterationsH;
 	cl_int stopIterationsH;
+	cl_int startIterationsI;
+	cl_int stopIterationsI;
+	cl_int startIterationsJ;
+	cl_int stopIterationsJ;
+	cl_int startIterationsK;
+	cl_int stopIterationsK;
 	cl_int startIterationsM;
 	cl_int stopIterationsM;
+	cl_int startIterationsO;
+	cl_int stopIterationsO;
 	cl_int startIterationsP;
 	cl_int stopIterationsP1;
 	cl_int startIterationsR;
 	cl_int stopIterationsR;
+	cl_int startIterationsRV;
+	cl_int stopIterationsRV;
 	cl_int startIterationsS;
 	cl_int stopIterationsS;
 	cl_int startIterationsT;
@@ -606,6 +617,8 @@ typedef struct
 	cl_int intA;
 	cl_int intB;
 	cl_int int1;
+	cl_int int2;
+	cl_int int3;
 	cl_int int6;
 	cl_int int8X;
 	cl_int int8Y;
@@ -648,8 +661,10 @@ typedef struct
 	cl_float4 offset200;
 	cl_float4 offsetA200;
 	cl_float4 offset222;
+	cl_float4 offsetA222;
 	cl_float4 power025;
 	cl_float4 power8;
+	cl_float4 vec111;
 
 	cl_float3 rotation; // vec3s
 	cl_float3 rotation2;
@@ -670,12 +685,16 @@ typedef struct
 
 	cl_float4 additionConstant0000;
 	cl_float4 offset0000;
+	cl_float4 offsetA0000;
 	cl_float4 offset1111;
-	cl_float4 offset2222;
 	cl_float4 offsetA1111;
+	cl_float4 offsetB1111;
+	cl_float4 offsetNeg1111;
+	cl_float4 offset2222;
 	cl_float4 additionConstant111d5;
 	cl_float4 constantMultiplier1220;
 	cl_float4 scale0000;
+	cl_float4 scale1111;
 
 	matrix33 rotationMatrix;
 	matrix33 rotationMatrix2;
@@ -721,6 +740,7 @@ typedef struct
 	cl_int functionEnabledDFalse;
 	cl_int functionEnabledEFalse;
 	cl_int functionEnabledFFalse;
+	cl_int functionEnabledJFalse;
 	cl_int functionEnabledKFalse;
 	cl_int functionEnabledM;
 	cl_int functionEnabledMFalse;
@@ -735,7 +755,7 @@ typedef struct
 	cl_int sphereInversionEnabledFalse;
 	cl_int spheresEnabled;
 
-	cl_int functionEnabledTempFalse;
+	// cl_int functionEnabledTempFalse;
 } sFractalTransformCommonCl;
 
 typedef struct
@@ -788,13 +808,14 @@ inline sExtendedAuxCl clCopySExtendedAuxCl(const sExtendedAux &source)
 	target.cw = source.cw;
 	target.r = source.r;
 	target.DE = source.DE;
+	target.dist = source.dist;
 	target.pseudoKleinianDE = source.pseudoKleinianDE;
 	target.linearDE = source.linearDE;
 	target.actualScale = source.actualScale;
 	target.actualScaleA = source.actualScaleA;
 	target.color = source.color;
 	target.colorHybrid = source.colorHybrid;
-	target.temp100 = source.temp100;
+	target.temp1000 = source.temp1000;
 	target.addDist = source.addDist;
 	return target;
 }
@@ -1193,6 +1214,7 @@ inline sFractalTransformCommonCl clCopySFractalTransformCommonCl(
 	target.offset0005 = source.offset0005;
 	target.offset05 = source.offset05;
 	target.offset1 = source.offset1;
+	target.offsetA1 = source.offsetA1;
 	target.offset105 = source.offset105;
 	target.offset2 = source.offset2;
 	target.offset4 = source.offset4;
@@ -1254,12 +1276,22 @@ inline sFractalTransformCommonCl clCopySFractalTransformCommonCl(
 	target.stopIterationsG = source.stopIterationsG;
 	target.startIterationsH = source.startIterationsH;
 	target.stopIterationsH = source.stopIterationsH;
+	target.startIterationsI = source.startIterationsI;
+	target.stopIterationsI = source.stopIterationsI;
+	target.startIterationsJ = source.startIterationsJ;
+	target.stopIterationsJ = source.stopIterationsJ;
+	target.startIterationsK = source.startIterationsK;
+	target.stopIterationsK = source.stopIterationsK;
 	target.startIterationsM = source.startIterationsM;
 	target.stopIterationsM = source.stopIterationsM;
+	target.startIterationsO = source.startIterationsO;
+	target.stopIterationsO = source.stopIterationsO;
 	target.startIterationsP = source.startIterationsP;
 	target.stopIterationsP1 = source.stopIterationsP1;
 	target.startIterationsR = source.startIterationsR;
 	target.stopIterationsR = source.stopIterationsR;
+	target.startIterationsRV = source.startIterationsRV;
+	target.stopIterationsRV = source.stopIterationsRV;
 	target.startIterationsS = source.startIterationsS;
 	target.stopIterationsS = source.stopIterationsS;
 	target.startIterationsT = source.startIterationsT;
@@ -1277,6 +1309,8 @@ inline sFractalTransformCommonCl clCopySFractalTransformCommonCl(
 	target.intA = source.intA;
 	target.intB = source.intB;
 	target.int1 = source.int1;
+	target.int2 = source.int2;
+	target.int3 = source.int3;
 	target.int6 = source.int6;
 	target.int8X = source.int8X;
 	target.int8Y = source.int8Y;
@@ -1318,8 +1352,10 @@ inline sFractalTransformCommonCl clCopySFractalTransformCommonCl(
 	target.offset200 = toClFloat4(source.offset200);
 	target.offsetA200 = toClFloat4(source.offsetA200);
 	target.offset222 = toClFloat4(source.offset222);
+	target.offsetA222 = toClFloat4(source.offsetA222);
 	target.power025 = toClFloat4(source.power025);
 	target.power8 = toClFloat4(source.power8);
+	target.vec111 = toClFloat4(source.vec111);
 	target.rotation = toClFloat3(source.rotation);
 	target.rotation2 = toClFloat3(source.rotation2);
 	target.rotationVary = toClFloat3(source.rotationVary);
@@ -1337,12 +1373,16 @@ inline sFractalTransformCommonCl clCopySFractalTransformCommonCl(
 	target.scale3D444 = toClFloat4(source.scale3D444);
 	target.additionConstant0000 = toClFloat4(source.additionConstant0000);
 	target.offset0000 = toClFloat4(source.offset0000);
+	target.offsetA0000 = toClFloat4(source.offsetA0000);
 	target.offset1111 = toClFloat4(source.offset1111);
-	target.offset2222 = toClFloat4(source.offset2222);
 	target.offsetA1111 = toClFloat4(source.offsetA1111);
+	target.offsetB1111 = toClFloat4(source.offsetB1111);
+	target.offsetNeg1111 = toClFloat4(source.offsetNeg1111);
+	target.offset2222 = toClFloat4(source.offset2222);
 	target.additionConstant111d5 = toClFloat4(source.additionConstant111d5);
 	target.constantMultiplier1220 = toClFloat4(source.constantMultiplier1220);
 	target.scale0000 = toClFloat4(source.scale0000);
+	target.scale1111 = toClFloat4(source.scale1111);
 	target.rotationMatrix = toClMatrix33(source.rotationMatrix);
 	target.rotationMatrix2 = toClMatrix33(source.rotationMatrix2);
 	target.rotationMatrixVary = toClMatrix33(source.rotationMatrixVary);
@@ -1385,6 +1425,7 @@ inline sFractalTransformCommonCl clCopySFractalTransformCommonCl(
 	target.functionEnabledDFalse = source.functionEnabledDFalse;
 	target.functionEnabledEFalse = source.functionEnabledEFalse;
 	target.functionEnabledFFalse = source.functionEnabledFFalse;
+	target.functionEnabledJFalse = source.functionEnabledJFalse;
 	target.functionEnabledKFalse = source.functionEnabledKFalse;
 	target.functionEnabledM = source.functionEnabledM;
 	target.functionEnabledMFalse = source.functionEnabledMFalse;
@@ -1398,7 +1439,6 @@ inline sFractalTransformCommonCl clCopySFractalTransformCommonCl(
 	target.rotation2EnabledFalse = source.rotation2EnabledFalse;
 	target.sphereInversionEnabledFalse = source.sphereInversionEnabledFalse;
 	target.spheresEnabled = source.spheresEnabled;
-	target.functionEnabledTempFalse = source.functionEnabledTempFalse;
 	return target;
 }
 

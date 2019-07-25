@@ -478,7 +478,7 @@
        <number>2</number>
       </property>
       <item>
-       <layout class="QGridLayout" name="gridLayout_11" columnstretch="0,2,1">
+       <layout class="QGridLayout" name="gridLayout_11" columnstretch="0,0,0">
         <property name="spacing">
          <number>2</number>
         </property>
@@ -575,7 +575,7 @@
            <double>10.000000000000000</double>
           </property>
           <property name="singleStep">
-           <double>1.000000000000000</double>
+           <double>0.010000000000000</double>
           </property>
           <property name="value">
            <double>0.000000000000000</double>
@@ -583,6 +583,14 @@
          </widget>
         </item>
        </layout>
+      </item>
+      <item>
+       <widget class="QPushButton" name="pushButton_optimal_distance_between_eyes">
+        <property name="text">
+         <string>Calculate optimal distance
+between eyes</string>
+        </property>
+       </widget>
       </item>
      </layout>
     </widget>

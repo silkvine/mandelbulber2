@@ -1,7 +1,7 @@
 /**
  * Mandelbulber v2, a 3D fractal generator       ,=#MKNmMMKmmßMNWy,
  *                                             ,B" ]L,,p%%%,,,§;, "K
- * Copyright (C) 2017 Mandelbulber Team        §R-==%w["'~5]m%=L.=~5N
+ * Copyright (C) 2017-19 Mandelbulber Team     §R-==%w["'~5]m%=L.=~5N
  *                                        ,=mm=§M ]=4 yJKA"/-Nsaj  "Bw,==,,
  * This file is part of Mandelbulber.    §R.r= jw",M  Km .mM  FW ",§=ß., ,TN
  *                                     ,4R =%["w[N=7]J '"5=],""]]M,w,-; T=]M
@@ -45,32 +45,35 @@ kernel void DOFPhase2(__global sSortedZBufferCl *sortedZBuffer, __global float4 
 	int2 scr = (int2){x, y};
 	float z = sortedZBuffer[sortBufferSize - index - 1].z;
 
-	float blur = fabs(z - params.neutral) / z * params.deep + 1.0f;
-	if (blur > params.maxRadius) blur = params.maxRadius;
-	int size = (int)blur;
-	float4 center = inImage[x + y * params.width];
-	float factor = (3.14f * (blur * blur - blur) + 1.0f) / params.blurOpacity;
-
-	int2 scr2;
-
-	for (scr2.y = y - size; scr2.y <= y + size; scr2.y++)
+	if (z > 1e-8f)
 	{
-		for (scr2.x = x - size; scr2.x <= x + size; scr2.x++)
-		{
-			if (scr2.x >= 0 && scr2.x < params.width && scr2.y >= 0 && scr2.y < params.height)
-			{
-				float2 d = convert_float2(scr - scr2);
-				float r = length(d);
-				if (blur > r)
-				{
-					float op = clamp(blur - r, 0.0f, 1.0f);
-					op /= factor;
-					op = min(1.0f, op);
-					float opN = 1.0f - op;
+		float blur = fabs(z - params.neutral) / z * params.deep + 1.0f;
+		if (blur > params.maxRadius) blur = params.maxRadius;
+		int size = (int)blur;
+		float4 center = inImage[x + y * params.width];
+		float factor = (3.14f * (blur * blur - blur) + 1.0f) / params.blurOpacity;
 
-					uint address = scr2.x + scr2.y * params.width;
-					float4 old = out[address];
-					out[address] = opN * old + op * center;
+		int2 scr2;
+
+		for (scr2.y = y - size; scr2.y <= y + size; scr2.y++)
+		{
+			for (scr2.x = x - size; scr2.x <= x + size; scr2.x++)
+			{
+				if (scr2.x >= 0 && scr2.x < params.width && scr2.y >= 0 && scr2.y < params.height)
+				{
+					float2 d = convert_float2(scr - scr2);
+					float r = length(d);
+					if (blur > r)
+					{
+						float op = clamp(blur - r, 0.0f, 1.0f);
+						op /= factor;
+						op = min(1.0f, op);
+						float opN = 1.0f - op;
+
+						uint address = scr2.x + scr2.y * params.width;
+						float4 old = out[address];
+						out[address] = opN * old + op * center;
+					}
 				}
 			}
 		}

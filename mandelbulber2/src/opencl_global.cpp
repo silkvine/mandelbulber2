@@ -1,7 +1,7 @@
 /**
  * Mandelbulber v2, a 3D fractal generator       ,=#MKNmMMKmmßMNWy,
  *                                             ,B" ]L,,p%%%,,,§;, "K
- * Copyright (C) 2017-18 Mandelbulber Team     §R-==%w["'~5]m%=L.=~5N
+ * Copyright (C) 2017-19 Mandelbulber Team     §R-==%w["'~5]m%=L.=~5N
  *                                        ,=mm=§M ]=4 yJKA"/-Nsaj  "Bw,==,,
  * This file is part of Mandelbulber.    §R.r= jw",M  Km .mM  FW ",§=ß., ,TN
  *                                     ,4R =%["w[N=7]J '"5=],""]]M,w,-; T=]M
@@ -77,14 +77,30 @@ void cGlobalOpenCl::InitPlatfromAndDevices()
 	{
 		openClHardware->ListOpenClPlatforms();
 
-		// TODO: support dialogue box for device type
+		int selectedPlatformIndex = gPar->Get<int>("opencl_platform");
 
-		if (gPar->Get<int>("opencl_platform") >= 0)
+		if (openClHardware->getNumberOfPlatforms() > 0)
 		{
-			openClHardware->CreateContext(gPar->Get<int>("opencl_platform"),
-				cOpenClDevice::enumOpenClDeviceType(gPar->Get<int>("opencl_device_type")));
+			if (selectedPlatformIndex < 0
+					|| selectedPlatformIndex > openClHardware->getNumberOfPlatforms() - 1)
+			{
+				qCritical() << "Selected wrong OpenCL platform. Will be used first avaiable.";
+				selectedPlatformIndex = 0;
+				gPar->Set("opencl_platform", 0);
+			}
 
-			openClHardware->EnableDevicesByHashList(gPar->Get<QString>("opencl_device_list"));
+			if (selectedPlatformIndex >= 0)
+			{
+				openClHardware->CreateContext(gPar->Get<int>("opencl_platform"),
+					cOpenClDevice::enumOpenClDeviceType(gPar->Get<int>("opencl_device_type")));
+
+				openClHardware->EnableDevicesByHashList(gPar->Get<QString>("opencl_device_list"));
+			}
+		}
+		else
+		{
+			qCritical() << "No OpenCL platforms available!";
+			gPar->Set("opencl_enabled", false);
 		}
 	}
 }

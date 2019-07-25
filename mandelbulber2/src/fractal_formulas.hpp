@@ -120,6 +120,7 @@ void GeneralizedFoldBoxIteration(CVector4 &z, const sFractal *fractal, sExtended
 void HypercomplexIteration(CVector4 &z, const sFractal *fractal, sExtendedAux &aux);
 void Ides2Iteration(CVector4 &z, const sFractal *fractal, sExtendedAux &aux);
 void IdesIteration(CVector4 &z, const sFractal *fractal, sExtendedAux &aux);
+void IfsXYIteration(CVector4 &z, const sFractal *fractal, sExtendedAux &aux);
 
 void IqBulbIteration(CVector4 &z, const sFractal *fractal, sExtendedAux &aux);
 void JosKleinianIteration(CVector4 &z, const sFractal *fractal, sExtendedAux &aux);
@@ -137,7 +138,6 @@ void Mandelbulb3Iteration(CVector4 &z, const sFractal *fractal, sExtendedAux &au
 void Mandelbulb4Iteration(CVector4 &z, const sFractal *fractal, sExtendedAux &aux);
 
 void MandelbulbEyeIteration(CVector4 &z, const sFractal *fractal, sExtendedAux &aux);
-void MandelbulbEyeTestIteration(CVector4 &z, const sFractal *fractal, sExtendedAux &aux);
 
 void MandelbulbIteration(CVector4 &z, const sFractal *fractal, sExtendedAux &aux);
 
@@ -152,6 +152,7 @@ void MandelbulbKaliMultiIteration(CVector4 &z, const sFractal *fractal, sExtende
 void MandelbulbMultiIteration(CVector4 &z, const sFractal *fractal, sExtendedAux &aux);
 void MandelbulbMulti2Iteration(CVector4 &z, const sFractal *fractal, sExtendedAux &aux);
 void MandelbulbPower2Iteration(CVector4 &z, const sFractal *fractal, sExtendedAux &aux);
+void MandelbulbPower1234Iteration(CVector4 &z, const sFractal *fractal, sExtendedAux &aux);
 void MandelbulbPow2V2Iteration(CVector4 &z, const sFractal *fractal, sExtendedAux &aux);
 
 void MandelbulbQuatIteration(CVector4 &z, const sFractal *fractal, sExtendedAux &aux);
@@ -164,6 +165,8 @@ void MengerCrossKIFSIteration(CVector4 &z, const sFractal *fractal, sExtendedAux
 void MengerMod1Iteration(CVector4 &z, const sFractal *fractal, sExtendedAux &aux);
 void MengerMiddleModIteration(CVector4 &z, const sFractal *fractal, sExtendedAux &aux);
 void MengerOctoIteration(CVector4 &z, const sFractal *fractal, sExtendedAux &aux);
+void MengerPolyFoldIteration(CVector4 &z, const sFractal *fractal, sExtendedAux &aux);
+
 void MengerPrismShapeIteration(CVector4 &z, const sFractal *fractal, sExtendedAux &aux);
 void MengerPrismShape2Iteration(CVector4 &z, const sFractal *fractal, sExtendedAux &aux);
 void MengerPwr2PolyIteration(CVector4 &z, const sFractal *fractal, sExtendedAux &aux);
@@ -234,11 +237,14 @@ void TransfBoxOffsetIteration(CVector4 &z, const sFractal *fractal, sExtendedAux
 void TransfAbsAddConstantIteration(CVector4 &z, const sFractal *fractal, sExtendedAux &aux);
 void TransfAbsAddTgladFoldIteration(CVector4 &z, const sFractal *fractal, sExtendedAux &aux);
 void TransfAbsAddConditionalIteration(CVector4 &z, const sFractal *fractal, sExtendedAux &aux);
+void TransfAbsAddConditional2Iteration(CVector4 &z, const sFractal *fractal, sExtendedAux &aux);
 void TransfNegAbsAddConstantIteration(CVector4 &z, const sFractal *fractal, sExtendedAux &aux);
 void TransfAbsAddMultiIteration(CVector4 &z, const sFractal *fractal, sExtendedAux &aux);
-void TransfFoldingTetra3dIteration(CVector4 &z, const sFractal *fractal, sExtendedAux &aux);
-void TransfIterationWeightIteration(CVector4 &z, const sFractal *fractal, sExtendedAux &aux);
 
+void TransfDiagonalFoldIteration(CVector4 &z, const sFractal *fractal, sExtendedAux &aux);
+void TransfFoldingTetra3dIteration(CVector4 &z, const sFractal *fractal, sExtendedAux &aux);
+void TransfGnarlIteration(CVector4 &z, const sFractal *fractal, sExtendedAux &aux);
+void TransfIterationWeightIteration(CVector4 &z, const sFractal *fractal, sExtendedAux &aux);
 void TransfInvCylindricalIteration(CVector4 &z, const sFractal *fractal, sExtendedAux &aux);
 void TransfLinCombineCXYZIteration(CVector4 &z, const sFractal *fractal, sExtendedAux &aux);
 void TransfMengerFoldIteration(CVector4 &z, const sFractal *fractal, sExtendedAux &aux);
@@ -246,13 +252,16 @@ void TransfMultipleAngleIteration(CVector4 &z, const sFractal *fractal, sExtende
 void TransfOctoFoldIteration(CVector4 &z, const sFractal *fractal, sExtendedAux &aux);
 void TransfParabFoldIteration(CVector4 &z, const sFractal *fractal, sExtendedAux &aux);
 void TransfPlatonicSolidIteration(CVector4 &z, const sFractal *fractal, sExtendedAux &aux);
-void TransfPolyFoldSymIteration(CVector4 &z, const sFractal *fractal, sExtendedAux &aux);
+void TransfPolyFoldAtanIteration(CVector4 &z, const sFractal *fractal, sExtendedAux &aux);
+void TransfPolyFoldAtan2Iteration(CVector4 &z, const sFractal *fractal, sExtendedAux &aux);
+void TransfPolyFoldSymXYIteration(CVector4 &z, const sFractal *fractal, sExtendedAux &aux);
 void TransfPolyFoldSymMultiIteration(CVector4 &z, const sFractal *fractal, sExtendedAux &aux);
 void TransfRPowerIteration(CVector4 &z, const sFractal *fractal, sExtendedAux &aux);
 void TransfPwr2PolynomialIteration(CVector4 &z, const sFractal *fractal, sExtendedAux &aux);
 void TransfQuaternionFoldIteration(CVector4 &z, const sFractal *fractal, sExtendedAux &aux);
 void TransfReciprocal3Iteration(CVector4 &z, const sFractal *fractal, sExtendedAux &aux);
 void TransfRpow3Iteration(CVector4 &z, const sFractal *fractal, sExtendedAux &aux);
+void TransfRotateAboutVec3Iteration(CVector4 &z, const sFractal *fractal, sExtendedAux &aux);
 void TransfRotationIteration(CVector4 &z, const sFractal *fractal, sExtendedAux &aux);
 void TransfRotationIterControlsIteration(CVector4 &z, const sFractal *fractal, sExtendedAux &aux);
 void TransfRotationFoldingPlaneIteration(CVector4 &z, const sFractal *fractal, sExtendedAux &aux);
@@ -300,17 +309,20 @@ void Sierpinski4dIteration(CVector4 &z, const sFractal *fractal, sExtendedAux &a
 void Quaternion4dIteration(CVector4 &z, const sFractal *fractal, sExtendedAux &aux);
 
 void TransfAddConstant4dIteration(CVector4 &z, const sFractal *fractal, sExtendedAux &aux);
-void TransfBoxFold4dIteration(CVector4 &z, const sFractal *fractal, sExtendedAux &aux);
-void TransfBoxFold4dTgladIteration(CVector4 &z, const sFractal *fractal, sExtendedAux &aux);
-void TransfBoxWrap4dIteration(CVector4 &z, const sFractal *fractal, sExtendedAux &aux);
-void TransfClamp4dIteration(CVector4 &z, const sFractal *fractal, sExtendedAux &aux);
-
 void TransfAbsAddConstant4dIteration(CVector4 &z, const sFractal *fractal, sExtendedAux &aux);
+void TransfAbsAddMulti4dIteration(CVector4 &z, const sFractal *fractal, sExtendedAux &aux);
 void TransfAbsAddTgladFold4dIteration(CVector4 &z, const sFractal *fractal, sExtendedAux &aux);
 void TransfAbsAddConditional4dIteration(CVector4 &z, const sFractal *fractal, sExtendedAux &aux);
+void TransfBoxFold4dIteration(CVector4 &z, const sFractal *fractal, sExtendedAux &aux);
+void TransfBoxFold4dTgladIteration(CVector4 &z, const sFractal *fractal, sExtendedAux &aux);
+void TransfBoxTiling4dIteration(CVector4 &z, const sFractal *fractal, sExtendedAux &aux);
+void TransfBoxWrap4dIteration(CVector4 &z, const sFractal *fractal, sExtendedAux &aux);
+void TransfClamp4dIteration(CVector4 &z, const sFractal *fractal, sExtendedAux &aux);
 void TransfIterationWeight4dIteration(CVector4 &z, const sFractal *fractal, sExtendedAux &aux);
+void TransfOffsetSCurve4dIteration(CVector4 &z, const sFractal *fractal, sExtendedAux &aux);
 void TransfReciprocal4dIteration(CVector4 &z, const sFractal *fractal, sExtendedAux &aux);
 void TransfRotation4dIteration(CVector4 &z, const sFractal *fractal, sExtendedAux &aux);
+
 void TransfScale4dIteration(CVector4 &z, const sFractal *fractal, sExtendedAux &aux);
 void TransfSphericalFold4dIteration(CVector4 &z, const sFractal *fractal, sExtendedAux &aux);
 void TransfSurfBoxFoldV24dIteration(CVector4 &z, const sFractal *fractal, sExtendedAux &aux);
@@ -319,9 +331,7 @@ void TransfHybridColorIteration(CVector4 &z, const sFractal *fractal, sExtendedA
 void TransfHybridColor2Iteration(CVector4 &z, const sFractal *fractal, sExtendedAux &aux);
 
 void TestingIteration(CVector4 &z, const sFractal *fractal, sExtendedAux &aux);
-
 void Testing4dIteration(CVector4 &z, const sFractal *fractal, sExtendedAux &aux);
-
 void TestingLogIteration(CVector4 &z, const sFractal *fractal, sExtendedAux &aux);
 
 #endif /* MANDELBULBER2_SRC_FRACTAL_FORMULAS_HPP_ */

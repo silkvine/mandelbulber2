@@ -1,7 +1,7 @@
 /**
  * Mandelbulber v2, a 3D fractal generator       ,=#MKNmMMKmmßMNWy,
  *                                             ,B" ]L,,p%%%,,,§;, "K
- * Copyright (C) 2014-18 Mandelbulber Team     §R-==%w["'~5]m%=L.=~5N
+ * Copyright (C) 2014-19 Mandelbulber Team     §R-==%w["'~5]m%=L.=~5N
  *                                        ,=mm=§M ]=4 yJKA"/-Nsaj  "Bw,==,,
  * This file is part of Mandelbulber.    §R.r= jw",M  Km .mM  FW ",§=ß., ,TN
  *                                     ,4R =%["w[N=7]J '"5=],""]]M,w,-; T=]M
@@ -155,7 +155,7 @@ private:
 		sRGBAfloat objectColour;
 		sRGBAfloat specular;
 		CVector3 normal;
-		double fogOpacity;
+		float fogOpacity;
 		bool found;
 	};
 
@@ -182,6 +182,8 @@ private:
 		sRGBFloat texDiffuse;
 		sRGBFloat texColor;
 		sRGBFloat texLuminosity;
+		sRGBFloat texReflectance;
+		sRGBFloat texTransparency;
 	};
 
 	struct sRayStack
@@ -192,6 +194,17 @@ private:
 		sRGBAfloat transparentShader;
 		enumRayBranch rayBranch;
 		bool goDeeper;
+	};
+
+	struct sGradientsCollection
+	{
+		sRGBFloat surface;
+		sRGBFloat specular;
+		sRGBFloat diffuse;
+		sRGBFloat luminosity;
+		sRGBFloat roughness;
+		sRGBFloat reflectance;
+		sRGBFloat trasparency;
 	};
 
 	// functions
@@ -209,24 +222,25 @@ private:
 
 	// shaders
 	sRGBAfloat ObjectShader(const sShaderInputData &input, sRGBAfloat *surfaceColour,
-		sRGBAfloat *specularOut, sRGBFloat *iridescence) const;
+		sRGBAfloat *specularOut, sRGBFloat *iridescence, sGradientsCollection *gradients) const;
 	CVector3 CalculateNormals(const sShaderInputData &input) const;
 	static sRGBAfloat MainShading(const sShaderInputData &input);
 	sRGBAfloat MainShadow(const sShaderInputData &input) const;
 	sRGBAfloat SpecularHighlight(const sShaderInputData &input, CVector3 lightVector,
-		float specularWidth, float roughness) const;
-	sRGBAfloat SpecularHighlightCombined(
-		const sShaderInputData &input, CVector3 lightVector, sRGBAfloat surfaceColor) const;
-	sRGBAfloat SurfaceColour(const sShaderInputData &input) const;
+		float specularWidth, float roughness, sRGBFloat diffuseGradient) const;
+	sRGBAfloat SpecularHighlightCombined(const sShaderInputData &input, CVector3 lightVector,
+		sRGBAfloat surfaceColor, sRGBFloat diffuseGradient) const;
+	sRGBAfloat SurfaceColour(const sShaderInputData &input, sGradientsCollection *gradients) const;
 	sRGBAfloat FastAmbientOcclusion(const sShaderInputData &input) const;
 	sRGBAfloat AmbientOcclusion(const sShaderInputData &input) const;
 	sRGBAfloat EnvMapping(const sShaderInputData &input) const;
-	sRGBAfloat AuxLightsShader(
-		const sShaderInputData &input, sRGBAfloat surfaceColor, sRGBAfloat *specularOut) const;
+	sRGBAfloat AuxLightsShader(const sShaderInputData &input, sRGBAfloat surfaceColor,
+		sGradientsCollection *gradients, sRGBAfloat *specularOut) const;
 	double AuxShadow(
 		const sShaderInputData &input, double distance, CVector3 lightVector, double intensity) const;
 	sRGBAfloat LightShading(const sShaderInputData &input, sRGBAfloat surfaceColor,
-		const sLight *light, int number, sRGBAfloat *outSpecular) const;
+		const sLight *light, int number, sGradientsCollection *gradients,
+		sRGBAfloat *outSpecular) const;
 	sRGBAfloat BackgroundShader(const sShaderInputData &input) const;
 	sRGBAfloat FakeLights(
 		const sShaderInputData &input, sRGBAfloat surfaceColor, sRGBAfloat *fakeSpec) const;
@@ -236,6 +250,7 @@ private:
 	sRGBFloat TextureShader(
 		const sShaderInputData &input, texture::enumTextureSelection texSelect, cMaterial *mat) const;
 	CVector3 NormalMapShader(const sShaderInputData &input) const;
+	float RoughnessTexture(const sShaderInputData &input) const;
 	sRGBFloat IridescenceShader(const sShaderInputData &input) const;
 	sRGBFloat GlobalIlumination(const sShaderInputData &input, sRGBAfloat objectColor) const;
 
@@ -255,7 +270,7 @@ private:
 	CVector3 baseZ;
 	CVector3 viewAngle;
 	CVector3 shadowVector;
-	double actualHue;
+	float actualHue;
 	int AOVectorsCount;
 	int reflectionsMax;
 	bool stopRequest;

@@ -1,7 +1,7 @@
 /**
  * Mandelbulber v2, a 3D fractal generator       ,=#MKNmMMKmmßMNWy,
  *                                             ,B" ]L,,p%%%,,,§;, "K
- * Copyright (C) 2014-16 Mandelbulber Team     §R-==%w["'~5]m%=L.=~5N
+ * Copyright (C) 2019 Mandelbulber Team        §R-==%w["'~5]m%=L.=~5N
  *                                        ,=mm=§M ]=4 yJKA"/-Nsaj  "Bw,==,,
  * This file is part of Mandelbulber.    §R.r= jw",M  Km .mM  FW ",§=ß., ,TN
  *                                     ,4R =%["w[N=7]J '"5=],""]]M,w,-; T=]M
@@ -29,32 +29,39 @@
  *
  * Authors: Krzysztof Marczak (buddhi1980@gmail.com)
  *
- * cColorPalette class - color palette container
+ * cRenderWorker::RoughnessTexture method - gets roughness value form texture
  */
+#include <algorithm>
 
-#ifndef MANDELBULBER2_SRC_COLOR_PALETTE_HPP_
-#define MANDELBULBER2_SRC_COLOR_PALETTE_HPP_
+#include "render_data.hpp"
+#include "render_worker.hpp"
+#include "texture_mapping.hpp"
 
-#include <QtCore>
+using std::max;
 
-#include "color_structures.hpp"
-
-class cColorPalette
+float cRenderWorker::RoughnessTexture(const sShaderInputData &input) const
 {
-public:
-	cColorPalette();
-	cColorPalette(int size, int randomSeed, double saturation);
-	void AppendColor(const sRGB &color);
-	void ChangeColor(int index, const sRGB &color);
-	sRGB IndexToColour(int index) const;
-	sRGB GetColor(int index) const;
-	int GetSize() const { return paletteSize; }
-	bool IsInitialized() const { return isInitialized; }
+	cObjectData objectData = data->objectData[input.objectId];
+	CVector3 texX, texY;
+	double texturePixelSize;
+	CVector2<double> texPoint =
+		TextureMapping(input.point, input.normal, objectData, input.material, &texX, &texY)
+		+ CVector2<double>(0.5, 0.5);
 
-private:
-	QVector<sRGB> palette;
-	bool isInitialized;
-	int paletteSize;
-};
+	// mipmapping - calculation of texture pixel size
+	double delta = CalcDelta(input.point);
+	double deltaTexX =
+		(TextureMapping(input.point + texX * delta, input.normal, objectData, input.material)
+			+ CVector2<double>(0.5, 0.5) - texPoint)
+			.Length();
+	double deltaTexY =
+		(TextureMapping(input.point + texY * delta, input.normal, objectData, input.material)
+			+ CVector2<double>(0.5, 0.5) - texPoint)
+			.Length();
+	deltaTexX = fabs(deltaTexX) / fabs(input.viewVector.Dot(input.normal));
+	deltaTexY = fabs(deltaTexY) / fabs(input.viewVector.Dot(input.normal));
+	texturePixelSize = 1.0 / max(deltaTexX, deltaTexY);
 
-#endif /* MANDELBULBER2_SRC_COLOR_PALETTE_HPP_ */
+	sRGBFloat tex = input.material->roughnessTexture.Pixel(texPoint, texturePixelSize);
+	return (tex.R + tex.G + tex.B) / 3.0f;
+}

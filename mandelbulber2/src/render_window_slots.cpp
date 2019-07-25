@@ -521,7 +521,6 @@ void RenderWindow::slotMenuLoadPreset(QString filename)
 
 	gFlightAnimation->RefreshTable();
 	gKeyframeAnimation->RefreshTable();
-	gMainInterface->ReEnablePeriodicRefresh();
 	showDescriptionPopup();
 	setWindowTitle(QString("Mandelbulber (") + systemData.lastSettingsFile + ")");
 }
@@ -903,4 +902,19 @@ void RenderWindow::slotChangedComboGridType(int index)
 void RenderWindow::ResetGlobalStopRequest()
 {
 	gMainInterface->ResetGlobalStopRequest();
+}
+
+bool RenderWindow::eventFilter(QObject *obj, QEvent *event)
+{
+
+	if (event->type() == QEvent::ToolTip && !gPar->Get<bool>("display_tooltips"))
+	{
+		{
+			return true;
+		}
+	}
+	else
+	{
+		return QMainWindow::eventFilter(obj, event);
+	}
 }

@@ -92,6 +92,14 @@ float4 VolumetricShader(__constant sClInConstants *consts, sRenderData *renderDa
 
 		step *= (1.0f - Random(1000, &input->randomSeed) / 10000.0f);
 
+#ifdef ADVANCED_QUALITY
+		step = clamp(step, consts->params.absMinMarchingStep, consts->params.absMaxMarchingStep);
+
+		if (input2.distThresh > consts->params.absMinMarchingStep)
+			step = clamp(step, consts->params.relMinMarchingStep * input2.distThresh,
+				consts->params.relMaxMarchingStep * input2.distThresh);
+#endif
+
 		step = max(step, input2.distThresh);
 
 		bool end = false;
@@ -168,9 +176,10 @@ float4 VolumetricShader(__constant sClInConstants *consts, sRenderData *renderDa
 			outF = Fractal(consts, input2.point, calcParam, calcModeOrbitTrap, NULL, -1);
 			float r = outF.orbitTrapR;
 			r = sqrt(1.0f / (r + 1.0e-20f));
-			float fakeLight = 1.0f / (pow(r, 10.0f / consts->params.fakeLightsVisibilitySize)
-																	 * pow(10.0f, 10.0f / consts->params.fakeLightsVisibilitySize)
-																 + 1e-20f);
+			float fakeLight = 1.0f
+												/ (pow(r, 10.0f / consts->params.fakeLightsVisibilitySize)
+															* pow(10.0f, 10.0f / consts->params.fakeLightsVisibilitySize)
+														+ 0.1f);
 			float3 light = fakeLight * step * consts->params.fakeLightsVisibility;
 			output += light * consts->params.fakeLightsColor;
 			out4.s3 += fakeLight * step * consts->params.fakeLightsVisibility;

@@ -36,7 +36,8 @@
 #include "render_data.hpp"
 #include "render_worker.hpp"
 
-sRGBAfloat cRenderWorker::SurfaceColour(const sShaderInputData &input) const
+sRGBAfloat cRenderWorker::SurfaceColour(
+	const sShaderInputData &input, sGradientsCollection *gradients) const
 {
 	sRGBAfloat out;
 
@@ -44,7 +45,7 @@ sRGBAfloat cRenderWorker::SurfaceColour(const sShaderInputData &input) const
 	{
 		case fractal::objFractal:
 		{
-			sRGB colour(256, 256, 256);
+			sRGBFloat colour(1.0, 1.0, 1.0);
 			if (input.material->useColorsFromPalette)
 			{
 				int formulaIndex = input.objectId;
@@ -65,26 +66,70 @@ sRGBAfloat cRenderWorker::SurfaceColour(const sShaderInputData &input) const
 					tempPoint, 0, params->N * 10, params->common, formulaIndex, false, input.material);
 				sFractalOut fractOut;
 				Compute<fractal::calcModeColouring>(*fractal, fractIn, &fractOut);
-				int nrCol = floor(fractOut.colorIndex);
-				nrCol = abs(nrCol) % (248 * 256);
+				double nrCol = fmod(fabs(fractOut.colorIndex), 248.0 * 256.0); // kept for compatibility
 
-				int color_number;
+				double colorPosition = fmod(
+					nrCol / 256.0 / 10.0 * input.material->coloring_speed + input.material->paletteOffset,
+					1.0);
 
-				color_number =
-					int(nrCol * input.material->coloring_speed + 256 * input.material->paletteOffset) % 65536;
+				if (input.material->surfaceGradientEnable)
+				{
+					colour = input.material->gradientSurface.GetColorFloat(colorPosition, false);
+					// TODO - smooth mode for gradient
+					gradients->surface = colour;
+				}
+				else
+				{
+					colour.R = input.material->color.R / 65536.0;
+					colour.G = input.material->color.G / 65536.0;
+					colour.B = input.material->color.B / 65536.0;
+				}
 
-				colour = input.material->palette.IndexToColour(color_number);
+				if (input.material->specularGradientEnable)
+				{
+					gradients->specular =
+						input.material->gradientSpecular.GetColorFloat(colorPosition, false);
+				}
+
+				if (input.material->diffuseGradientEnable)
+				{
+					gradients->diffuse = input.material->gradientDiffuse.GetColorFloat(colorPosition, false);
+				}
+
+				if (input.material->luminosityGradientEnable)
+				{
+					gradients->luminosity =
+						input.material->gradientLuminosity.GetColorFloat(colorPosition, false);
+				}
+
+				if (input.material->roughnessGradientEnable)
+				{
+					gradients->roughness =
+						input.material->gradientRoughness.GetColorFloat(colorPosition, false);
+				}
+
+				if (input.material->reflectanceGradientEnable)
+				{
+					gradients->reflectance =
+						input.material->gradientReflectance.GetColorFloat(colorPosition, false);
+				}
+
+				if (input.material->transparencyGradientEnable)
+				{
+					gradients->trasparency =
+						input.material->gradientTransparency.GetColorFloat(colorPosition, false);
+				}
 			}
 			else
 			{
-				colour.R = input.material->color.R / 256.0;
-				colour.G = input.material->color.G / 256.0;
-				colour.B = input.material->color.B / 256.0;
+				colour.R = input.material->color.R / 65536.0;
+				colour.G = input.material->color.G / 65536.0;
+				colour.B = input.material->color.B / 65536.0;
 			}
 
-			out.R = colour.R / 256.0f;
-			out.G = colour.G / 256.0f;
-			out.B = colour.B / 256.0f;
+			out.R = colour.R;
+			out.G = colour.G;
+			out.B = colour.B;
 			break;
 		}
 

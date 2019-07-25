@@ -54,7 +54,8 @@ typedef struct
 	int count;
 } sRayMarchingOut;
 
-typedef enum {
+typedef enum
+{
 	rayBranchReflection = 0,
 	rayBranchRefraction = 1,
 	rayBranchDone = 2,
@@ -183,6 +184,14 @@ void RayMarching(sRayMarchingIn in, sRayMarchingOut *out, __constant sClInConsta
 
 		step *= (1.0f - Random(1000, randomSeed) / 10000.0f);
 
+#ifdef ADVANCED_QUALITY
+		step = clamp(step, consts->params.absMinMarchingStep, consts->params.absMaxMarchingStep);
+
+		if (distThresh > consts->params.absMinMarchingStep)
+			step = clamp(step, consts->params.relMinMarchingStep * distThresh,
+				consts->params.relMaxMarchingStep * distThresh);
+#endif
+
 		scan += step / length(in.direction);
 	}
 
@@ -298,7 +307,49 @@ sRayRecursionOut RayRecursion(sRayRecursionIn in, sRenderData *renderData,
 			__global sObjectDataCl *objectData = &renderData->objectsData[shaderInputData.objectId];
 			shaderInputData.material = renderData->materials[objectData->materialId];
 			shaderInputData.palette = renderData->palettes[objectData->materialId];
-			shaderInputData.paletteSize = renderData->paletteLengths[objectData->materialId];
+#ifdef USE_SURFACE_GRADIENT
+			shaderInputData.paletteSurfaceOffset =
+				renderData->paletteSurfaceOffsets[objectData->materialId];
+			shaderInputData.paletteSurfaceLength =
+				renderData->paletteSurfaceLengths[objectData->materialId];
+#endif
+#ifdef USE_SPECULAR_GRADIENT
+			shaderInputData.paletteSpecularOffset =
+				renderData->paletteSpecularOffsets[objectData->materialId];
+			shaderInputData.paletteSpecularLength =
+				renderData->paletteSpecularLengths[objectData->materialId];
+#endif
+#ifdef USE_DIFFUSE_GRADIENT
+			shaderInputData.paletteDiffuseOffset =
+				renderData->paletteDiffuseOffsets[objectData->materialId];
+			shaderInputData.paletteDiffuseLength =
+				renderData->paletteDiffuseLengths[objectData->materialId];
+#endif
+#ifdef USE_LUMINOSITY_GRADIENT
+			shaderInputData.paletteLuminosityOffset =
+				renderData->paletteLuminosityOffsets[objectData->materialId];
+			shaderInputData.paletteLuminosityLength =
+				renderData->paletteLuminosityLengths[objectData->materialId];
+#endif
+#ifdef USE_ROUGHNESS_GRADIENT
+			shaderInputData.paletteRoughnessOffset =
+				renderData->paletteRoughnessOffsets[objectData->materialId];
+			shaderInputData.paletteRoughnessLength =
+				renderData->paletteRoughnessLengths[objectData->materialId];
+#endif
+#ifdef USE_REFLECTANCE_GRADIENT
+			shaderInputData.paletteReflectanceOffset =
+				renderData->paletteReflectanceOffsets[objectData->materialId];
+			shaderInputData.paletteReflectanceLength =
+				renderData->paletteReflectanceLengths[objectData->materialId];
+#endif
+#ifdef USE_TRANSPARENCY_GRADIENT
+			shaderInputData.paletteTransparencyOffset =
+				renderData->paletteTransparencyOffsets[objectData->materialId];
+			shaderInputData.paletteTransparencyLength =
+				renderData->paletteTransparencyLengths[objectData->materialId];
+#endif
+
 			shaderInputData.stepCount = rayMarchingOut.count;
 			shaderInputData.randomSeed = *randomSeed;
 
@@ -323,17 +374,38 @@ sRayRecursionOut RayRecursion(sRayRecursionIn in, sRenderData *renderData,
 				shaderInputData.normal = normal;
 
 #ifdef USE_ROUGH_SURFACE
+				float roughnessGradient = 1.0f;
+
+#ifdef USE_ROUGHNESS_GRADIENT
+				if (shaderInputData.material->useColorsFromPalette
+						&& shaderInputData.material->roughnessGradientEnable)
+				{
+					sClGradientsCollection gradients;
+					SurfaceColor(consts, renderData, &shaderInputData, &calcParam, &gradients);
+					roughnessGradient = gradients.roughness.s0;
+				}
+#endif // USE_ROUGHNESS_GRADIENT
+
+				float roughnesTexture = 1.0f;
+#ifdef USE_TEXTURES
+#ifdef USE_ROUGHNESS_TEXTURE
+				roughnesTexture = RoughnessTexture(&shaderInputData, renderData, objectData,
+					shaderInputData.material->roughnessTextureIndex);
+#endif // USE_ROUGHNESS_TEXTURE
+#endif // USE_TEXTURES
+
 				if (shaderInputData.material->roughSurface)
 				{
 					float roughness = shaderInputData.material->surfaceRoughness;
 					// every axis is calculated twice because of simple Random() function (increase
 					// randomness)
-					normal.x += roughness * (Random(20000, randomSeed) / 10000.0f - 1.0f);
-					normal.x += roughness * (Random(20000, randomSeed) / 10000.0f - 1.0f);
-					normal.y += roughness * (Random(20000, randomSeed) / 10000.0f - 1.0f);
-					normal.y += roughness * (Random(20000, randomSeed) / 10000.0f - 1.0f);
-					normal.z += roughness * (Random(20000, randomSeed) / 10000.0f - 1.0f);
-					normal.z += roughness * (Random(20000, randomSeed) / 10000.0f - 1.0f);
+					float totalRoughness = roughnesTexture * roughnessGradient * roughness;
+					normal.x += totalRoughness * (Random(20000, randomSeed) / 10000.0f - 1.0f);
+					normal.x += totalRoughness * (Random(20000, randomSeed) / 10000.0f - 1.0f);
+					normal.y += totalRoughness * (Random(20000, randomSeed) / 10000.0f - 1.0f);
+					normal.y += totalRoughness * (Random(20000, randomSeed) / 10000.0f - 1.0f);
+					normal.z += totalRoughness * (Random(20000, randomSeed) / 10000.0f - 1.0f);
+					normal.z += totalRoughness * (Random(20000, randomSeed) / 10000.0f - 1.0f);
 					shaderInputData.normal = normal = normalize(normal);
 				}
 #endif // USE_ROUGH_SURFACE
@@ -532,7 +604,49 @@ sRayRecursionOut RayRecursion(sRayRecursionIn in, sRenderData *renderData,
 			__global sObjectDataCl *objectData = &renderData->objectsData[shaderInputData.objectId];
 			shaderInputData.material = renderData->materials[objectData->materialId];
 			shaderInputData.palette = renderData->palettes[objectData->materialId];
-			shaderInputData.paletteSize = renderData->paletteLengths[objectData->materialId];
+#ifdef USE_SURFACE_GRADIENT
+			shaderInputData.paletteSurfaceOffset =
+				renderData->paletteSurfaceOffsets[objectData->materialId];
+			shaderInputData.paletteSurfaceLength =
+				renderData->paletteSurfaceLengths[objectData->materialId];
+#endif
+#ifdef USE_SPECULAR_GRADIENT
+			shaderInputData.paletteSpecularOffset =
+				renderData->paletteSpecularOffsets[objectData->materialId];
+			shaderInputData.paletteSpecularLength =
+				renderData->paletteSpecularLengths[objectData->materialId];
+#endif
+#ifdef USE_DIFFUSE_GRADIENT
+			shaderInputData.paletteDiffuseOffset =
+				renderData->paletteDiffuseOffsets[objectData->materialId];
+			shaderInputData.paletteDiffuseLength =
+				renderData->paletteDiffuseLengths[objectData->materialId];
+#endif
+#ifdef USE_LUMINOSITY_GRADIENT
+			shaderInputData.paletteLuminosityOffset =
+				renderData->paletteLuminosityOffsets[objectData->materialId];
+			shaderInputData.paletteLuminosityLength =
+				renderData->paletteLuminosityLengths[objectData->materialId];
+#endif
+#ifdef USE_ROUGHNESS_GRADIENT
+			shaderInputData.paletteRoughnessOffset =
+				renderData->paletteRoughnessOffsets[objectData->materialId];
+			shaderInputData.paletteRoughnessLength =
+				renderData->paletteRoughnessLengths[objectData->materialId];
+#endif
+#ifdef USE_REFLECTANCE_GRADIENT
+			shaderInputData.paletteReflectanceOffset =
+				renderData->paletteReflectanceOffsets[objectData->materialId];
+			shaderInputData.paletteReflectanceLength =
+				renderData->paletteReflectanceLengths[objectData->materialId];
+#endif
+#ifdef USE_TRANSPARENCY_GRADIENT
+			shaderInputData.paletteTransparencyOffset =
+				renderData->paletteTransparencyOffsets[objectData->materialId];
+			shaderInputData.paletteTransparencyLength =
+				renderData->paletteTransparencyLengths[objectData->materialId];
+#endif
+
 			shaderInputData.stepCount = rayMarchingOut.count;
 			shaderInputData.randomSeed = *randomSeed;
 
@@ -588,11 +702,23 @@ sRayRecursionOut RayRecursion(sRayRecursionIn in, sRenderData *renderData,
 				shaderInputData.texLuminosity = TextureShader(consts, &calcParam, &shaderInputData,
 					renderData, objectData, shaderInputData.material->luminosityTextureIndex, 0.0f);
 #endif
+
+#ifdef USE_REFLECTANCE_TEXTURE
+				shaderInputData.texReflectance = TextureShader(consts, &calcParam, &shaderInputData,
+					renderData, objectData, shaderInputData.material->reflectanceTextureIndex, 1.0f);
 #endif
 
+#ifdef USE_TRANSPARENCY_TEXTURE
+				shaderInputData.texTransparency = TextureShader(consts, &calcParam, &shaderInputData,
+					renderData, objectData, shaderInputData.material->transparencyTextureIndex, 1.0f);
+#endif
+#endif
+
+				sClGradientsCollection gradients;
+
 				specular = 0.0f;
-				objectShader = ObjectShader(
-					consts, renderData, &shaderInputData, &calcParam, &objectColour, &specular, &iridescence);
+				objectShader = ObjectShader(consts, renderData, &shaderInputData, &calcParam, &objectColour,
+					&specular, &iridescence, &gradients);
 
 #ifdef MONTE_CARLO_DOF_GLOBAL_ILLUMINATION
 				float3 globalIllumination = GlobalIlumination(
@@ -600,7 +726,7 @@ sRayRecursionOut RayRecursion(sRayRecursionIn in, sRenderData *renderData,
 				objectShader += globalIllumination;
 #endif // MONTE_CARLO_DOF_GLOBAL_ILLUMINATION
 
-// calculate reflectance according to Fresnel equations
+				// calculate reflectance according to Fresnel equations
 
 #if defined(USE_REFRACTION) || defined(USE_REFLECTANCE)
 				// prepare refraction values
@@ -640,25 +766,53 @@ sRayRecursionOut RayRecursion(sRayRecursionIn in, sRenderData *renderData,
 				resultShader.xyz = (objectShader);
 
 #ifdef USE_REFRACTION
-				if (shaderInputData.material->transparencyColorTheSame)
-					transparentShader *= (float4){objectColour.s0, objectColour.s1, objectColour.s2, 1.0f};
+#ifdef USE_TRANSPARENCY_GRADIENT
+				if (shaderInputData.material->useColorsFromPalette
+						&& shaderInputData.material->transparencyGradientEnable)
+					transparentShader *= (float4){
+						gradients.transparency.s0, gradients.transparency.s1, gradients.transparency.s2, 1.0f};
 				else
+#endif // USE_TRANSPARENCY_GRADIENT
 					transparentShader *= (float4){shaderInputData.material->transparencyColor.s0,
 						shaderInputData.material->transparencyColor.s1,
 						shaderInputData.material->transparencyColor.s2, 1.0f};
+
+#ifdef USE_TRANSPARENCY_TEXTURE
+				if (shaderInputData.material->useTransparencyTexture)
+				{
+					float texTransInt = shaderInputData.material->transparencyTextureIntensity;
+					float texTransIntN = 1.0f - shaderInputData.material->transparencyTextureIntensity;
+					float3 texTransparencyIntens =
+						shaderInputData.texTransparency * texTransInt + texTransIntN;
+					transparentShader *= (float4){texTransparencyIntens.s0, texTransparencyIntens.s1,
+						texTransparencyIntens.s2, transparentShader.s3};
+				}
+#endif // USE_TRANSPARENCY_TEXTURE
 #endif // USE_REFRACTION
 
 #if defined(USE_REFRACTION) || defined(USE_REFLECTANCE)
 				if (renderData->reflectionsMax > 0)
 				{
+#if defined(USE_DIFFUSION_TEXTURE) || defined(USE_DIFFUSE_GRADIENT)
+					float3 reflectDiffused = reflect;
+
 #ifdef USE_DIFFUSION_TEXTURE
 					float diffusionIntensity = shaderInputData.material->diffusionTextureIntensity;
 					float diffusionIntensityN = 1.0f - diffusionIntensity;
 
-					float3 reflectDiffused = reflect * shaderInputData.texDiffuse * diffusionIntensity
-																	 + reflect * diffusionIntensityN;
+					reflectDiffused = reflect * shaderInputData.texDiffuse * diffusionIntensity
+														+ reflect * diffusionIntensityN;
+#endif // USE_DIFFUSION_TEXTURE
 
-#else // not USE_DIFFUSION_TEXTURE
+#ifdef USE_DIFFUSE_GRADIENT
+					if (shaderInputData.material->useColorsFromPalette
+							&& shaderInputData.material->diffuseGradientEnable)
+					{
+						reflectDiffused *= gradients.diffuse;
+					}
+#endif // USE_DIFFUSE_GRADIENT
+
+#else // not USE_DIFFUSION_TEXTURE or USE_DIFFUSE_GRADIENT
 #ifdef USE_REFLECTANCE
 					float3 reflectDiffused = reflect;
 #else
@@ -668,9 +822,12 @@ sRayRecursionOut RayRecursion(sRayRecursionIn in, sRenderData *renderData,
 
 					reflectDiffused *= iridescence;
 
-					if (shaderInputData.material->reflectionsColorTheSame)
-						reflectDiffused *= objectColour;
+#ifdef USE_REFLECTANCE_GRADIENT
+					if (shaderInputData.material->useColorsFromPalette
+							&& shaderInputData.material->reflectanceGradientEnable)
+						reflectDiffused *= gradients.reflectance;
 					else
+#endif // USE_REFLECTANCE_GRADIENT
 						reflectDiffused *= shaderInputData.material->reflectionsColor;
 
 #ifdef USE_REFRACTION
@@ -679,6 +836,15 @@ sRayRecursionOut RayRecursion(sRayRecursionIn in, sRenderData *renderData,
 #endif // USE_REFRACTION
 
 #ifdef USE_REFLECTANCE
+#ifdef USE_REFLECTANCE_TEXTURE
+					if (shaderInputData.material->useReflectanceTexture)
+					{
+						float texReflInt = shaderInputData.material->reflectanceTextureIntensity;
+						float texReflIntN = 1.0f - shaderInputData.material->reflectanceTextureIntensity;
+						reflectDiffused *= shaderInputData.texReflectance * texReflInt + texReflIntN;
+					}
+#endif // USE_REFLECTANCE_TEXTURE
+
 					float reflectDiffusedAvg =
 						(reflectDiffused.s0 + reflectDiffused.s1 + reflectDiffused.s2) / 3.0f;
 

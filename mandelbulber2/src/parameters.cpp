@@ -102,8 +102,6 @@ template void cParameterContainer::addParam<sRGB>(QString name, sRGB defaultVal,
 	enumMorphType morphType, enumParameterType parType, QStringList enumLookup);
 template void cParameterContainer::addParam<bool>(QString name, bool defaultVal,
 	enumMorphType morphType, enumParameterType parType, QStringList enumLookup);
-template void cParameterContainer::addParam<cColorPalette>(QString name, cColorPalette defaultVal,
-	enumMorphType morphType, enumParameterType parType, QStringList enumLookup);
 
 // defining of params with limits
 template <class T>
@@ -258,7 +256,6 @@ template void cParameterContainer::Set<CVector3>(QString name, CVector3 val);
 template void cParameterContainer::Set<CVector4>(QString name, CVector4 val);
 template void cParameterContainer::Set<sRGB>(QString name, sRGB val);
 template void cParameterContainer::Set<bool>(QString name, bool val);
-template void cParameterContainer::Set<cColorPalette>(QString name, cColorPalette val);
 
 // set parameter value by name and index
 template <class T>
@@ -319,7 +316,12 @@ template CVector3 cParameterContainer::Get<CVector3>(QString name) const;
 template CVector4 cParameterContainer::Get<CVector4>(QString name) const;
 template sRGB cParameterContainer::Get<sRGB>(QString name) const;
 template bool cParameterContainer::Get<bool>(QString name) const;
-template cColorPalette cParameterContainer::Get<cColorPalette>(QString name) const;
+
+template <>
+float cParameterContainer::Get<float>(QString name) const
+{
+	return float(Get<double>(name));
+}
 
 // get parameter value by name and index
 template <class T>
@@ -356,6 +358,12 @@ template CVector4 cParameterContainer::Get<CVector4>(QString name, int index) co
 template sRGB cParameterContainer::Get<sRGB>(QString name, int index) const;
 template bool cParameterContainer::Get<bool>(QString name, int index) const;
 
+template <>
+float cParameterContainer::Get<float>(QString name, int index) const
+{
+	return float(Get<double>(name, index));
+}
+
 // get parameter default value by name
 template <class T>
 T cParameterContainer::GetDefault(QString name) const
@@ -382,7 +390,6 @@ template CVector3 cParameterContainer::GetDefault<CVector3>(QString name) const;
 template CVector4 cParameterContainer::GetDefault<CVector4>(QString name) const;
 template sRGB cParameterContainer::GetDefault<sRGB>(QString name) const;
 template bool cParameterContainer::GetDefault<bool>(QString name) const;
-template cColorPalette cParameterContainer::GetDefault<cColorPalette>(QString name) const;
 
 // get parameter value by name and index
 template <class T>
@@ -650,24 +657,35 @@ QMap<QString, QString> cParameterContainer::getImageMeta()
 	map.insert(QString("fov"), QString::number(Get<double>("fov")));
 
 	QString perspectiveType = "";
-	switch(Get<int>("perspective_type")){
-		case params::perspThreePoint:
-			perspectiveType = "persp_three_point";
-			break;
-		case params::perspFishEye:
-			perspectiveType = "persp_fish_eye";
-			break;
-		case params::perspEquirectangular:
-			perspectiveType = "persp_equirectangular";
-			break;
-		case params::perspFishEyeCut:
-			perspectiveType = "persp_fish_eye_cut";
-			break;
+	switch (Get<int>("perspective_type"))
+	{
+		case params::perspThreePoint: perspectiveType = "persp_three_point"; break;
+		case params::perspFishEye: perspectiveType = "persp_fish_eye"; break;
+		case params::perspEquirectangular: perspectiveType = "persp_equirectangular"; break;
+		case params::perspFishEyeCut: perspectiveType = "persp_fish_eye_cut"; break;
 	}
 	map.insert(QString("perspective_type"), perspectiveType);
 	map.insert(QString("stereo_enabled"), Get<bool>("stereo_enabled") ? "yes" : "no");
 	map.insert(QString("stereo_eye_distance"), QString::number(Get<double>("stereo_eye_distance")));
-	map.insert(QString("stereo_infinite_correction"), QString::number(Get<double>("stereo_infinite_correction")));
+	map.insert(QString("stereo_infinite_correction"),
+		QString::number(Get<double>("stereo_infinite_correction")));
 
 	return map;
+}
+
+void cParameterContainer::SetAsGradient(QString name)
+{
+	QMutexLocker lock(&m_lock);
+
+	QMap<QString, cOneParameter>::iterator it;
+	it = myMap.find(name);
+	if (it != myMap.end())
+	{
+		it->SetAsGradient();
+	}
+	else
+	{
+		qWarning() << "cParameterContainer::SetAsGradient(QString name): element '" << name
+							 << "' doesn't exists" << endl;
+	}
 }

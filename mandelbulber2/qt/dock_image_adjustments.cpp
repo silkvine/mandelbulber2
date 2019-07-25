@@ -1,7 +1,7 @@
 /**
  * Mandelbulber v2, a 3D fractal generator       ,=#MKNmMMKmmßMNWy,
  *                                             ,B" ]L,,p%%%,,,§;, "K
- * Copyright (C) 2016-18 Mandelbulber Team     §R-==%w["'~5]m%=L.=~5N
+ * Copyright (C) 2016-19 Mandelbulber Team     §R-==%w["'~5]m%=L.=~5N
  *                                        ,=mm=§M ]=4 yJKA"/-Nsaj  "Bw,==,,
  * This file is part of Mandelbulber.    §R.r= jw",M  Km .mM  FW ",§=ß., ,TN
  *                                     ,4R =%["w[N=7]J '"5=],""]]M,w,-; T=]M
@@ -95,6 +95,8 @@ void cDockImageAdjustments::ConnectSignals() const
 		SLOT(slotImageHeightChanged(int)));
 	connect(ui->checkBox_connect_detail_level, SIGNAL(stateChanged(int)), this,
 		SLOT(slotCheckedDetailLevelLock(int)));
+	connect(ui->pushButton_optimal_distance_between_eyes, SIGNAL(clicked()), this,
+		SLOT(slotOptimalDistancesBetweenEyes()));
 
 	// quality presets
 	connect(ui->pushButton_quality_preset_very_low, SIGNAL(clicked()), this,
@@ -145,7 +147,7 @@ void cDockImageAdjustments::slotChangedComboImageProportion(int index) const
 	ui->spinboxInt_image_width->setEnabled(enableSlider);
 
 	const int height = ui->spinboxInt_image_height->value();
-	int width = height * ratio;
+	int width = int(height * ratio);
 
 	if (!enableSlider)
 	{
@@ -180,7 +182,7 @@ void cDockImageAdjustments::slotPressedResolutionPreset() const
 	double calculatedProportion = double(width) / height;
 	for (int i = 0; i < numberOfProportions; i++)
 	{
-		if (calculatedProportion == ProportionEnumToRatio(enumImageProportion(i)))
+		if (qFuzzyCompare(calculatedProportion, ProportionEnumToRatio(enumImageProportion(i))))
 		{
 			proportion = enumImageProportion(i);
 		}
@@ -402,4 +404,13 @@ void cDockImageAdjustments::slotChangeResolutionPreset()
 	cSettings settings(cSettings::formatAppSettings);
 	settings.CreateText(resolutionPresets, nullptr);
 	settings.SaveToFile(presetsFile);
+}
+
+void cDockImageAdjustments::slotOptimalDistancesBetweenEyes() const
+{
+	gMainInterface->SynchronizeInterface(gPar, gParFractal, qInterface::read);
+	double distToFractal = gMainInterface->GetDistanceForPoint(gPar->Get<CVector3>("camera"));
+	double distanceBetweenEyes = distToFractal * 0.05;
+	gPar->Set("stereo_eye_distance", distanceBetweenEyes);
+	SynchronizeInterfaceWindow(ui->groupCheck_stereo_enabled, gPar, qInterface::write);
 }

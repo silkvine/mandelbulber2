@@ -83,6 +83,7 @@ struct sExtendedAux
 
 	double r;
 	double DE;
+	double dist;
 	double pseudoKleinianDE;
 	double linearDE;
 
@@ -92,8 +93,7 @@ struct sExtendedAux
 	double color;
 	double colorHybrid;
 
-	// temp for trial
-	double temp100;
+	double temp1000;
 	double addDist;
 };
 
@@ -504,6 +504,7 @@ struct sFractalTransformCommon
 	double offset0005;
 	double offset05;
 	double offset1;
+	double offsetA1;
 	double offset105;
 	double offset2;
 	double offset4;
@@ -576,14 +577,14 @@ struct sFractalTransformCommon
 	int stopIterationsK;
 	int startIterationsM;
 	int stopIterationsM;
-
 	int startIterationsO;
 	int stopIterationsO;
-
 	int startIterationsP;
 	int stopIterationsP1;
 	int startIterationsR;
 	int stopIterationsR;
+	int startIterationsRV;
+	int stopIterationsRV;
 	int startIterationsS;
 	int stopIterationsS;
 	int startIterationsT;
@@ -604,6 +605,7 @@ struct sFractalTransformCommon
 	int intB;
 	int int1;
 	int int2;
+	int int3;
 	int int6;
 	int int8X;
 	int int8Y;
@@ -646,8 +648,10 @@ struct sFractalTransformCommon
 	CVector4 offset200;
 	CVector4 offsetA200;
 	CVector4 offset222;
+	CVector4 offsetA222;
 	CVector4 power025;
 	CVector4 power8;
+	CVector4 vec111;
 
 	CVector3 rotation; // vec3s
 	CVector3 rotation2;
@@ -668,14 +672,16 @@ struct sFractalTransformCommon
 
 	CVector4 additionConstant0000;
 	CVector4 offset0000;
+	CVector4 offsetA0000;
 	CVector4 offset1111;
 	CVector4 offsetA1111;
+	CVector4 offsetB1111;
 	CVector4 offsetNeg1111;
 	CVector4 offset2222;
-
 	CVector4 additionConstant111d5;
 	CVector4 constantMultiplier1220;
 	CVector4 scale0000;
+	CVector4 scale1111;
 
 	CRotationMatrix rotationMatrix;
 	CRotationMatrix rotationMatrix2;
@@ -736,7 +742,7 @@ struct sFractalTransformCommon
 	bool sphereInversionEnabledFalse;
 	bool spheresEnabled;
 
-	bool functionEnabledTempFalse;
+	// bool functionEnabledTempFalse;
 };
 
 struct sFractal

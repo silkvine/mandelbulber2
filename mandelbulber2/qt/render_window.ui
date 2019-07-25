@@ -329,6 +329,7 @@
     <addaction name="actionSave_settings_to_clipboard"/>
     <addaction name="separator"/>
     <addaction name="actionImport_settings_from_old_Mandelbulber"/>
+    <addaction name="actionImport_settings_from_Mandelbulb3d"/>
     <addaction name="separator"/>
     <addaction name="actionExportVoxelLayers"/>
     <addaction name="actionExport_Mesh"/>
@@ -1236,7 +1237,7 @@
      <normaloff>:/system/icons/document-save.svg</normaloff>:/system/icons/document-save.svg</iconset>
    </property>
    <property name="text">
-    <string>&amp;Save window layout as default</string>
+    <string>&amp;Save window layout as startup</string>
    </property>
   </action>
   <action name="actionDefault_docks_positions">
@@ -1245,7 +1246,7 @@
      <normaloff>:/system/icons/edit-undo.png</normaloff>:/system/icons/edit-undo.png</iconset>
    </property>
    <property name="text">
-    <string>&amp;Default window layout</string>
+    <string>&amp;Reset window layout to default</string>
    </property>
   </action>
   <action name="actionAnimation_docks_positions">
@@ -1315,6 +1316,18 @@
    </property>
    <property name="shortcut">
     <string notr="true">Ctrl+I</string>
+   </property>
+  </action>
+  <action name="actionImport_settings_from_Mandelbulb3d">
+   <property name="icon">
+    <iconset theme="document-open" resource="icons.qrc">
+     <normaloff>:/system/icons/document-open.svg</normaloff>:/system/icons/document-open.svg</iconset>
+   </property>
+   <property name="text">
+    <string>&amp;Import settings from Mandelbulb3d...</string>
+   </property>
+   <property name="shortcut">
+    <string notr="true">Ctrl+Alt+I</string>
    </property>
   </action>
   <action name="actionExportVoxelLayers">

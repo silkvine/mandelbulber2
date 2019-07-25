@@ -1,7 +1,7 @@
 /**
  * Mandelbulber v2, a 3D fractal generator       ,=#MKNmMMKmmßMNWy,
  *                                             ,B" ]L,,p%%%,,,§;, "K
- * Copyright (C) 2014-18 Mandelbulber Team     §R-==%w["'~5]m%=L.=~5N
+ * Copyright (C) 2014-19 Mandelbulber Team     §R-==%w["'~5]m%=L.=~5N
  *                                        ,=mm=§M ]=4 yJKA"/-Nsaj  "Bw,==,,
  * This file is part of Mandelbulber.    §R.r= jw",M  Km .mM  FW ",§=ß., ,TN
  *                                     ,4R =%["w[N=7]J '"5=],""]]M,w,-; T=]M
@@ -44,6 +44,7 @@ cOneParameter::cOneParameter()
 	parType = paramStandard;
 	limitsDefined = false;
 	isEmpty = true;
+	isGradientString = false;
 }
 
 cOneParameter::~cOneParameter() = default;
@@ -54,6 +55,7 @@ void cOneParameter::copy(const cOneParameter &other)
 	parType = other.parType;
 	limitsDefined = other.limitsDefined;
 	isEmpty = other.isEmpty;
+	isGradientString = other.isGradientString;
 }
 
 void cOneParameter::copyNotMovable(const cOneParameter &other)
@@ -129,7 +131,6 @@ template void cOneParameter::Set<CVector3>(CVector3 val, enumValueSelection sele
 template void cOneParameter::Set<CVector4>(CVector4 val, enumValueSelection selection);
 template void cOneParameter::Set<sRGB>(sRGB val, enumValueSelection selection);
 template void cOneParameter::Set<bool>(bool val, enumValueSelection selection);
-template void cOneParameter::Set<cColorPalette>(cColorPalette val, enumValueSelection selection);
 
 // get parameter value
 template <class T>
@@ -154,7 +155,6 @@ template CVector3 cOneParameter::Get<CVector3>(enumValueSelection selection) con
 template CVector4 cOneParameter::Get<CVector4>(enumValueSelection selection) const;
 template sRGB cOneParameter::Get<sRGB>(enumValueSelection selection) const;
 template bool cOneParameter::Get<bool>(enumValueSelection selection) const;
-template cColorPalette cOneParameter::Get<cColorPalette>(enumValueSelection selection) const;
 
 bool cOneParameter::isDefaultValue() const
 {

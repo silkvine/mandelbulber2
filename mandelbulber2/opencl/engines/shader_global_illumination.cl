@@ -1,7 +1,7 @@
 /**
  * Mandelbulber v2, a 3D fractal generator       ,=#MKNmMMKmmßMNWy,
  *                                             ,B" ]L,,p%%%,,,§;, "K
- * Copyright (C) 2018 Mandelbulber Team        §R-==%w["'~5]m%=L.=~5N
+ * Copyright (C) 2018-19 Mandelbulber Team     §R-==%w["'~5]m%=L.=~5N
  *                                        ,=mm=§M ]=4 yJKA"/-Nsaj  "Bw,==,,
  * This file is part of Mandelbulber.    §R.r= jw",M  Km .mM  FW ",§=ß., ,TN
  *                                     ,4R =%["w[N=7]J '"5=],""]]M,w,-; T=]M
@@ -40,6 +40,9 @@ float3 GlobalIlumination(__constant sClInConstants *consts, sRenderData *renderD
 	float3 out = 0.0f;
 	sShaderInputDataCl inputCopy = *input;
 	float3 objectColorTemp = objectColor;
+	float totalOpacity = 0.0f;
+
+	bool finished = false;
 	for (int rayDepth = 0; rayDepth < consts->params.reflectionsMax; rayDepth++)
 	{
 		float3 reflectedDirection = inputCopy.normal;
@@ -54,6 +57,10 @@ float3 GlobalIlumination(__constant sClInConstants *consts, sRenderData *renderD
 		float dist = 0.0f;
 		bool found = false;
 		int objectId = 0;
+
+		float4 resultShader = 0.0f;
+		float3 newColor = objectColor;
+
 		for (float scan = inputCopy.distThresh; scan < consts->params.viewDistanceMax;
 				 scan += dist * consts->params.DEFactor)
 		{
@@ -80,6 +87,7 @@ float3 GlobalIlumination(__constant sClInConstants *consts, sRenderData *renderD
 					inputCopy.distThresh, inputCopy.invertMode, calcParam);
 				inputCopy.normal = normal;
 				inputCopy.objectId = objectId;
+				inputCopy.depth = scan;
 
 				found = true;
 				break;
@@ -95,7 +103,43 @@ float3 GlobalIlumination(__constant sClInConstants *consts, sRenderData *renderD
 			__global sObjectDataCl *objectData = &renderData->objectsData[inputCopy.objectId];
 			inputCopy.material = renderData->materials[objectData->materialId];
 			inputCopy.palette = renderData->palettes[objectData->materialId];
-			inputCopy.paletteSize = renderData->paletteLengths[objectData->materialId];
+
+#ifdef USE_SURFACE_GRADIENT
+			inputCopy.paletteSurfaceOffset = renderData->paletteSurfaceOffsets[objectData->materialId];
+			inputCopy.paletteSurfaceLength = renderData->paletteSurfaceLengths[objectData->materialId];
+#endif
+#ifdef USE_SPECULAR_GRADIENT
+			inputCopy.paletteSpecularOffset = renderData->paletteSpecularOffsets[objectData->materialId];
+			inputCopy.paletteSpecularLength = renderData->paletteSpecularLengths[objectData->materialId];
+#endif
+#ifdef USE_DIFFUSE_GRADIENT
+			inputCopy.paletteDiffuseOffset = renderData->paletteDiffuseOffsets[objectData->materialId];
+			inputCopy.paletteDiffuseLength = renderData->paletteDiffuseLengths[objectData->materialId];
+#endif
+#ifdef USE_LUMINOSITY_GRADIENT
+			inputCopy.paletteLuminosityOffset =
+				renderData->paletteLuminosityOffsets[objectData->materialId];
+			inputCopy.paletteLuminosityLength =
+				renderData->paletteLuminosityLengths[objectData->materialId];
+#endif
+#ifdef USE_ROUGHNESS_GRADIENT
+			inputCopy.paletteRoughnessOffset =
+				renderData->paletteRoughnessOffsets[objectData->materialId];
+			inputCopy.paletteRoughnessLength =
+				renderData->paletteRoughnessLengths[objectData->materialId];
+#endif
+#ifdef USE_REFLECTANCE_GRADIENT
+			inputCopy.paletteReflectanceOffset =
+				renderData->paletteReflectanceOffsets[objectData->materialId];
+			inputCopy.paletteReflectanceLength =
+				renderData->paletteReflectanceLengths[objectData->materialId];
+#endif
+#ifdef USE_TRANSPARENCY_GRADIENT
+			inputCopy.paletteTransparencyOffset =
+				renderData->paletteTransparencyOffsets[objectData->materialId];
+			inputCopy.paletteTransparencyLength =
+				renderData->paletteTransparencyLengths[objectData->materialId];
+#endif
 
 #if USE_TEXTURES
 #ifdef USE_COLOR_TEXTURE
@@ -114,18 +158,38 @@ float3 GlobalIlumination(__constant sClInConstants *consts, sRenderData *renderD
 #endif
 #endif
 
-			float3 objectShader = ObjectShader(
-				consts, renderData, &inputCopy, calcParam, &objectColor, &specular, &iridescence);
+			sClGradientsCollection gradients;
 
-			out += objectShader * objectColorTemp;
-			objectColorTemp = objectColor;
+			float3 objectShader = ObjectShader(consts, renderData, &inputCopy, calcParam, &objectColor,
+				&specular, &iridescence, &gradients);
+
+			newColor = objectColor;
+			resultShader.xyz = objectShader;
 		}
 		else
 		{
+			inputCopy.point = inputCopy.point + consts->params.viewDistanceMax * randomizedDirection;
+			inputCopy.depth = consts->params.viewDistanceMax;
+
 			float3 backgroundShader = BackgroundShader(consts, renderData, image2dBackground, &inputCopy);
-			out += backgroundShader * objectColorTemp;
-			break;
+			resultShader.xyz = backgroundShader;
+			finished = true;
 		}
+
+		float opacityOut = 0.0f;
+
+#ifdef MC_GI_VOLUMETRIC
+		resultShader =
+			VolumetricShader(consts, renderData, &inputCopy, calcParam, resultShader, &opacityOut);
+#endif
+
+		float influence = clamp(1.0f - totalOpacity, 0.0f, 1.0f);
+		out += resultShader.xyz * objectColorTemp * influence;
+
+		totalOpacity += opacityOut;
+		objectColorTemp = newColor;
+
+		if (finished || totalOpacity > 1.0) break;
 	}
 	return out;
 }

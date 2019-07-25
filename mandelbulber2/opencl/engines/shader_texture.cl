@@ -1,7 +1,7 @@
 /**
  * Mandelbulber v2, a 3D fractal generator       ,=#MKNmMMKmmßMNWy,
  *                                             ,B" ]L,,p%%%,,,§;, "K
- * Copyright (C) 2018 Mandelbulber Team        §R-==%w["'~5]m%=L.=~5N
+ * Copyright (C) 2018-19 Mandelbulber Team     §R-==%w["'~5]m%=L.=~5N
  *                                        ,=mm=§M ]=4 yJKA"/-Nsaj  "Bw,==,,
  * This file is part of Mandelbulber.    §R.r= jw",M  Km .mM  FW ",§=ß., ,TN
  *                                     ,4R =%["w[N=7]J '"5=],""]]M,w,-; T=]M
@@ -33,7 +33,9 @@
  */
 
 #ifdef USE_TEXTURES
-#if defined(USE_COLOR_TEXTURE) || defined(USE_DIFFUSION_TEXTURE) || defined(USE_LUMINOSITY_TEXTURE)
+#if defined(USE_COLOR_TEXTURE) || defined(USE_DIFFUSION_TEXTURE)         \
+	|| defined(USE_LUMINOSITY_TEXTURE) || defined(USE_REFLECTANCE_TEXTURE) \
+	|| defined(USE_TRANSPARENCY_TEXTURE)
 float3 TextureShader(__constant sClInConstants *consts, sClCalcParams *calcParams,
 	sShaderInputDataCl *input, sRenderData *renderData, __global sObjectDataCl *objectData,
 	int textureIndex, float3 substituteColor)

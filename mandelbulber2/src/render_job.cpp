@@ -41,6 +41,7 @@
 #include "ao_modes.h"
 #include "cimage.hpp"
 #include "fractparams.hpp"
+#include "global_data.hpp"
 #include "image_scale.hpp"
 #include "netrender.hpp"
 #include "nine_fractals.hpp"
@@ -131,8 +132,8 @@ bool cRenderJob::Init(enumMode _mode, const cRenderingConfiguration &config)
 	// needed when image has to fit in widget
 	if (useSizeFromImage)
 	{
-		paramsContainer->Set("image_width", image->GetWidth());
-		paramsContainer->Set("image_height", image->GetHeight());
+		paramsContainer->Set("image_width", int(image->GetWidth()));
+		paramsContainer->Set("image_height", int(image->GetHeight()));
 	}
 	width = paramsContainer->Get<int>("image_width");
 	height = paramsContainer->Get<int>("image_height");
@@ -149,6 +150,8 @@ bool cRenderJob::Init(enumMode _mode, const cRenderingConfiguration &config)
 	sImageOptional imageOptional;
 	imageOptional.optionalNormal = paramsContainer->Get<bool>("normal_enabled");
 	imageOptional.optionalSpecular = paramsContainer->Get<bool>("specular_enabled");
+	imageOptional.optionalWorld = paramsContainer->Get<bool>("world_enabled");
+	imageOptional.optionalDiffuse = paramsContainer->Get<bool>("diffuse_enabled");
 
 	emit updateProgressAndStatus(
 		QObject::tr("Initialization"), QObject::tr("Setting up image buffers"), 0.0);
@@ -180,8 +183,8 @@ bool cRenderJob::Init(enumMode _mode, const cRenderingConfiguration &config)
 		{
 			connect(this, SIGNAL(SendNetRenderJob(cParameterContainer, cFractalContainer, QStringList)),
 				gNetRender, SLOT(SetCurrentJob(cParameterContainer, cFractalContainer, QStringList)));
-			connect(this, SIGNAL(SendNetRenderSetup(int, int, QList<int>)), gNetRender,
-				SLOT(SendSetup(int, int, QList<int>)));
+			connect(this, SIGNAL(SendNetRenderSetup(int, QList<int>)), gNetRender,
+				SLOT(SendSetup(int, QList<int>)));
 		}
 	}
 
@@ -232,6 +235,46 @@ bool cRenderJob::InitImage(int w, int h, const sImageOptional &optional)
 	}
 }
 
+void cRenderJob::LoadTextures(int frameNo, const cRenderingConfiguration &config)
+{
+	if (gNetRender->IsClient() && renderData->configuration.UseNetRender())
+	{
+		// get received textures from NetRender buffer
+		if (paramsContainer->Get<bool>("textured_background"))
+			renderData->textures.backgroundTexture.FromQByteArray(
+				gNetRender->GetTexture(paramsContainer->Get<QString>("file_background"), frameNo),
+				cTexture::doNotUseMipmaps);
+
+		if (paramsContainer->Get<bool>("env_mapping_enable"))
+			renderData->textures.envmapTexture.FromQByteArray(
+				gNetRender->GetTexture(paramsContainer->Get<QString>("file_envmap"), frameNo),
+				cTexture::doNotUseMipmaps);
+
+		if (paramsContainer->Get<int>("ambient_occlusion_mode") == params::AOModeMultipleRays
+				&& paramsContainer->Get<bool>("ambient_occlusion_enabled"))
+			renderData->textures.lightmapTexture.FromQByteArray(
+				gNetRender->GetTexture(paramsContainer->Get<QString>("file_lightmap"), frameNo),
+				cTexture::doNotUseMipmaps);
+	}
+	else
+	{
+		if (paramsContainer->Get<bool>("textured_background"))
+			renderData->textures.backgroundTexture =
+				cTexture(paramsContainer->Get<QString>("file_background"), cTexture::doNotUseMipmaps,
+					frameNo, config.UseIgnoreErrors());
+
+		if (paramsContainer->Get<bool>("env_mapping_enable"))
+			renderData->textures.envmapTexture = cTexture(paramsContainer->Get<QString>("file_envmap"),
+				cTexture::doNotUseMipmaps, frameNo, config.UseIgnoreErrors());
+
+		if (paramsContainer->Get<int>("ambient_occlusion_mode") == params::AOModeMultipleRays
+				&& paramsContainer->Get<bool>("ambient_occlusion_enabled"))
+			renderData->textures.lightmapTexture =
+				cTexture(paramsContainer->Get<QString>("file_lightmap"), cTexture::doNotUseMipmaps, frameNo,
+					config.UseIgnoreErrors());
+	}
+}
+
 void cRenderJob::PrepareData(const cRenderingConfiguration &config)
 {
 	WriteLog("Init renderData", 2);
@@ -272,42 +315,7 @@ void cRenderJob::PrepareData(const cRenderingConfiguration &config)
 
 	if (loadTextures)
 	{
-		if (gNetRender->IsClient() && renderData->configuration.UseNetRender())
-		{
-			// get received textures from NetRender buffer
-			if (paramsContainer->Get<bool>("textured_background"))
-				renderData->textures.backgroundTexture.FromQByteArray(
-					gNetRender->GetTexture(paramsContainer->Get<QString>("file_background"), frameNo),
-					cTexture::doNotUseMipmaps);
-
-			if (paramsContainer->Get<bool>("env_mapping_enable"))
-				renderData->textures.envmapTexture.FromQByteArray(
-					gNetRender->GetTexture(paramsContainer->Get<QString>("file_envmap"), frameNo),
-					cTexture::doNotUseMipmaps);
-
-			if (paramsContainer->Get<int>("ambient_occlusion_mode") == params::AOModeMultipleRays
-					&& paramsContainer->Get<bool>("ambient_occlusion_enabled"))
-				renderData->textures.lightmapTexture.FromQByteArray(
-					gNetRender->GetTexture(paramsContainer->Get<QString>("file_lightmap"), frameNo),
-					cTexture::doNotUseMipmaps);
-		}
-		else
-		{
-			if (paramsContainer->Get<bool>("textured_background"))
-				renderData->textures.backgroundTexture =
-					cTexture(paramsContainer->Get<QString>("file_background"), cTexture::doNotUseMipmaps,
-						frameNo, config.UseIgnoreErrors());
-
-			if (paramsContainer->Get<bool>("env_mapping_enable"))
-				renderData->textures.envmapTexture = cTexture(paramsContainer->Get<QString>("file_envmap"),
-					cTexture::doNotUseMipmaps, frameNo, config.UseIgnoreErrors());
-
-			if (paramsContainer->Get<int>("ambient_occlusion_mode") == params::AOModeMultipleRays
-					&& paramsContainer->Get<bool>("ambient_occlusion_enabled"))
-				renderData->textures.lightmapTexture =
-					cTexture(paramsContainer->Get<QString>("file_lightmap"), cTexture::doNotUseMipmaps,
-						frameNo, config.UseIgnoreErrors());
-		}
+		LoadTextures(frameNo, config);
 	}
 
 	// assign stop handler
@@ -401,6 +409,90 @@ bool cRenderJob::Execute()
 		}
 	}
 
+#ifdef USE_OPENCL
+	if (paramsContainer->Get<bool>("opencl_enabled")
+			&& cOpenClEngineRenderFractal::enumClRenderEngineMode(
+					 paramsContainer->Get<int>("opencl_mode"))
+					 != cOpenClEngineRenderFractal::clRenderEngineTypeNone)
+	{
+		cProgressText progressText;
+		progressText.ResetTimer();
+
+		*renderData->stopRequest = false;
+
+		for (int repeat = 0; repeat < noOfRepeats; repeat++)
+		{
+			SetupStereoEyes(repeat, twoPassStereo);
+
+			// move parameters from containers to structures
+			sParamRender *params = new sParamRender(paramsContainer, &renderData->objectData);
+			cNineFractals *fractals = new cNineFractals(fractalContainer, paramsContainer);
+
+			renderData->ValidateObjects();
+
+			image->SetImageParameters(params->imageAdjustments);
+
+			InitStatistics(fractals);
+			emit updateStatistics(renderData->statistics);
+
+			image->SetFastPreview(true);
+
+			// render all with OpenCL
+			result = RenderFractalWithOpenCl(params, fractals, &progressText);
+
+			if (renderData->stereo.isEnabled()
+					&& (renderData->stereo.GetMode() == cStereo::stereoLeftRight
+							 || renderData->stereo.GetMode() == cStereo::stereoTopBottom))
+			{
+				// stereoscopic rendering of SSAO (separate for each half of image)
+				cRegion<int> region;
+				region = renderData->stereo.GetRegion(
+					CVector2<int>(image->GetWidth(), image->GetHeight()), cStereo::eyeLeft);
+				RenderSSAOWithOpenCl(params, region, &progressText, &result);
+				region = renderData->stereo.GetRegion(
+					CVector2<int>(image->GetWidth(), image->GetHeight()), cStereo::eyeRight);
+				RenderSSAOWithOpenCl(params, region, &progressText, &result);
+			}
+			else
+			{
+				RenderSSAOWithOpenCl(params, renderData->screenRegion, &progressText, &result);
+			}
+
+			RenderDOFWithOpenCl(params, &result);
+
+			if (!*renderData->stopRequest)
+			{
+				if (cOpenClEngineRenderFractal::enumClRenderEngineMode(
+							paramsContainer->Get<int>("opencl_mode"))
+							== cOpenClEngineRenderFractal::clRenderEngineTypeFast
+						|| mode == flightAnimRecord)
+					image->SetFastPreview(true);
+				else
+					image->SetFastPreview(false);
+
+				if (image->IsPreview())
+				{
+					image->UpdatePreview();
+					WriteLog("image->GetImageWidget()->update()", 2);
+					emit updateImage();
+				}
+			}
+
+			if (twoPassStereo && repeat == 0) renderData->stereo.StoreImageInBuffer(image);
+
+			delete params;
+			delete fractals;
+		} // next repeat
+
+		image->SetFastPreview(false);
+
+		gApplication->processEvents();
+		emit updateProgressAndStatus(
+			tr("OpenCl - rendering - all finished"), progressText.getText(1.0), 1.0);
+	}
+
+#endif
+
 	if (twoPassStereo)
 	{
 		renderData->stereo.MixImages(image);
@@ -414,81 +506,6 @@ bool cRenderJob::Execute()
 			emit updateImage();
 		}
 	}
-
-#ifdef USE_OPENCL
-	if (paramsContainer->Get<bool>("opencl_enabled")
-			&& cOpenClEngineRenderFractal::enumClRenderEngineMode(
-					 paramsContainer->Get<int>("opencl_mode"))
-					 != cOpenClEngineRenderFractal::clRenderEngineTypeNone)
-	{
-		cProgressText progressText;
-		progressText.ResetTimer();
-
-		*renderData->stopRequest = false;
-
-		// move parameters from containers to structures
-		sParamRender *params = new sParamRender(paramsContainer, &renderData->objectData);
-		cNineFractals *fractals = new cNineFractals(fractalContainer, paramsContainer);
-
-		renderData->ValidateObjects();
-
-		image->SetImageParameters(params->imageAdjustments);
-
-		InitStatistics(fractals);
-
-		image->SetFastPreview(true);
-
-		// render all with OpenCL
-		result = RenderFractalWithOpenCl(params, fractals, &progressText);
-
-		if (renderData->stereo.isEnabled()
-				&& (renderData->stereo.GetMode() == cStereo::stereoLeftRight
-						 || renderData->stereo.GetMode() == cStereo::stereoTopBottom))
-		{
-			// stereoscopic rendering of SSAO (separate for each half of image)
-			cRegion<int> region;
-			region = renderData->stereo.GetRegion(
-				CVector2<int>(image->GetWidth(), image->GetHeight()), cStereo::eyeLeft);
-			RenderSSAOWithOpenCl(params, region, &progressText, &result);
-			region = renderData->stereo.GetRegion(
-				CVector2<int>(image->GetWidth(), image->GetHeight()), cStereo::eyeRight);
-			RenderSSAOWithOpenCl(params, region, &progressText, &result);
-		}
-		else
-		{
-			RenderSSAOWithOpenCl(params, renderData->screenRegion, &progressText, &result);
-		}
-
-		RenderDOFWithOpenCl(params, &result);
-
-		if (!*renderData->stopRequest)
-		{
-			if (cOpenClEngineRenderFractal::enumClRenderEngineMode(
-						paramsContainer->Get<int>("opencl_mode"))
-						== cOpenClEngineRenderFractal::clRenderEngineTypeFast
-					|| mode == flightAnimRecord)
-				image->SetFastPreview(true);
-			else
-				image->SetFastPreview(false);
-
-			if (image->IsPreview())
-			{
-				image->UpdatePreview();
-				WriteLog("image->GetImageWidget()->update()", 2);
-				emit updateImage();
-			}
-		}
-
-		image->SetFastPreview(false);
-
-		emit updateProgressAndStatus(
-			tr("OpenCl - rendering - all finished"), progressText.getText(1.0), 1.0);
-
-		delete params;
-		delete fractals;
-	}
-
-#endif
 
 	if (result)
 		emit fullyRendered(tr("Finished Render"), tr("The image has been rendered completely."));
@@ -556,7 +573,8 @@ void cRenderJob::InitNetRender()
 	if (gNetRender->IsServer())
 	{
 		// new random id for NetRender
-		qint32 identification = rand();
+		qint32 renderId = rand();
+		gNetRender->SetCurrentRenderId(renderId);
 
 		// calculation of starting positions list and sending id to clients
 		renderData->netRenderStartingPositions.clear();
@@ -583,7 +601,7 @@ void cRenderJob::InitNetRender()
 
 				if (clientWorkerIndex >= gNetRender->GetWorkerCount(clientIndex))
 				{
-					emit SendNetRenderSetup(clientIndex, identification, startingPositionsToSend);
+					emit SendNetRenderSetup(clientIndex, startingPositionsToSend);
 					clientIndex++;
 					clientWorkerIndex = 0;
 					startingPositionsToSend.clear();
@@ -730,8 +748,26 @@ void cRenderJob::RenderDOFWithOpenCl(sParamRender *params, bool *result)
 				SIGNAL(updateProgressAndStatus(const QString &, const QString &, double)), this,
 				SIGNAL(updateProgressAndStatus(const QString &, const QString &, double)));
 
-			*result = gOpenCl->openclEngineRenderDOF->RenderDOF(
-				params, paramsContainer, image, renderData->stopRequest, renderData->screenRegion);
+			if (renderData->stereo.isEnabled()
+					&& (renderData->stereo.GetMode() == cStereo::stereoLeftRight
+							 || renderData->stereo.GetMode() == cStereo::stereoTopBottom))
+			{
+				cRegion<int> region;
+				region = renderData->stereo.GetRegion(
+					CVector2<int>(image->GetWidth(), image->GetHeight()), cStereo::eyeLeft);
+				*result = gOpenCl->openclEngineRenderDOF->RenderDOF(
+					params, paramsContainer, image, renderData->stopRequest, region);
+
+				region = renderData->stereo.GetRegion(
+					CVector2<int>(image->GetWidth(), image->GetHeight()), cStereo::eyeRight);
+				*result = gOpenCl->openclEngineRenderDOF->RenderDOF(
+					params, paramsContainer, image, renderData->stopRequest, region);
+			}
+			else
+			{
+				*result = gOpenCl->openclEngineRenderDOF->RenderDOF(
+					params, paramsContainer, image, renderData->stopRequest, renderData->screenRegion);
+			}
 		}
 	}
 }
@@ -765,7 +801,7 @@ void cRenderJob::ConnectNetRenderSignalsSlots(const cRenderer *renderer)
 			SLOT(NewLinesArrived(QList<int>, QList<QByteArray>)));
 		QObject::connect(renderer, SIGNAL(SendToDoList(int, QList<int>)), gNetRender,
 			SLOT(SendToDoList(int, QList<int>)));
-		QObject::connect(renderer, SIGNAL(StopAllClients()), gNetRender, SLOT(StopAll()));
+		QObject::connect(renderer, SIGNAL(StopAllClients()), gNetRender, SLOT(StopAllClients()));
 	}
 }
 

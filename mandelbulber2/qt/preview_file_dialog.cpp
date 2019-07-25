@@ -156,6 +156,7 @@ void PreviewFileDialog::OnCurrentChanged(const QString &_filename)
 			{
 				par->Set("opencl_mode", gPar->Get<int>("opencl_mode"));
 				par->Set("opencl_enabled", gPar->Get<bool>("opencl_enabled"));
+				if (!gPar->Get<bool>("thumbnails_with_opencl")) par->Set("opencl_enabled", false);
 				description->setText(par->Get<QString>("description"));
 				thumbWidget->AssignParameters(*par, *parFractal);
 				thumbWidget->update();
@@ -196,7 +197,7 @@ void PreviewFileDialog::slotUpdateProgressAndStatus(
 {
 	info->setText(text);
 	if (!progressBar->isVisible()) progressBar->setVisible(true);
-	progressBar->setValue(progress * 1000.0);
+	progressBar->setValue(int(progress * 1000.0));
 	progressBar->setTextVisible(true);
 	progressBar->setFormat(progressText);
 	update();

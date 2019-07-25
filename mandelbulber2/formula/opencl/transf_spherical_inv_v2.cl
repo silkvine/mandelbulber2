@@ -22,28 +22,15 @@ REAL4 TransfSphericalInvV2Iteration(REAL4 z, __constant sFractalCl *fractal, sEx
 	// unconditional mode
 	if (fractal->transformCommon.functionEnabledCz)
 	{
-		if (fractal->transformCommon.functionEnabledTempFalse) // start temp code
+		if (aux->i >= fractal->transformCommon.startIterationsD
+				&& aux->i < fractal->transformCommon.stopIterationsD1)
 		{
-			if (aux->i < 1)
-			{
-				z += fractal->transformCommon.offset000;
-				rr = dot(z, z);
-				z *= native_divide(fractal->transformCommon.maxR2d1, rr);
-				z += fractal->transformCommon.additionConstant000 - fractal->transformCommon.offset000;
-			}
-		}
-		else // end temp code
-		{
-			if (aux->i >= fractal->transformCommon.startIterationsD
-					&& aux->i < fractal->transformCommon.stopIterationsD1)
-			{
-				z += fractal->transformCommon.offset000;
-				rr = dot(z, z);
-				z *= native_divide(fractal->transformCommon.maxR2d1, rr);
-				z += fractal->transformCommon.additionConstant000 - fractal->transformCommon.offset000;
-				// REAL r = native_sqrt(rr);
-				aux->DE = native_divide((fractal->transformCommon.maxR2d1), rr);
-			}
+			z += fractal->transformCommon.offset000;
+			rr = dot(z, z);
+			z *= native_divide(fractal->transformCommon.maxR2d1, rr);
+			z += fractal->transformCommon.additionConstant000 - fractal->transformCommon.offset000;
+			// REAL r = native_sqrt(rr);
+			aux->DE = native_divide((fractal->transformCommon.maxR2d1), rr);
 		}
 	}
 
@@ -86,8 +73,8 @@ REAL4 TransfSphericalInvV2Iteration(REAL4 z, __constant sFractalCl *fractal, sEx
 		{
 			REAL lengthAB = fractal->transformCommon.scaleE1 - fractal->transformCommon.offsetC0;
 
-			if (fractal->transformCommon.functionEnabledyFalse) // Mode 3a
-			{																										// linear addition 0.0f at Max,
+			if (fractal->transformCommon.functionEnabledyFalse) // Mode 3a, linear addition 0.0f at Max,
+			{
 				if (rr < fractal->transformCommon.offsetC0)
 					mode +=
 						rr
@@ -107,8 +94,8 @@ REAL4 TransfSphericalInvV2Iteration(REAL4 z, __constant sFractalCl *fractal, sEx
 						fractal->transformCommon.offsetB0 * lengthAB);
 			}
 
-			if (fractal->transformCommon.functionEnabledwFalse) // Mode 3c
-			{																										// basic parabolic curve
+			if (fractal->transformCommon.functionEnabledwFalse) // Mode 3c, basic parabolic curve
+			{
 
 				REAL halfLen = native_divide(fractal->transformCommon.scaleE1, 2.0f);
 				REAL slope = native_divide(2.0f, fractal->transformCommon.scaleE1);

@@ -275,8 +275,7 @@ QString cSettings::CreateOneLine(const cParameterContainer *par, QString name) c
 	{
 		QString value;
 		enumVarType type = par->GetVarType(name);
-		if (!par->isDefaultValue(name) || format == formatFullText || format == formatNetRender
-				|| format == formatAppSettings)
+		if (!par->isDefaultValue(name) || format == formatFullText || format == formatNetRender)
 		{
 			if (type == typeBool)
 			{
@@ -734,6 +733,8 @@ bool cSettings::DecodeOneLine(cParameterContainer *par, QString line)
 
 	Compatibility(parameterName, value);
 
+	if (parameterName == "skip") return true;
+
 	if (parameterName.left(parameterName.indexOf('_')) == "primitive")
 	{
 		if (!par->IfExists(parameterName))
@@ -958,6 +959,45 @@ void cSettings::Compatibility(QString &name, QString &value) const
 			name.replace("amplitude", "relative_amplitude");
 		}
 	}
+
+	if (fileVersion < 2.19)
+	{
+		if (name.contains("surface_color_palette"))
+		{
+			name.replace("surface_color_palette", "surface_color_gradient");
+
+			QStringList split = value.split(" ");
+			int numberOfColors = split.size();
+
+			// in case if last color is not a valid color (e.g. empty)
+			if (split.last().size() < 6) numberOfColors -= 1;
+
+			double step = 1.0 / numberOfColors;
+			QString newValue;
+			for (int i = 0; i < numberOfColors; i++)
+			{
+				int pos = int(i * step * 10000.0);
+				if (i > 0) newValue += " ";
+				newValue += QString("%1 %2").arg(pos).arg(split[i]);
+			}
+			value = newValue;
+		}
+
+		if (name.contains("luminosity_color_thesame"))
+			name.replace("luminosity_color_thesame", "luminosity_gradient_enable");
+
+		if (name.contains("reflections_color_thesame"))
+			name.replace("reflections_color_thesame", "reflectance_gradient_enable");
+
+		if (name.contains("transparency_color_thesame"))
+			name.replace("transparency_color_thesame", "transparency_gradient_enable");
+
+		if (name.contains("coloring_palette_size")) name = "skip";
+
+		if (name.contains("coloring_random_seed")) name = "skip";
+
+		if (name.contains("coloring_saturation")) name = "skip";
+	}
 }
 
 void cSettings::Compatibility2(cParameterContainer *par, cFractalContainer *fract)
@@ -1023,6 +1063,41 @@ void cSettings::Compatibility2(cParameterContainer *par, cFractalContainer *frac
 			}
 		}
 	}
+
+	if (fileVersion < 2.19)
+	{
+		QSet<QString> materialList;
+		QStringList listOfParameters = par->GetListOfParameters();
+		for (QString paramName : listOfParameters)
+		{
+			if (paramName.left(3) == "mat" && paramName.contains("is_defined"))
+			{
+				int firstDash = paramName.indexOf("_");
+				materialList.insert(paramName.left(firstDash));
+			}
+		}
+
+		for (QString mat : materialList)
+		{
+			QString coloringOffsetParameter = mat + "_coloring_palette_offset";
+			QString colorPaletteParameter = mat + "_surface_color_gradient";
+			QString coloringSpeedParameter = mat + "_coloring_speed";
+			int paletteSize = par->Get<QString>(colorPaletteParameter).split(" ").size() / 2;
+			par->Set(coloringOffsetParameter, par->Get<double>(coloringOffsetParameter) / paletteSize);
+			par->Set(
+				coloringSpeedParameter, par->Get<double>(coloringSpeedParameter) * 10.0 / paletteSize);
+
+			if (par->Get<bool>(mat + "_luminosity_gradient_enable"))
+				par->Set(mat + "_luminosity_gradient", par->Get<QString>(mat + "_surface_color_gradient"));
+
+			if (par->Get<bool>(mat + "_reflectance_gradient_enable"))
+				par->Set(mat + "_reflectance_gradient", par->Get<QString>(mat + "_surface_color_gradient"));
+
+			if (par->Get<bool>(mat + "_transparency_gradient_enable"))
+				par->Set(
+					mat + "_transparency_gradient", par->Get<QString>(mat + "_surface_color_gradient"));
+		}
+	}
 }
 
 bool cSettings::DecodeFramesHeader(
@@ -1045,43 +1120,63 @@ bool cSettings::DecodeFramesHeader(
 					QString lastTwo = fullParameterName.right(2);
 					if (lastTwo == "_x") // check if it's CVector4
 					{
-						// check if there are at least 2 parameters left and they are *_y and *_z
-						bool isCVector4 = false;
-						if (i + 3 < lineSplit.size())
-						{
-							QString lastTwoY = lineSplit[i + 1].right(2);
-							QString lastTwoZ = lineSplit[i + 2].right(2);
-							QString lastTwoW = lineSplit[i + 3].right(2);
-							if (lastTwoY == "_y" && lastTwoZ == "_z" && lastTwoW == "_w")
-							{
-								fullParameterName = fullParameterName.left(fullParameterName.length() - 2);
-								i += 3;
-								isCVector4 = true;
-							}
-						}
+						// check if parameter with _x doesn't exists in the container
+						int firstUnderscore = fullParameterName.indexOf('_');
+						QString containerName = fullParameterName.left(firstUnderscore);
+						QString parameterName = fullParameterName.mid(firstUnderscore + 1);
+						cParameterContainer *selectedContainer =
+							cAnimationFrames::ContainerSelector(containerName, par, fractPar);
 
-						if (!isCVector4 && i + 2 < lineSplit.size()) // check if it's CVector3
+						if (!selectedContainer->IfExists(parameterName))
 						{
-							QString lastTwoY = lineSplit[i + 1].right(2);
-							QString lastTwoZ = lineSplit[i + 2].right(2);
-							if (lastTwoY == "_y" && lastTwoZ == "_z")
+							// check if there are at least 2 parameters left and they are *_y and *_z
+							bool isCVector4 = false;
+							if (i + 3 < lineSplit.size())
 							{
-								fullParameterName = fullParameterName.left(fullParameterName.length() - 2);
-								i += 2;
+								QString lastTwoY = lineSplit[i + 1].right(2);
+								QString lastTwoZ = lineSplit[i + 2].right(2);
+								QString lastTwoW = lineSplit[i + 3].right(2);
+								if (lastTwoY == "_y" && lastTwoZ == "_z" && lastTwoW == "_w")
+								{
+									fullParameterName = fullParameterName.left(fullParameterName.length() - 2);
+									i += 3;
+									isCVector4 = true;
+								}
+							}
+
+							if (!isCVector4 && i + 2 < lineSplit.size()) // check if it's CVector3
+							{
+								QString lastTwoY = lineSplit[i + 1].right(2);
+								QString lastTwoZ = lineSplit[i + 2].right(2);
+								if (lastTwoY == "_y" && lastTwoZ == "_z")
+								{
+									fullParameterName = fullParameterName.left(fullParameterName.length() - 2);
+									i += 2;
+								}
 							}
 						}
 					}
 					else if (lastTwo == "_R") // check if it's RGB
 					{
-						// check if there are at least 2 parameters left and they are *_G and *_B
-						if (i + 2 < lineSplit.size())
+						// check if parameter with _R doesn't exists in the container
+						int firstUnderscore = fullParameterName.indexOf('_');
+						QString containerName = fullParameterName.left(firstUnderscore);
+						QString parameterName = fullParameterName.mid(firstUnderscore + 1);
+						cParameterContainer *selectedContainer =
+							cAnimationFrames::ContainerSelector(containerName, par, fractPar);
+
+						if (!selectedContainer->IfExists(parameterName))
 						{
-							QString lastTwoG = lineSplit[i + 1].right(2);
-							QString lastTwoB = lineSplit[i + 2].right(2);
-							if (lastTwoG == "_G" && lastTwoB == "_B")
+							// check if there are at least 2 parameters left and they are *_G and *_B
+							if (i + 2 < lineSplit.size())
 							{
-								fullParameterName = fullParameterName.left(fullParameterName.length() - 2);
-								i += 2;
+								QString lastTwoG = lineSplit[i + 1].right(2);
+								QString lastTwoB = lineSplit[i + 2].right(2);
+								if (lastTwoG == "_G" && lastTwoB == "_B")
+								{
+									fullParameterName = fullParameterName.left(fullParameterName.length() - 2);
+									i += 2;
+								}
 							}
 						}
 					}
@@ -1093,6 +1188,7 @@ bool cSettings::DecodeFramesHeader(
 				QString parameterName = fullParameterName.mid(firstUnderscore + 1);
 				QString value = "";
 				Compatibility(parameterName, value);
+				// reconstruction of full parameter name
 				fullParameterName = containerName + "_" + parameterName;
 
 				bool result = frames->AddAnimatedParameter(fullParameterName, par, fractPar);

@@ -1,7 +1,7 @@
 /**
  * Mandelbulber v2, a 3D fractal generator       ,=#MKNmMMKmmßMNWy,
  *                                             ,B" ]L,,p%%%,,,§;, "K
- * Copyright (C) 2016-18 Mandelbulber Team     §R-==%w["'~5]m%=L.=~5N
+ * Copyright (C) 2016-19 Mandelbulber Team     §R-==%w["'~5]m%=L.=~5N
  *                                        ,=mm=§M ]=4 yJKA"/-Nsaj  "Bw,==,,
  * This file is part of Mandelbulber.    §R.r= jw",M  Km .mM  FW ",§=ß., ,TN
  *                                     ,4R =%["w[N=7]J '"5=],""]]M,w,-; T=]M
@@ -84,7 +84,7 @@ struct sFractalColoring
 	bool xyzYSqrdFalse;
 	bool xyzZSqrdFalse;
 
-	bool tempLimitFalse; // tempoary
+	bool tempLimitFalse; // temporary
 
 	enumFractalColoring coloringAlgorithm;
 	int iStartValue;
@@ -106,7 +106,6 @@ struct sFractalColoring
 	double hybridRadDivDeScale1;
 	double icRadWeight;
 	double initialColorValue;
-	// double initialMinimumR;
 	double iterAddScale;
 	double iterScale;
 	double maxColorValue;

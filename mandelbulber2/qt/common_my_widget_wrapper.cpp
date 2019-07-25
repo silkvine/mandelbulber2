@@ -1,7 +1,7 @@
 /**
  * Mandelbulber v2, a 3D fractal generator       ,=#MKNmMMKmmßMNWy,
  *                                             ,B" ]L,,p%%%,,,§;, "K
- * Copyright (C) 2016-18 Mandelbulber Team     §R-==%w["'~5]m%=L.=~5N
+ * Copyright (C) 2016-19 Mandelbulber Team     §R-==%w["'~5]m%=L.=~5N
  *                                        ,=mm=§M ]=4 yJKA"/-Nsaj  "Bw,==,,
  * This file is part of Mandelbulber.    §R.r= jw",M  Km .mM  FW ",§=ß., ,TN
  *                                     ,4R =%["w[N=7]J '"5=],""]]M,w,-; T=]M
@@ -44,7 +44,8 @@
 #include "src/animation_flight.hpp"
 #include "src/animation_keyframes.hpp"
 
-void CommonMyWidgetWrapper::contextMenuEvent(QContextMenuEvent *event, QMenu *existingMenu)
+const QAction *CommonMyWidgetWrapper::contextMenuEvent(
+	QContextMenuEvent *event, QMenu *existingMenu)
 {
 	QMenu *menu;
 	if (existingMenu)
@@ -64,6 +65,8 @@ void CommonMyWidgetWrapper::contextMenuEvent(QContextMenuEvent *event, QMenu *ex
 	actionResetToDefault =
 		menu->addAction(QCoreApplication::translate("CommonMyWidgetWrapper", "Reset to default"));
 	actionResetToDefault->setIcon(iconReset);
+
+	const QAction *selectedItem = nullptr;
 
 	if (parameterContainer)
 	{
@@ -99,7 +102,7 @@ void CommonMyWidgetWrapper::contextMenuEvent(QContextMenuEvent *event, QMenu *ex
 			}
 		}
 
-		const QAction *selectedItem = menu->exec(event->globalPos());
+		selectedItem = menu->exec(event->globalPos());
 		if (selectedItem)
 		{
 			if (selectedItem == actionResetToDefault)
@@ -139,6 +142,7 @@ void CommonMyWidgetWrapper::contextMenuEvent(QContextMenuEvent *event, QMenu *ex
 								<< widget->objectName();
 	}
 	delete menu;
+	return selectedItem;
 }
 
 void CommonMyWidgetWrapper::setToolTipText()

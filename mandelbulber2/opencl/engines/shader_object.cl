@@ -34,7 +34,7 @@
 
 float3 ObjectShader(__constant sClInConstants *consts, sRenderData *renderData,
 	sShaderInputDataCl *input, sClCalcParams *calcParam, float3 *outSurfaceColor, float3 *outSpecular,
-	float3 *iridescenceOut)
+	float3 *iridescenceOut, sClGradientsCollection *gradients)
 {
 	float3 color = 0.7f;
 	float3 mainLight = consts->params.mainLightColour * consts->params.mainLightIntensity;
@@ -57,7 +57,7 @@ float3 ObjectShader(__constant sClInConstants *consts, sRenderData *renderData,
 #endif
 	}
 
-	float3 surfaceColor = SurfaceColor(consts, renderData, input, calcParam);
+	float3 surfaceColor = SurfaceColor(consts, renderData, input, calcParam, gradients);
 
 #ifdef USE_TEXTURES
 #ifdef USE_COLOR_TEXTURE
@@ -69,7 +69,15 @@ float3 ObjectShader(__constant sClInConstants *consts, sRenderData *renderData,
 
 	if (consts->params.mainLightEnable)
 	{
-		specular = SpecularHighlightCombined(input, calcParam, input->lightVect, surfaceColor);
+		specular =
+			SpecularHighlightCombined(input, calcParam, input->lightVect, surfaceColor, gradients);
+
+#ifdef USE_SPECULAR_GRADIENT
+		if (input->material->useColorsFromPalette && input->material->specularGradientEnable)
+		{
+			specular *= gradients->specular;
+		}
+#endif
 	}
 
 	float3 AO = 0.0f;
@@ -88,13 +96,15 @@ float3 ObjectShader(__constant sClInConstants *consts, sRenderData *renderData,
 	float3 auxSpecular = 0.0f;
 
 #ifdef AUX_LIGHTS
-	auxLights = AuxLightsShader(consts, renderData, input, calcParam, surfaceColor, &auxSpecular);
+	auxLights =
+		AuxLightsShader(consts, renderData, input, calcParam, surfaceColor, gradients, &auxSpecular);
 #endif
 
 	float3 fakeLights = 0.0f;
 	float3 fakeLightsSpecular = 0.0f;
 #ifdef FAKE_LIGHTS
-	fakeLights = FakeLightsShader(consts, input, calcParam, surfaceColor, &fakeLightsSpecular);
+	fakeLights =
+		FakeLightsShader(consts, input, calcParam, surfaceColor, gradients, &fakeLightsSpecular);
 #endif
 
 	float3 iridescence = 1.0f;
@@ -110,11 +120,13 @@ float3 ObjectShader(__constant sClInConstants *consts, sRenderData *renderData,
 		(mainLight * shadow * specular + fakeLightsSpecular + auxSpecular) * iridescence;
 
 	float3 luminosity;
-	if (input->material->luminosityColorTheSame)
+#ifdef USE_LUMINOSITY_GRADIENT
+	if (input->material->useColorsFromPalette && input->material->luminosityGradientEnable)
 	{
-		luminosity = input->material->luminosity * surfaceColor;
+		luminosity = input->material->luminosity * gradients->luminosity;
 	}
 	else
+#endif
 	{
 		luminosity = input->material->luminosity * input->material->luminosityColor;
 	}

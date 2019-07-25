@@ -1,7 +1,7 @@
 /**
  * Mandelbulber v2, a 3D fractal generator       ,=#MKNmMMKmmßMNWy,
  *                                             ,B" ]L,,p%%%,,,§;, "K
- * Copyright (C) 2016-17 Mandelbulber Team     §R-==%w["'~5]m%=L.=~5N
+ * Copyright (C) 2016-19 Mandelbulber Team     §R-==%w["'~5]m%=L.=~5N
  *                                        ,=mm=§M ]=4 yJKA"/-Nsaj  "Bw,==,,
  * This file is part of Mandelbulber.    §R.r= jw",M  Km .mM  FW ",§=ß., ,TN
  *                                     ,4R =%["w[N=7]J '"5=],""]]M,w,-; T=]M
@@ -136,7 +136,7 @@ cStereo::enumEye cStereo::WhichEye(CVector2<double> imagePoint) const
 	{
 		case stereoDisabled: eye = eyeLeft; break;
 		case stereoLeftRight: eye = imagePoint.x >= 0.0 ? eyeLeft : eyeRight; break;
-		case stereoTopBottom: eye = imagePoint.y >= 0.0 ? eyeRight : eyeLeft; break;
+		case stereoTopBottom: eye = imagePoint.y >= 0.0 ? eyeLeft : eyeRight; break;
 		case stereoRedCyan: eye = eyeLeft; break;
 	}
 	return eye;

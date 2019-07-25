@@ -1,7 +1,7 @@
 /**
  * Mandelbulber v2, a 3D fractal generator       ,=#MKNmMMKmmßMNWy,
  *                                             ,B" ]L,,p%%%,,,§;, "K
- * Copyright (C) 2016-18 Mandelbulber Team     §R-==%w["'~5]m%=L.=~5N
+ * Copyright (C) 2016-19 Mandelbulber Team     §R-==%w["'~5]m%=L.=~5N
  *                                        ,=mm=§M ]=4 yJKA"/-Nsaj  "Bw,==,,
  * This file is part of Mandelbulber.    §R.r= jw",M  Km .mM  FW ",§=ß., ,TN
  *                                     ,4R =%["w[N=7]J '"5=],""]]M,w,-; T=]M
@@ -108,9 +108,9 @@ void cMeshExport::ProcessVolume()
 	limitMax += CVector3(extension, extension, extension);
 	limitMin -= CVector3(extension, extension, extension);
 
-	w = sizeX / step;
-	h = sizeY / step;
-	l = sizeZ / step;
+	w = int(sizeX / step);
+	h = int(sizeY / step);
+	l = int(sizeZ / step);
 
 	limitMax.x = limitMin.x + w * step;
 	limitMax.y = limitMin.y + h * step;
@@ -161,13 +161,18 @@ void cMeshExport::ProcessVolume()
 
 	WriteLog("Marching cubes done.", 2);
 
-	cColorPalette palette = gPar->Get<cColorPalette>("mat1_surface_color_palette");
 	std::vector<sRGB8> colorsRGB;
+	cColorGradient gradient;
+	gradient.SetColorsFromString(gPar->Get<QString>("mat1_surface_color_gradient"));
+	double colorSpeed = gPar->Get<double>("mat1_coloring_speed");
+	double colorOffset = gPar->Get<double>("mat1_coloring_palette_offset");
 
 	for (double colorIndice : colorIndices)
 	{
-		sRGB color = palette.IndexToColour(colorIndice);
-		sRGB8 color8(color.R, color.G, color.B);
+		double nrCol = fmod(fabs(colorIndice), 248.0 * 256.0); // kept for compatibility
+		double colorPosition = fmod(nrCol / 256.0 / 10.0 * colorSpeed + colorOffset, 1.0);
+		sRGB color = gradient.GetColor(colorPosition, false);
+		sRGB8 color8(uchar(color.R), uchar(color.G), uchar(color.B));
 		colorsRGB.push_back(color8);
 	}
 

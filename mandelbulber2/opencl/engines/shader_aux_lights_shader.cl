@@ -1,7 +1,7 @@
 /**
  * Mandelbulber v2, a 3D fractal generator       ,=#MKNmMMKmmßMNWy,
  *                                             ,B" ]L,,p%%%,,,§;, "K
- * Copyright (C) 2018 Mandelbulber Team        §R-==%w["'~5]m%=L.=~5N
+ * Copyright (C) 2018-19 Mandelbulber Team     §R-==%w["'~5]m%=L.=~5N
  *                                        ,=mm=§M ]=4 yJKA"/-Nsaj  "Bw,==,,
  * This file is part of Mandelbulber.    §R.r= jw",M  Km .mM  FW ",§=ß., ,TN
  *                                     ,4R =%["w[N=7]J '"5=],""]]M,w,-; T=]M
@@ -35,7 +35,8 @@
 #ifdef AUX_LIGHTS
 
 float3 AuxLightsShader(__constant sClInConstants *consts, sRenderData *renderData,
-	sShaderInputDataCl *input, sClCalcParams *calcParam, float3 surfaceColor, float3 *specularOut)
+	sShaderInputDataCl *input, sClCalcParams *calcParam, float3 surfaceColor,
+	sClGradientsCollection *gradients, float3 *specularOut)
 {
 
 	int numberOfLights = renderData->numberOfLights;
@@ -50,7 +51,7 @@ float3 AuxLightsShader(__constant sClInConstants *consts, sRenderData *renderDat
 		{
 			float3 specularAuxOutTemp;
 			float3 shadeAux = LightShading(
-				consts, renderData, input, calcParam, surfaceColor, light, &specularAuxOutTemp);
+				consts, renderData, input, calcParam, surfaceColor, light, gradients, &specularAuxOutTemp);
 			shadeAuxSum += shadeAux;
 			specularAuxSum += specularAuxOutTemp;
 		}

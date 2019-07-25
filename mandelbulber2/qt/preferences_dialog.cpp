@@ -95,6 +95,8 @@ cPreferencesDialog::cPreferencesDialog(QWidget *parent)
 		ui->comboboxLanguage->setCurrentIndex(index);
 	}
 
+	ui->label_path_to_logfile->setText(tr("Path to log file: %1").arg(systemData.logfileName));
+
 #ifdef USE_OPENCL
 	UpdateOpenCLListBoxes();
 	UpdateOpenCLMemoryLimits();
@@ -130,6 +132,7 @@ void cPreferencesDialog::on_buttonBox_accepted()
 #ifdef USE_OPENCL
 	// OpenCL preference dialogue supports (1) platform
 	int selectedPlatform = ui->listWidget_opencl_platform_list->currentIndex().row();
+	if (selectedPlatform < 0) selectedPlatform = 0;
 	gPar->Set("opencl_platform", selectedPlatform);
 
 	QList<QListWidgetItem *> selectedDevicesItems =
@@ -188,7 +191,7 @@ void cPreferencesDialog::on_pushButton_clear_thumbnail_cache_clicked() const
 {
 	QDir thumbnailDir(systemData.GetThumbnailsFolder());
 	thumbnailDir.setFilter(QDir::AllEntries | QDir::NoDotAndDotDot);
-	int thumbnailDirCount = thumbnailDir.count();
+	uint thumbnailDirCount = thumbnailDir.count();
 
 	// confirmation dialog before clearing
 	QMessageBox::StandardButton reply;
@@ -510,8 +513,8 @@ void cPreferencesDialog::UpdateOpenCLMemoryLimits()
 			if (i.globalMemSize < deviceInformation.globalMemSize) deviceInformation = i;
 		}
 
-		cl_ulong globalMemSize = deviceInformation.globalMemSize / 1024 / 1024;
-		cl_ulong maxMemAllocSize = deviceInformation.maxMemAllocSize / 1024 / 1024;
+		int globalMemSize = int(deviceInformation.globalMemSize / 1024 / 1024);
+		int maxMemAllocSize = int(deviceInformation.maxMemAllocSize / 1024 / 1024);
 
 		ui->spinboxInt_opencl_memory_limit->setMaximum(globalMemSize);
 		ui->sliderInt_opencl_memory_limit->setMaximum(globalMemSize);

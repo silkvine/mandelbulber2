@@ -39,6 +39,7 @@
 #include "fractal_enums.h"
 #include "include_header_wrapper.hpp"
 #include "opencl_engine.h"
+#include "opencl_worker_output_queue.h"
 #include "rendered_tile_data.hpp"
 #include "statistics.h"
 
@@ -55,6 +56,9 @@ class cOpenClTexturesData;
 struct sParamRender;
 class cNineFractals;
 struct sRenderData;
+class cOpenClScheduler;
+class cOpenCLWorkerOutputQueue;
+class cOpenClWorkerThread;
 
 class cOpenClEngineRenderFractal : public cOpenClEngine
 {
@@ -80,9 +84,9 @@ public:
 	void RegisterInputOutputBuffers(const cParameterContainer *params) override;
 	bool PreAllocateBuffers(const cParameterContainer *params) override;
 	bool PrepareBufferForBackground(sRenderData *renderData);
-	bool AssignParametersToKernelAdditional(int argIterator, int deviceIndex) override;
+	bool AssignParametersToKernelAdditional(uint argIterator, int deviceIndex) override;
 	bool WriteBuffersToQueue();
-	bool ProcessQueue(size_t jobX, size_t jobY, size_t pixelsLeftX, size_t pixelsLeftY);
+	bool ProcessQueue(quint64 jobX, quint64 jobY, quint64 pixelsLeftX, quint64 pixelsLeftY);
 	bool ReadBuffersFromQueue();
 
 	// render 3D fractal
@@ -98,7 +102,6 @@ public:
 	static bool sortByCenterDistanceAsc(
 		const QPoint &v1, const QPoint &v2, int gridWidth, int gridHeight);
 
-	void MarkCurrentPendingTile(cImage *image, QRect corners);
 	void ReleaseMemory();
 	size_t CalcNeededMemory() override;
 	void SetMeshExportParameters(const sClMeshExport *meshParams);
@@ -111,6 +114,33 @@ private:
 	QString GetKernelName() override;
 
 	static QString toCamelCase(const QString &s);
+	void CreateListOfHeaderFiles(QStringList &clHeaderFiles);
+	void CreateListOfIncludes(const QStringList &clHeaderFiles, const QString &openclPathSlash,
+		const cParameterContainer *params, const QString &openclEnginePath, QByteArray &programEngine);
+	void LoadSourceWithMainEngine(const QString &openclEnginePath, QByteArray &programEngine);
+	void SetParametersForDistanceEstimationMethod(cNineFractals *fractals, sParamRender *paramRender);
+	void CreateListOfUsedFormulas(cNineFractals *fractals);
+	void SetParametersForPerspectiveProjection(sParamRender *paramRender);
+	void SetParametersForShaders(sParamRender *paramRender, sRenderData *renderData);
+	void SetParametersForStereoscopic(sRenderData *renderData);
+	QMap<QString, int> SetParametersAndDataForTextures(sRenderData *renderData);
+	void SetParametersAndDataForMaterials(
+		const QMap<QString, int> &textureIndexes, sRenderData *renderData, sParamRender *paramRender);
+	void DynamicDataForAOVectors(
+		sParamRender *paramRender, cNineFractals *fractals, sRenderData *renderData);
+	void SetParametersForIterationWeight(cNineFractals *fractals);
+	void CreateThreadsForOpenCLWorkers(int numberOfOpenCLWorkers,
+		const QSharedPointer<cOpenClScheduler> &scheduler, quint64 width, quint64 height,
+		const QSharedPointer<cOpenCLWorkerOutputQueue> &outputQueue, int numberOfSamples,
+		QList<QSharedPointer<QThread>> &threads, QList<QSharedPointer<cOpenClWorkerThread>> &workers,
+		bool *stopRequest);
+	sRGBFloat MCMixColor(const cOpenCLWorkerOutputQueue::sClSingleOutput &output,
+		const sRGBFloat &pixel, const sRGBFloat &oldPixel);
+	void PutMultiPixel(quint64 xx, quint64 yy, const sRGBFloat &newPixel, const sClPixel &pixelCl,
+		unsigned short newAlpha, sRGB8 color, unsigned short opacity, cImage *image);
+	int PeriodicRefreshOfTiles(int lastRefreshTime, QElapsedTimer &timerImageRefresh, cImage *image,
+		QList<QRect> &lastRenderedRects, QList<sRenderedTileData> &listOfRenderedTilesData);
+	void FinallRefreshOfImage(QList<QRect> lastRenderedRects, cImage *image);
 
 	QScopedPointer<sClInConstants> constantInBuffer;
 	QList<QSharedPointer<cl::Buffer>> inCLConstBuffer;
@@ -118,6 +148,7 @@ private:
 	QScopedPointer<sClMeshExport> constantInMeshExportBuffer;
 	QList<QSharedPointer<cl::Buffer>> inCLConstMeshExportBuffer;
 
+	// FIXME: replace QByteArray with std::vector
 	QByteArray inBuffer;
 	QList<QSharedPointer<cl::Buffer>> inCLBuffer;
 
@@ -125,6 +156,8 @@ private:
 	QList<QSharedPointer<cl::Buffer>> inCLTextureBuffer;
 
 	QList<QSharedPointer<cl::Image2D>> backgroundImage2D;
+
+	// FIXME: replace QScopedArrayPointer with std::vector
 	QScopedArrayPointer<cl_uchar4> backgroungImageBuffer;
 
 	QScopedPointer<cOpenClDynamicData> dynamicData;

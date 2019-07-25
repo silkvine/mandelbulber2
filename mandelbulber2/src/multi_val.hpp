@@ -1,7 +1,7 @@
 /**
  * Mandelbulber v2, a 3D fractal generator       ,=#MKNmMMKmmßMNWy,
  *                                             ,B" ]L,,p%%%,,,§;, "K
- * Copyright (C) 2014-17 Mandelbulber Team     §R-==%w["'~5]m%=L.=~5N
+ * Copyright (C) 2014-19 Mandelbulber Team     §R-==%w["'~5]m%=L.=~5N
  *                                        ,=mm=§M ]=4 yJKA"/-Nsaj  "Bw,==,,
  * This file is part of Mandelbulber.    §R.r= jw",M  Km .mM  FW ",§=ß., ,TN
  *                                     ,4R =%["w[N=7]J '"5=],""]]M,w,-; T=]M
@@ -38,7 +38,6 @@
 #include <QtCore>
 
 #include "algebra.hpp"
-#include "color_palette.hpp"
 #include "color_structures.hpp"
 
 namespace parameterContainer
@@ -53,7 +52,6 @@ enum enumVarType
 	typeVector4,
 	typeRgb,
 	typeBool,
-	typeColorPalette
 };
 }
 
@@ -76,7 +74,6 @@ public:
 	enumVarType Store(CVector4 val);
 	enumVarType Store(sRGB val);
 	enumVarType Store(bool val);
-	enumVarType Store(cColorPalette val);
 	enumVarType Get(double &val) const;
 	enumVarType Get(int &val) const;
 	enumVarType Get(QString &val) const;
@@ -84,13 +81,10 @@ public:
 	enumVarType Get(CVector4 &val) const;
 	enumVarType Get(sRGB &val) const;
 	enumVarType Get(bool &val) const;
-	enumVarType Get(cColorPalette &val) const;
 	enumVarType GetDefaultType() const { return type; }
 	bool operator==(const cMultiVal &m) const;
 
 private:
-	static QString MakePaletteString(cColorPalette &palette);
-	static cColorPalette GetPaletteFromString(const QString &paletteString);
 	bool isEqual(const cMultiVal &m) const;
 	void copy(const cMultiVal &other);
 

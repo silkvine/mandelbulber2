@@ -1,7 +1,7 @@
 /**
  * Mandelbulber v2, a 3D fractal generator       ,=#MKNmMMKmmßMNWy,
  *                                             ,B" ]L,,p%%%,,,§;, "K
- * Copyright (C) 2017-18 Mandelbulber Team     §R-==%w["'~5]m%=L.=~5N
+ * Copyright (C) 2017-19 Mandelbulber Team     §R-==%w["'~5]m%=L.=~5N
  *                                        ,=mm=§M ]=4 yJKA"/-Nsaj  "Bw,==,,
  * This file is part of Mandelbulber.    §R.r= jw",M  Km .mM  FW ",§=ß., ,TN
  *                                     ,4R =%["w[N=7]J '"5=],""]]M,w,-; T=]M
@@ -40,7 +40,7 @@
 #include "formula_combo_box.h"
 
 #include <QStandardItemModel>
-
+#include <QLineEdit>
 #include "src/parameters.hpp"
 QMap<QString, QIcon> cFormulaComboBox::iconCache;
 
@@ -69,8 +69,8 @@ cFormulaComboBox::cFormulaComboBox(QWidget *parent) : QComboBox(parent), CommonM
 	setCompleter(completer);
 
 	// connect signals
-	connect((const QObject *)lineEdit(), SIGNAL(textEdited(const QString &)), pFilterModel,
-		SLOT(setFilterFixedString(const QString &)));
+	connect(qobject_cast<const QObject *>(lineEdit()), SIGNAL(textEdited(const QString &)),
+		pFilterModel, SLOT(setFilterFixedString(const QString &)));
 	connect(completer, SIGNAL(activated(QString)), this, SLOT(onCompleterActivated(QString)));
 }
 

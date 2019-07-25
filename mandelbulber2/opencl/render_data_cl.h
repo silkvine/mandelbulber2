@@ -1,7 +1,7 @@
 /**
  * Mandelbulber v2, a 3D fractal generator       ,=#MKNmMMKmmßMNWy,
  *                                             ,B" ]L,,p%%%,,,§;, "K
- * Copyright (C) 2018 Mandelbulber Team        §R-==%w["'~5]m%=L.=~5N
+ * Copyright (C) 2018-19 Mandelbulber Team     §R-==%w["'~5]m%=L.=~5N
  *                                        ,=mm=§M ]=4 yJKA"/-Nsaj  "Bw,==,,
  * This file is part of Mandelbulber.    §R.r= jw",M  Km .mM  FW ",§=ß., ,TN
  *                                     ,4R =%["w[N=7]J '"5=],""]]M,w,-; T=]M
@@ -49,11 +49,68 @@ typedef struct
 #if defined(FULL_ENGINE) || defined(MESH_EXPORT)
 	__global sMaterialCl **materials;
 	__global float4 **palettes;
-	int *paletteLengths;
+
+#ifdef USE_SURFACE_GRADIENT
+	int *paletteSurfaceOffsets;
+	int *paletteSurfaceLengths;
+#endif
+#ifdef USE_SPECULAR_GRADIENT
+	int *paletteSpecularOffsets;
+	int *paletteSpecularLengths;
+#endif
+#ifdef USE_DIFFUSE_GRADIENT
+	int *paletteDiffuseOffsets;
+	int *paletteDiffuseLengths;
+#endif
+#ifdef USE_LUMINOSITY_GRADIENT
+	int *paletteLuminosityOffsets;
+	int *paletteLuminosityLengths;
+#endif
+#ifdef USE_ROUGHNESS_GRADIENT
+	int *paletteRoughnessOffsets;
+	int *paletteRoughnessLengths;
+#endif
+#ifdef USE_REFLECTANCE_GRADIENT
+	int *paletteReflectanceOffsets;
+	int *paletteReflectanceLengths;
+#endif
+#ifdef USE_TRANSPARENCY_GRADIENT
+	int *paletteTransparencyOffsets;
+	int *paletteTransparencyLengths;
+#endif
 #else
 	__global sMaterialCl *material;
 	__global float4 *palette;
-	int paletteLength;
+
+#ifdef USE_SURFACE_GRADIENT
+	int paletteSurfaceOffset;
+	int paletteSurfaceLength;
+#endif
+#ifdef USE_SPECULAR_GRADIENT
+	int paletteSpecularOffset;
+	int paletteSpecularLength;
+#endif
+#ifdef USE_DIFFUSE_GRADIENT
+	int paletteDiffuseOffset;
+	int paletteDiffuseLength;
+#endif
+#ifdef USE_LUMINOSITY_GRADIENT
+	int paletteLuminosityOffset;
+	int paletteLuminosityLength;
+#endif
+#ifdef USE_ROUGHNESS_GRADIENT
+	int paletteRoughnessOffset;
+	int paletteRoughnessLength;
+#endif
+#ifdef USE_REFLECTANCE_GRADIENT
+	int paletteReflectanceOffset;
+	int paletteReflectanceLength;
+#endif
+#ifdef USE_TRANSPARENCY_GRADIENT
+	int paletteTransparencyOffset;
+	int paletteTransparencyLength;
+#endif
+
 #endif
 
 #ifdef USE_TEXTURES

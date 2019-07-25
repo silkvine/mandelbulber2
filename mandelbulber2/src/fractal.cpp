@@ -250,12 +250,8 @@ sFractal::sFractal(const cParameterContainer *container)
 	analyticDE.offset0 = container->Get<double>("analyticDE_offset_0");
 	analyticDE.offset1 = container->Get<double>("analyticDE_offset_1");
 	analyticDE.offset2 = container->Get<double>("analyticDE_offset_2");
-	// analyticDE.factor2 = container->Get<double>("analyticDE_factor_2");
 	analyticDE.enabled = container->Get<bool>("analyticDE_enabled");
 	analyticDE.enabledFalse = container->Get<bool>("analyticDE_enabled_false");
-	// analyticDE.enabledAuxR2False = container->Get<bool>("analyticDE_enabled_auxR2_false");
-	// analyticDE.scaleLin = container->Get<double>("analyticDE_scale_linear");
-	// analyticDE.offsetLin = container->Get<double>("analyticDE_offset_linear");
 
 	foldColor.auxColorEnabled = container->Get<bool>("fold_color_aux_color_enabled");
 	foldColor.auxColorEnabledFalse = container->Get<bool>("fold_color_aux_color_enabled_false");
@@ -293,6 +289,7 @@ sFractal::sFractal(const cParameterContainer *container)
 	transformCommon.offset0005 = container->Get<double>("transf_offset_0005");
 	transformCommon.offset05 = container->Get<double>("transf_offset_05");
 	transformCommon.offset1 = container->Get<double>("transf_offset_1");
+	transformCommon.offsetA1 = container->Get<double>("transf_offsetA_1");
 	transformCommon.offset105 = container->Get<double>("transf_offset_105");
 	transformCommon.offset2 = container->Get<double>("transf_offset_2");
 	transformCommon.offset4 = container->Get<double>("transf_offset_4");
@@ -329,6 +326,7 @@ sFractal::sFractal(const cParameterContainer *container)
 	transformCommon.intB = container->Get<int>("transf_int_B");
 	transformCommon.int1 = container->Get<int>("transf_int_1");
 	transformCommon.int2 = container->Get<int>("transf_int_2");
+	transformCommon.int3 = container->Get<int>("transf_int_3");
 	transformCommon.int6 = container->Get<int>("transf_int_6");
 	transformCommon.int8X = container->Get<int>("transf_int8_X");
 	transformCommon.int8Y = container->Get<int>("transf_int8_Y");
@@ -370,6 +368,8 @@ sFractal::sFractal(const cParameterContainer *container)
 	transformCommon.stopIterationsP1 = container->Get<int>("transf_stop_iterations_P1");
 	transformCommon.startIterationsR = container->Get<int>("transf_start_iterations_R");
 	transformCommon.stopIterationsR = container->Get<int>("transf_stop_iterations_R");
+	transformCommon.startIterationsRV = container->Get<int>("transf_start_iterations_RV");
+	transformCommon.stopIterationsRV = container->Get<int>("transf_stop_iterations_RV");
 	transformCommon.startIterationsS = container->Get<int>("transf_start_iterations_S");
 	transformCommon.stopIterationsS = container->Get<int>("transf_stop_iterations_S");
 	transformCommon.startIterationsT = container->Get<int>("transf_start_iterations_T");
@@ -449,6 +449,7 @@ sFractal::sFractal(const cParameterContainer *container)
 	transformCommon.offset200 = CVector4(container->Get<CVector3>("transf_offset_200"), 0.0);
 	transformCommon.offsetA200 = CVector4(container->Get<CVector3>("transf_offsetA_200"), 0.0);
 	transformCommon.offset222 = CVector4(container->Get<CVector3>("transf_offset_222"), 0.0);
+	transformCommon.offsetA222 = CVector4(container->Get<CVector3>("transf_offsetA_222"), 0.0);
 	transformCommon.power025 = CVector4(container->Get<CVector3>("transf_power_025"), 0.0);
 	transformCommon.power8 = CVector4(container->Get<CVector3>("transf_power_8"), 0.0);
 
@@ -471,20 +472,23 @@ sFractal::sFractal(const cParameterContainer *container)
 	transformCommon.scale3Dd222 = CVector4(container->Get<CVector3>("transf_scale3Dd_222"), 1.0);
 	transformCommon.scale3D333 = CVector4(container->Get<CVector3>("transf_scale3D_333"), 1.0);
 	transformCommon.scale3D444 = CVector4(container->Get<CVector3>("transf_scale3D_444"), 1.0);
+	transformCommon.vec111 = CVector4(container->Get<CVector3>("transf_vec_111"), 0.0);
 
 	// 4d vec
 	transformCommon.additionConstant0000 = container->Get<CVector4>("transf_addition_constant_0000");
 	transformCommon.offset0000 = container->Get<CVector4>("transf_offset_0000");
-
+	transformCommon.offsetA0000 = container->Get<CVector4>("transf_offsetA_0000");
+	transformCommon.offset1111 = container->Get<CVector4>("transf_offset_1111");
 	transformCommon.offsetA1111 = container->Get<CVector4>("transf_offsetA_1111");
+	transformCommon.offsetB1111 = container->Get<CVector4>("transf_offsetB_1111");
 	transformCommon.offsetNeg1111 = container->Get<CVector4>("transf_offset_neg_1111");
-
 	transformCommon.offset2222 = container->Get<CVector4>("transf_offset_2222");
 	transformCommon.additionConstant111d5 =
 		container->Get<CVector4>("transf_addition_constant_111d5");
 	transformCommon.constantMultiplier1220 =
 		container->Get<CVector4>("transf_constant_multiplier_1220");
 	transformCommon.scale0000 = container->Get<CVector4>("transf_scale_0000");
+	transformCommon.scale1111 = container->Get<CVector4>("transf_scale_1111");
 
 	transformCommon.addCpixelEnabled = container->Get<bool>("transf_addCpixel_enabled");
 	transformCommon.addCpixelEnabledFalse = container->Get<bool>("transf_addCpixel_enabled_false");
@@ -541,8 +545,8 @@ sFractal::sFractal(const cParameterContainer *container)
 		container->Get<bool>("transf_sphere_inversion_enabled_false");
 	transformCommon.spheresEnabled = container->Get<bool>("transf_spheres_enabled");
 
-	transformCommon.functionEnabledTempFalse =
-		container->Get<bool>("transf_function_enabled_temp_false");
+	// transformCommon.functionEnabledTempFalse =
+	//	container->Get<bool>("transf_function_enabled_temp_false");
 
 	WriteLog("cFractal::RecalculateFractalParams(void)", 2);
 

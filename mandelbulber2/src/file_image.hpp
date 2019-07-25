@@ -45,8 +45,19 @@
 
 #include "color_structures.hpp"
 
+#ifdef USE_EXR
+#include <ImfAttribute.h>
+#include <ImfChannelList.h>
+#include <ImfFrameBuffer.h>
+#include <ImfInputFile.h>
+#include <ImfOutputFile.h>
+#include <ImfStringAttribute.h>
+#include <half.h>
+#endif // USE_EXR
+
 // custom includes
-extern "C" {
+extern "C"
+{
 #include <png.h>
 }
 
@@ -88,7 +99,11 @@ public:
 		// https://www.blender.org/manual/render/blender_render/textures/influence/material/bump_and_normal.html
 		IMAGE_CONTENT_NORMAL = 3,
 
-		IMAGE_CONTENT_SPECULAR = 4
+		IMAGE_CONTENT_SPECULAR = 4,
+
+		IMAGE_CONTENT_DIFFUSE = 5,
+
+		IMAGE_CONTENT_WORLD_POSITION = 6,
 	};
 
 	enum enumImageChannelQualityType
@@ -171,6 +186,7 @@ public:
 	static void SavePNG16(QString filename, int width, int height, sRGB16 *image16);
 	static void SaveFromTilesPNG16(const char *filename, int width, int height, int tiles);
 	static bool SavePNGQtBlackAndWhite(QString filename, unsigned char *image, int width, int height);
+	void SavePngRgbPixel(structSaveImageChannel imageChannel, char *colorPtr, sRGBFloat pixel);
 
 private:
 	bool hasAppendAlphaCustom;
@@ -187,10 +203,13 @@ public:
 	}
 	void SaveImage() override;
 	QString getJobName() override { return tr("Saving %1").arg("JPG"); }
-	static bool SaveJPEGQt(
-			QString filename, unsigned char *image, int width, int height, int quality, QMap<QString, QString> meta = {});
-	static bool SaveJPEGQtGreyscale(
-		QString filename, unsigned char *image, int width, int height, int quality, QMap<QString, QString> meta = {});
+	static bool SaveJPEGQt(QString filename, unsigned char *image, int width, int height, int quality,
+		QMap<QString, QString> meta = {});
+	static bool SaveJPEGQtGreyscale(QString filename, unsigned char *image, int width, int height,
+		int quality, QMap<QString, QString> meta = {});
+	bool SaveJPEGQt32(QString filename, structSaveImageChannel imageChannel, int width, int height, int quality,
+		QMap<QString, QString> meta = {});
+
 };
 
 #ifdef USE_TIFF
@@ -206,6 +225,7 @@ public:
 	QString getJobName() override { return tr("Saving %1").arg("TIFF"); }
 	bool SaveTIFF(
 		QString filename, cImage *image, structSaveImageChannel imageChannel, bool appendAlpha = false);
+	void SaveTiffRgbPixel(structSaveImageChannel imageChannel, char *colorPtr, sRGBFloat pixel);
 };
 #endif /* USE_TIFF */
 
@@ -222,6 +242,8 @@ public:
 	QString getJobName() override { return tr("Saving %1").arg("EXR"); }
 	void SaveEXR(QString filename, cImage *image,
 		QMap<enumImageContentType, structSaveImageChannel> imageConfig);
+	void SaveExrRgbChannel(QStringList names, structSaveImageChannel imageChannel,
+		Imf::Header *header, Imf::FrameBuffer *frameBuffer, uint64_t width, uint64_t height);
 };
 #endif /* USE_EXR */
 

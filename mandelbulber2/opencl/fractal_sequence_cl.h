@@ -1,7 +1,7 @@
 /**
  * Mandelbulber v2, a 3D fractal generator       ,=#MKNmMMKmmßMNWy,
  *                                             ,B" ]L,,p%%%,,,§;, "K
- * Copyright (C) 2017-18 Mandelbulber Team     §R-==%w["'~5]m%=L.=~5N
+ * Copyright (C) 2017-19 Mandelbulber Team     §R-==%w["'~5]m%=L.=~5N
  *                                        ,=mm=§M ]=4 yJKA"/-Nsaj  "Bw,==,,
  * This file is part of Mandelbulber.    §R.r= jw",M  Km .mM  FW ",§=ß., ,TN
  *                                     ,4R =%["w[N=7]J '"5=],""]]M,w,-; T=]M
@@ -42,14 +42,20 @@
 #include "src/fractal_enums.h"
 #endif
 
-typedef enum { analyticDEType, deltaDEType } enumDETypeCl;
+typedef enum
+{
+	analyticDEType,
+	deltaDEType
+} enumDETypeCl;
 
-typedef enum {
+typedef enum
+{
 	linearDEFunction = 1,
 	logarithmicDEFunction = 2,
 } enumDEFunctionTypeCl;
 
-typedef enum {
+typedef enum
+{
 	clAnalyticFunctionUndefined = -1,
 	clAnalyticFunctionNone = 0,
 	clAnalyticFunctionLinear = 1,
@@ -59,7 +65,8 @@ typedef enum {
 	clAnalyticFunctionJosKleinian = 5
 } enumDEAnalyticFunctionCl;
 
-typedef enum {
+typedef enum
+{
 	clColoringFunctionUndefined = -1,
 	clColoringFunctionDefault = 0,
 	clColoringFunctionABox = 1,

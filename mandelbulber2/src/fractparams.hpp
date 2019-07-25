@@ -1,7 +1,7 @@
 /**
  * Mandelbulber v2, a 3D fractal generator       ,=#MKNmMMKmmßMNWy,
  *                                             ,B" ]L,,p%%%,,,§;, "K
- * Copyright (C) 2014-18 Mandelbulber Team     §R-==%w["'~5]m%=L.=~5N
+ * Copyright (C) 2014-19 Mandelbulber Team     §R-==%w["'~5]m%=L.=~5N
  *                                        ,=mm=§M ]=4 yJKA"/-Nsaj  "Bw,==,,
  * This file is part of Mandelbulber.    §R.r= jw",M  Km .mM  FW ",§=ß., ,TN
  *                                     ,4R =%["w[N=7]J '"5=],""]]M,w,-; T=]M
@@ -61,6 +61,7 @@ enum enumBooleanOperator
 	booleanOperatorOR = 1,
 	booleanOperatorSUB = 2
 };
+
 } // namespace params
 
 struct sParamRender
@@ -92,6 +93,7 @@ struct sParamRender
 	fractal::enumDEMethod delta_DE_method;
 	fractal::enumDEFunctionType delta_DE_function;
 
+	bool advancedQuality;
 	bool antialiasingEnabled;
 	bool ambientOcclusionEnabled; // enable global illumination
 	bool auxLightPreEnabled[4];
@@ -120,6 +122,7 @@ struct sParamRender
 	bool mainLightEnable;
 	bool mainLightPositionAsRelative;
 	bool monteCarloSoftShadows;
+	bool monteCarloGIVolumetric;
 	bool penetratingLights;
 	bool raytracedReflections;
 	bool shadow;			// enable shadows
@@ -149,9 +152,11 @@ struct sParamRender
 	sRGB volFogColour2;
 	sRGB volFogColour3;
 
+	double absMaxMarchingStep;
+	double absMinMarchingStep;
 	float ambientOcclusion;
 	double ambientOcclusionFastTune;
-	double auxLightPreIntensity[4];
+	float auxLightPreIntensity[4];
 	double auxLightVisibility;
 	double auxLightVisibilitySize;
 	double auxLightRandomRadius;
@@ -164,19 +169,22 @@ struct sParamRender
 	double backgroundTextureOffsetY;
 	double cameraDistanceToTarget; // zoom
 	double constantFactor;
-	double DEFactor;		// factor for distance estimation steps
+	double DEFactor; // factor for distance estimation steps
+	double deltaDERelativeDelta;
 	double detailLevel; // DE threshold factor
+	double detailSizeMax;
+	double detailSizeMin;
 	double DEThresh;
 	double DOFFocus;
 	double DOFRadius;
 	double DOFMaxRadius;
 	double DOFBlurOpacity;
 	double DOFMaxNoise;
-	double DOFMonteCarloCADispersionGain;
-	double DOFMonteCarloCACameraDispersion;
+	float DOFMonteCarloCADispersionGain;
+	float DOFMonteCarloCACameraDispersion;
 	double fakeLightsIntensity;
-	double fakeLightsVisibility;
-	double fakeLightsVisibilitySize;
+	float fakeLightsVisibility;
+	float fakeLightsVisibilitySize;
 	double fogVisibility;
 	double formulaScale[NUMBER_OF_FRACTALS];
 	double fov; // perspective factor
@@ -194,6 +202,8 @@ struct sParamRender
 	float mainLightIntensity;
 	double mainLightVisibility;
 	double mainLightVisibilitySize;
+	double relMaxMarchingStep;
+	double relMinMarchingStep;
 	double resolution; // resolution of image in fractal coordinates
 	double shadowConeAngle;
 	double smoothness;
@@ -209,13 +219,14 @@ struct sParamRender
 	double volFogDistanceFactor;
 	double volFogDistanceFromSurface;
 	double volumetricLightDEFactor;
-	double volumetricLightIntensity[5];
+	float volumetricLightIntensity[5];
 
 	sImageAdjustments imageAdjustments;
 
 	CVector3 auxLightPre[4];
 	CVector3 auxLightRandomCenter;
 	CVector3 backgroundRotation;
+
 	CVector3 formulaPosition[NUMBER_OF_FRACTALS];
 	CVector3 formulaRotation[NUMBER_OF_FRACTALS];
 	CVector3 formulaRepeat[NUMBER_OF_FRACTALS];

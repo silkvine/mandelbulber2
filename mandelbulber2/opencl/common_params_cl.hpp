@@ -1,7 +1,7 @@
 /**
  * Mandelbulber v2, a 3D fractal generator       ,=#MKNmMMKmmßMNWy,
  *                                             ,B" ]L,,p%%%,,,§;, "K
- * Copyright (C) 2017-18 Mandelbulber Team     §R-==%w["'~5]m%=L.=~5N
+ * Copyright (C) 2017-19 Mandelbulber Team     §R-==%w["'~5]m%=L.=~5N
  *                                        ,=mm=§M ]=4 yJKA"/-Nsaj  "Bw,==,,
  * This file is part of Mandelbulber.    §R.r= jw",M  Km .mM  FW ",§=ß., ,TN
  *                                     ,4R =%["w[N=7]J '"5=],""]]M,w,-; T=]M
@@ -57,6 +57,16 @@
 #include "src/image_adjustments.h"
 #endif /* OPENCL_KERNEL_CODE */
 
+typedef enum
+{
+	fakeLightsShapePoint = 0,
+	fakeLightsShapeLine = 1,
+	fakeLightsShapeCircle = 2,
+	fakeLightsShapeSquare = 3,
+	fakeLightsShapeSphere = 4,
+	fakeLightsShapeCube = 5
+} enumFakeLightsShapeCl;
+
 typedef struct
 {
 	cl_float boxLimit; // parameters of TGlad's folding
@@ -74,13 +84,19 @@ typedef struct
 	cl_int fakeLightsMaxIter;
 	cl_int fakeLightsMinIter;
 
+	cl_int fakeLightsOrbitTrapShape;
+
+	cl_float fakeLightsOrbitTrapSize;
+	cl_float fakeLightsThickness;
 	cl_float linearDEOffset;
 
 	cl_float3 fakeLightsOrbitTrap;
+	cl_float3 fakeLightsRotation;
 	cl_float3 fractalPosition;
 	cl_float3 fractalRotation;
 	cl_float3 repeat;
 	matrix33 mRotFractalRotation;
+	matrix33 mRotFakeLightsRotation;
 
 	sFractalFoldingsCl foldings;
 } sCommonParamsCl;
@@ -104,12 +120,17 @@ inline sCommonParamsCl clCopySCommonParamsCl(const sCommonParams &source)
 	target.iterThreshMode = source.iterThreshMode;
 	target.fakeLightsMaxIter = source.fakeLightsMaxIter;
 	target.fakeLightsMinIter = source.fakeLightsMinIter;
+	target.fakeLightsOrbitTrapShape = source.fakeLightsOrbitTrapShape;
+	target.fakeLightsOrbitTrapSize = source.fakeLightsOrbitTrapSize;
+	target.fakeLightsThickness = source.fakeLightsThickness;
 	target.linearDEOffset = source.linearDEOffset;
 	target.fakeLightsOrbitTrap = toClFloat3(source.fakeLightsOrbitTrap);
+	target.fakeLightsRotation = toClFloat3(source.fakeLightsRotation);
 	target.fractalPosition = toClFloat3(source.fractalPosition);
 	target.fractalRotation = toClFloat3(source.fractalRotation);
 	target.repeat = toClFloat3(source.repeat);
 	target.mRotFractalRotation = toClMatrix33(source.mRotFractalRotation);
+	target.mRotFakeLightsRotation = toClMatrix33(source.mRotFakeLightsRotation);
 	target.foldings = clCopySFractalFoldingsCl(source.foldings);
 	return target;
 }

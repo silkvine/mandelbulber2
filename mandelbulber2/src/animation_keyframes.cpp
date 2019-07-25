@@ -123,10 +123,12 @@ cKeyframeAnimation::cKeyframeAnimation(cInterface *_interface, cKeyframes *_fram
 		connect(this, SIGNAL(notifyRenderKeyframeRenderStatus(QString, QString)),
 			mainInterface->systemTray, SLOT(showMessage(QString, QString)));
 
-		connect(this, SIGNAL(QuestionMessage(const QString, const QString, QMessageBox::StandardButtons,
-										QMessageBox::StandardButton *)),
-			mainInterface->mainWindow, SLOT(slotQuestionMessage(const QString, const QString,
-																	 QMessageBox::StandardButtons, QMessageBox::StandardButton *)));
+		connect(this,
+			SIGNAL(QuestionMessage(
+				const QString, const QString, QMessageBox::StandardButtons, QMessageBox::StandardButton *)),
+			mainInterface->mainWindow,
+			SLOT(slotQuestionMessage(const QString, const QString, QMessageBox::StandardButtons,
+				QMessageBox::StandardButton *)));
 
 		connect(ui->checkBox_show_camera_path, SIGNAL(stateChanged(int)), this,
 			SLOT(slotUpdateAnimationPathSelection()));
@@ -1155,8 +1157,9 @@ QString cKeyframeAnimation::GetKeyframeFilename(int index, int subIndex) const
 	const int frameIndex = index * keyframes->GetFramesPerKeyframe() + subIndex;
 	QString filename = params->Get<QString>("anim_keyframe_dir") + "frame_"
 										 + QString("%1").arg(frameIndex, 7, 10, QChar('0'));
-	filename += "." + ImageFileSave::ImageFileExtension(ImageFileSave::enumImageFileType(
-											params->Get<int>("keyframe_animation_image_type")));
+	filename += "."
+							+ ImageFileSave::ImageFileExtension(ImageFileSave::enumImageFileType(
+									params->Get<int>("keyframe_animation_image_type")));
 	return filename;
 }
 
@@ -1413,7 +1416,7 @@ void cKeyframeAnimation::UpdateAnimationPath() const
 			{
 				point.lights[l] = tempPar.Get<CVector3>("aux_light_position", l + 1);
 				sRGB color16 = tempPar.Get<sRGB>("aux_light_colour", l + 1);
-				sRGB8 color8(color16.R / 256, color16.G / 256, color16.B / 256);
+				sRGB8 color8(quint8(color16.R / 256), quint8(color16.G / 256), quint8(color16.B / 256));
 				point.lightColor[l] = color8;
 			}
 			animationPathData.animationPath.append(point);

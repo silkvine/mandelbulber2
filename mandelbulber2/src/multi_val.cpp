@@ -1,7 +1,7 @@
 /**
  * Mandelbulber v2, a 3D fractal generator       ,=#MKNmMMKmmßMNWy,
  *                                             ,B" ]L,,p%%%,,,§;, "K
- * Copyright (C) 2014-17 Mandelbulber Team     §R-==%w["'~5]m%=L.=~5N
+ * Copyright (C) 2014-19 Mandelbulber Team     §R-==%w["'~5]m%=L.=~5N
  *                                        ,=mm=§M ]=4 yJKA"/-Nsaj  "Bw,==,,
  * This file is part of Mandelbulber.    §R.r= jw",M  Km .mM  FW ",§=ß., ,TN
  *                                     ,4R =%["w[N=7]J '"5=],""]]M,w,-; T=]M
@@ -99,7 +99,7 @@ cMultiVal &cMultiVal::operator=(cMultiVal &&other)
 enumVarType cMultiVal::Store(double val)
 {
 	dVal[0] = val;
-	iVal[0] = val;
+	iVal[0] = int(val);
 	sVal = QString("%L1").arg(val, 0, 'g', 16);
 
 	if (!typeDefined) type = typeDouble;
@@ -153,8 +153,6 @@ enumVarType cMultiVal::Store(QString val)
 			}
 			break;
 		}
-
-		case typeColorPalette: sVal = val; break;
 	}
 	sVal = val;
 
@@ -167,9 +165,9 @@ enumVarType cMultiVal::Store(CVector3 val)
 	dVal[0] = val.x;
 	dVal[1] = val.y;
 	dVal[2] = val.z;
-	iVal[0] = val.x;
-	iVal[1] = val.y;
-	iVal[2] = val.z;
+	iVal[0] = int(val.x);
+	iVal[1] = int(val.y);
+	iVal[2] = int(val.z);
 	sVal =
 		QString("%L1 %L2 %L3").arg(val.x, 0, 'g', 16).arg(val.y, 0, 'g', 16).arg(val.z, 0, 'g', 16);
 
@@ -183,10 +181,10 @@ enumVarType cMultiVal::Store(CVector4 val)
 	dVal[1] = val.y;
 	dVal[2] = val.z;
 	dVal[3] = val.w;
-	iVal[0] = val.x;
-	iVal[1] = val.y;
-	iVal[2] = val.z;
-	iVal[3] = val.w;
+	iVal[0] = int(val.x);
+	iVal[1] = int(val.y);
+	iVal[2] = int(val.z);
+	iVal[3] = int(val.w);
 	sVal = QString("%L1 %L2 %L3 %L4")
 					 .arg(val.x, 0, 'g', 16)
 					 .arg(val.y, 0, 'g', 16)
@@ -222,14 +220,6 @@ enumVarType cMultiVal::Store(bool val)
 
 	if (!typeDefined) type = typeBool;
 	return typeBool;
-}
-
-enumVarType cMultiVal::Store(cColorPalette val)
-{
-	sVal = MakePaletteString(val);
-
-	if (!typeDefined) type = typeColorPalette;
-	return typeColorPalette;
 }
 
 enumVarType cMultiVal::Get(double &val) const
@@ -274,46 +264,6 @@ enumVarType cMultiVal::Get(bool &val) const
 	return typeBool;
 }
 
-enumVarType cMultiVal::Get(cColorPalette &val) const
-{
-	val = GetPaletteFromString(sVal);
-	return typeColorPalette;
-}
-
-QString cMultiVal::MakePaletteString(cColorPalette &palette)
-{
-	QString paletteString;
-	for (int i = 0; i < palette.GetSize(); i++)
-	{
-		sRGB colorRGB = palette.GetColor(i);
-		int colour = colorRGB.R * 65536 + colorRGB.G * 256 + colorRGB.B;
-		colour = colour & 0x00FFFFFF;
-		if (i > 0) paletteString += " ";
-		paletteString += QString("%1").arg(colour, 6, 16, QChar('0'));
-	}
-	return paletteString;
-}
-
-cColorPalette cMultiVal::GetPaletteFromString(const QString &paletteString)
-{
-	cColorPalette colorPalette;
-	QStringList split = paletteString.split(" ");
-
-	for (int i = 0; i < split.size(); i++)
-	{
-		if (split[i].size() > 0)
-		{
-			unsigned int colour = split[i].toInt(nullptr, 16);
-			sRGB rgbColour;
-			rgbColour.R = colour / 65536;
-			rgbColour.G = (colour / 256) % 256;
-			rgbColour.B = colour % 256;
-			colorPalette.AppendColor(rgbColour);
-		}
-	}
-	return colorPalette;
-}
-
 bool cMultiVal::isEqual(const cMultiVal &m) const
 {
 	bool isEqual = true;
@@ -347,7 +297,6 @@ bool cMultiVal::isEqual(const cMultiVal &m) const
 			}
 			break;
 		}
-		case typeColorPalette:
 		case typeString:
 		{
 			if (sVal != m.sVal)

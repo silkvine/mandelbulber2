@@ -112,6 +112,7 @@ cInterface::cInterface(QObject *parent) : QObject(parent)
 	autoRefreshLastState = false;
 	lockedDetailLevel = 1.0;
 	lastSelectedMaterial = 1;
+	numberOfStartedRenders = 0;
 }
 
 cInterface::~cInterface()
@@ -205,7 +206,8 @@ void cInterface::ShowUi()
 	mainImage->ConvertTo8bit();
 	mainImage->UpdatePreview();
 	mainImage->SetAsMainImage();
-	renderedImage->setMinimumSize(mainImage->GetPreviewWidth(), mainImage->GetPreviewHeight());
+	renderedImage->setMinimumSize(
+		int(mainImage->GetPreviewWidth()), int(mainImage->GetPreviewHeight()));
 	renderedImage->AssignImage(mainImage);
 	renderedImage->AssignParameters(gPar, gParFractal);
 
@@ -263,6 +265,8 @@ void cInterface::ShowUi()
 		gPar->Get<bool>("opencl_enabled"));
 #endif
 
+	mainWindow->ui->actionImport_settings_from_Mandelbulb3d->setVisible(false);
+
 	if (gPar->Get<bool>("ui_colorize"))
 		ColorizeGroupBoxes(mainWindow, gPar->Get<int>("ui_colorize_random_seed"));
 
@@ -286,6 +290,9 @@ void cInterface::ShowUi()
 	mainWindow->slotPopulateRecentSettings();
 	mainWindow->slotPopulateCustomWindowStates();
 	systemTray = new cSystemTray(mainImage, mainWindow);
+
+	// installing event filter for disabling tooltips
+	gApplication->installEventFilter(mainWindow);
 
 	WriteLog("cInterface::ConnectSignals(void)", 2);
 	ConnectSignals();
@@ -344,6 +351,8 @@ void cInterface::ConnectSignals() const
 		SLOT(slotMenuLoadExample()));
 	connect(mainWindow->ui->actionImport_settings_from_old_Mandelbulber, SIGNAL(triggered()),
 		mainWindow, SLOT(slotImportOldSettings()));
+	connect(mainWindow->ui->actionImport_settings_from_Mandelbulb3d, SIGNAL(triggered()), mainWindow,
+		SLOT(slotImportMandelbulb3dSettings()));
 	connect(mainWindow->ui->actionExportVoxelLayers, SIGNAL(triggered()), mainWindow,
 		SLOT(slotExportVoxelLayers()));
 	connect(
@@ -480,6 +489,7 @@ void cInterface::SynchronizeInterface(
 
 void cInterface::StartRender(bool noUndo)
 {
+	numberOfStartedRenders++;
 	if (!mainImage->IsUsed())
 	{
 		mainImage->BlockImage();
@@ -552,6 +562,7 @@ void cInterface::StartRender(bool noUndo)
 
 	thread->setObjectName("RenderJob");
 	thread->start();
+	numberOfStartedRenders--;
 }
 
 void cInterface::MoveCamera(QString buttonName, bool synchronizeAndRender)
@@ -933,10 +944,10 @@ void cInterface::RefreshMainImage()
 	{
 		SynchronizeInterface(gPar, gParFractal, qInterface::read);
 		sImageAdjustments imageAdjustments;
-		imageAdjustments.brightness = gPar->Get<double>("brightness");
-		imageAdjustments.contrast = gPar->Get<double>("contrast");
-		imageAdjustments.imageGamma = gPar->Get<double>("gamma");
-		imageAdjustments.saturation = gPar->Get<double>("saturation");
+		imageAdjustments.brightness = gPar->Get<float>("brightness");
+		imageAdjustments.contrast = gPar->Get<float>("contrast");
+		imageAdjustments.imageGamma = gPar->Get<float>("gamma");
+		imageAdjustments.saturation = gPar->Get<float>("saturation");
 		imageAdjustments.hdrEnabled = gPar->Get<bool>("hdr");
 
 		mainImage->SetImageParameters(imageAdjustments);
@@ -963,8 +974,8 @@ void cInterface::RefreshPostEffects()
 		RefreshMainImage();
 
 		// replace image size parameters in case if user changed image size just before image update
-		gPar->Set("image_width", mainImage->GetWidth());
-		gPar->Set("image_height", mainImage->GetHeight());
+		gPar->Set("image_width", int(mainImage->GetWidth()));
+		gPar->Set("image_height", int(mainImage->GetHeight()));
 
 		stopRequest = false;
 		if (gPar->Get<bool>("ambient_occlusion_enabled")
@@ -982,9 +993,9 @@ void cInterface::RefreshPostEffects()
 				if (gOpenCl->openClEngineRenderSSAO->LoadSourcesAndCompile(gPar))
 				{
 					gOpenCl->openClEngineRenderSSAO->CreateKernel4Program(gPar);
-					qint64 neededMem = gOpenCl->openClEngineRenderSSAO->CalcNeededMemory();
+					size_t neededMem = gOpenCl->openClEngineRenderSSAO->CalcNeededMemory();
 					WriteLogDouble("OpenCl render SSAO - needed mem:", neededMem / 1048576.0, 2);
-					if (neededMem / 1048576 < gPar->Get<int>("opencl_memory_limit"))
+					if (neededMem / 1048576 < size_t(gPar->Get<int>("opencl_memory_limit")))
 					{
 						gOpenCl->openClEngineRenderSSAO->PreAllocateBuffers(gPar);
 						gOpenCl->openClEngineRenderSSAO->CreateCommandQueue();
@@ -1425,6 +1436,7 @@ void cInterface::MouseDragStart(
 			cameraDragData.startNormalizedPoint = normalizedPoint;
 			cameraDragData.startZ = depth;
 			cameraDragData.lastRefreshTime.restart();
+			cameraDragData.lastStartRenderingTime = 0;
 
 			if (clickMode == RenderedImage::clickMoveCamera)
 			{
@@ -1443,7 +1455,11 @@ void cInterface::MouseDragDelta(int dx, int dy)
 {
 	if (cameraDragData.cameraDraggingStarted)
 	{
-		if (cameraDragData.lastRefreshTime.elapsed() > gPar->Get<double>("auto_refresh_period") * 1000)
+		if (numberOfStartedRenders > 1) stopRequest = true;
+
+		if (cameraDragData.lastRefreshTime.elapsed()
+					> gPar->Get<double>("auto_refresh_period") * 1000 + cameraDragData.lastStartRenderingTime
+				&& numberOfStartedRenders < 2)
 		{
 			cameraDragData.lastRefreshTime.restart();
 			params::enumPerspectiveType perspType =
@@ -1617,7 +1633,11 @@ void cInterface::MouseDragDelta(int dx, int dy)
 			}
 
 			SynchronizeInterface(gPar, gParFractal, qInterface::write);
+
+			QElapsedTimer timerStartRender;
+			timerStartRender.start();
 			StartRender();
+			cameraDragData.lastStartRenderingTime = timerStartRender.elapsed();
 		}
 	}
 }
@@ -2471,18 +2491,21 @@ void cInterface::ResetFormula(int fractalNumber) const
 
 void cInterface::PeriodicRefresh()
 {
-	if (mainWindow->ui->widgetDockNavigation->AutoRefreshIsChecked())
+	if (!cameraDragData.cameraDraggingStarted)
 	{
-		// check if something was changed in settings
-		SynchronizeInterface(gPar, gParFractal, qInterface::read);
-		cSettings tempSettings(cSettings::formatCondensedText);
-		tempSettings.CreateText(gPar, gParFractal);
-		QString newHash = tempSettings.GetHashCode();
-
-		if (newHash != autoRefreshLastHash)
+		if (mainWindow->ui->widgetDockNavigation->AutoRefreshIsChecked())
 		{
-			autoRefreshLastHash = newHash;
-			StartRender();
+			// check if something was changed in settings
+			SynchronizeInterface(gPar, gParFractal, qInterface::read);
+			cSettings tempSettings(cSettings::formatCondensedText);
+			tempSettings.CreateText(gPar, gParFractal);
+			QString newHash = tempSettings.GetHashCode();
+
+			if (newHash != autoRefreshLastHash)
+			{
+				autoRefreshLastHash = newHash;
+				StartRender();
+			}
 		}
 	}
 
@@ -2495,6 +2518,7 @@ void cInterface::DisablePeriodicRefresh()
 	{
 		autoRefreshLastState = mainWindow->ui->widgetDockNavigation->AutoRefreshIsChecked();
 		mainWindow->ui->widgetDockNavigation->AutoRefreshSetChecked(false);
+		gPar->Set("auto_refresh", false);
 	}
 }
 
@@ -2507,6 +2531,7 @@ void cInterface::ReEnablePeriodicRefresh()
 	if (autoRefreshLastState)
 	{
 		mainWindow->ui->widgetDockNavigation->AutoRefreshSetChecked(true);
+		gPar->Set("auto_refresh", true);
 	}
 }
 
@@ -2652,7 +2677,7 @@ void cInterface::DetachMainImageWidget()
 	detachedWindow->InstallImageWidget(mainWindow->ui->widgetWithImage);
 	detachedWindow->restoreGeometry(settings.value("detachedWindowGeometry").toByteArray());
 	detachedWindow->show();
-	mainWindow->centralWidget()->hide();
+	// mainWindow->centralWidget()->hide();
 	gPar->Set("image_detached", true);
 }
 
@@ -2663,7 +2688,7 @@ void cInterface::AttachMainImageWidget()
 		detachedWindow->RemoveImageWidget(mainWindow->ui->widgetWithImage);
 		mainWindow->ui->verticalLayout->addWidget(mainWindow->ui->widgetWithImage);
 		settings.setValue("detachedWindowGeometry", detachedWindow->saveGeometry());
-		mainWindow->centralWidget()->show();
+		// mainWindow->centralWidget()->show();
 		gPar->Set("image_detached", false);
 	}
 }

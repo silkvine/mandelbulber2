@@ -1,7 +1,7 @@
 /**
  * Mandelbulber v2, a 3D fractal generator       ,=#MKNmMMKmmßMNWy,
  *                                             ,B" ]L,,p%%%,,,§;, "K
- * Copyright (C) 2017 Mandelbulber Team        §R-==%w["'~5]m%=L.=~5N
+ * Copyright (C) 2017-19 Mandelbulber Team     §R-==%w["'~5]m%=L.=~5N
  *                                        ,=mm=§M ]=4 yJKA"/-Nsaj  "Bw,==,,
  * This file is part of Mandelbulber.    §R.r= jw",M  Km .mM  FW ",§=ß., ,TN
  *                                     ,4R =%["w[N=7]J '"5=],""]]M,w,-; T=]M
@@ -37,6 +37,19 @@
 
 #include "algebra.hpp"
 
+namespace params
+{
+enum enumFakeLightsShape
+{
+	fakeLightsShapePoint = 0,
+	fakeLightsShapeLine = 1,
+	fakeLightsShapeCircle = 2,
+	fakeLightsShapeSquare = 3,
+	fakeLightsShapeSphere = 4,
+	fakeLightsShapeCube = 5
+};
+};
+
 struct sFractalFoldings
 {
 	double boxLimit; // parameters of TGlad's folding
@@ -54,13 +67,19 @@ struct sCommonParams
 	int fakeLightsMaxIter;
 	int fakeLightsMinIter;
 
+	params::enumFakeLightsShape fakeLightsOrbitTrapShape;
+
+	double fakeLightsOrbitTrapSize;
+	double fakeLightsThickness;
 	double linearDEOffset;
 
 	CVector3 fakeLightsOrbitTrap;
+	CVector3 fakeLightsRotation;
 	CVector3 fractalPosition;
 	CVector3 fractalRotation;
 	CVector3 repeat;
 	CRotationMatrix mRotFractalRotation;
+	CRotationMatrix mRotFakeLightsRotation;
 
 	sFractalFoldings foldings;
 };

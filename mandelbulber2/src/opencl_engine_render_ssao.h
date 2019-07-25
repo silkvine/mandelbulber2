@@ -1,7 +1,7 @@
 /**
  * Mandelbulber v2, a 3D fractal generator       ,=#MKNmMMKmmßMNWy,
  *                                             ,B" ]L,,p%%%,,,§;, "K
- * Copyright (C) 2017-18 Mandelbulber Team     §R-==%w["'~5]m%=L.=~5N
+ * Copyright (C) 2017-19 Mandelbulber Team     §R-==%w["'~5]m%=L.=~5N
  *                                        ,=mm=§M ]=4 yJKA"/-Nsaj  "Bw,==,,
  * This file is part of Mandelbulber.    §R.r= jw",M  Km .mM  FW ",§=ß., ,TN
  *                                     ,4R =%["w[N=7]J '"5=],""]]M,w,-; T=]M
@@ -59,8 +59,8 @@ public:
 	void SetParameters(const sParamRender *paramRender, const cRegion<int> &region);
 	bool LoadSourcesAndCompile(const cParameterContainer *params) override;
 	void RegisterInputOutputBuffers(const cParameterContainer *params) override;
-	bool AssignParametersToKernelAdditional(int argIterator, int deviceIndex) override;
-	bool ProcessQueue(qint64 pixelsLeft, qint64 pixelIndex);
+	bool AssignParametersToKernelAdditional(uint argIterator, int deviceIndex) override;
+	bool ProcessQueue(quint64 pixelsLeft, quint64 pixelIndex);
 	bool Render(cImage *image, bool *stopRequest);
 	size_t CalcNeededMemory() override;
 
@@ -74,7 +74,7 @@ private:
 	sParamsSSAO paramsSSAO;
 	cRegion<int> imageRegion;
 	float intensity;
-	int numberOfPixels;
+	quint64 numberOfPixels;
 #endif
 
 signals:

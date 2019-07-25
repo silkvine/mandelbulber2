@@ -61,7 +61,7 @@ void cPostEffectHdrBlur::Render(bool *stopRequest)
 
 	const double blurSize = radius * (image->GetWidth() + image->GetHeight()) * 0.001;
 	const double blurSize2 = blurSize * blurSize;
-	const int intBlurSize = blurSize + 1;
+	const int intBlurSize = int(blurSize + 1);
 	const double limiter = intensity;
 
 	QString statusText = QObject::tr("Rendering HDR Blur effect");
@@ -69,28 +69,28 @@ void cPostEffectHdrBlur::Render(bool *stopRequest)
 
 	cProgressText progressText;
 	progressText.ResetTimer();
-	float percentDone = 0.0;
+	double percentDone = 0.0;
 
 	QElapsedTimer timerRefreshProgressBar;
 	timerRefreshProgressBar.start();
 
-	for (int y = 0; y < image->GetHeight(); y++)
+	for (qint64 y = 0; y < qint64(image->GetHeight()); y++)
 	{
 		if (*stopRequest || systemData.globalStopRequest) break;
 
 #pragma omp parallel for
-		for (int x = 0; x < image->GetWidth(); x++)
+		for (qint64 x = 0; x < qint64(image->GetWidth()); x++)
 		{
 			double weight = 0;
-			int yStart = qMax(0, y - intBlurSize);
-			int yEnd = qMin(image->GetHeight(), y + intBlurSize);
+			int yStart = qMax(0LL, y - intBlurSize);
+			int yEnd = qMin(qint64(image->GetHeight()), y + intBlurSize);
 
 			sRGBFloat newPixel;
 
 			for (int yy = yStart; yy < yEnd; yy++)
 			{
-				int xStart = qMax(0, x - intBlurSize);
-				int xEnd = qMin(image->GetWidth(), x + intBlurSize);
+				int xStart = qMax(0LL, x - intBlurSize);
+				int xEnd = qMin(qint64(image->GetWidth()), x + intBlurSize);
 				for (int xx = xStart; xx < xEnd; xx++)
 				{
 					double dx = x - xx;

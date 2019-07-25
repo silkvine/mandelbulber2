@@ -1,7 +1,7 @@
 /**
  * Mandelbulber v2, a 3D fractal generator       ,=#MKNmMMKmmßMNWy,
  *                                             ,B" ]L,,p%%%,,,§;, "K
- * Copyright (C) 2014-18 Mandelbulber Team     §R-==%w["'~5]m%=L.=~5N
+ * Copyright (C) 2014-19 Mandelbulber Team     §R-==%w["'~5]m%=L.=~5N
  *                                        ,=mm=§M ]=4 yJKA"/-Nsaj  "Bw,==,,
  * This file is part of Mandelbulber.    §R.r= jw",M  Km .mM  FW ",§=ß., ,TN
  *                                     ,4R =%["w[N=7]J '"5=],""]]M,w,-; T=]M
@@ -37,6 +37,7 @@
 
 #include <QObject>
 
+#include "render_worker.hpp"
 #include "statistics.h"
 
 // forward declarations
@@ -45,6 +46,8 @@ struct sParamRender;
 struct sRenderData;
 class cImage;
 class cScheduler;
+struct sThreadData;
+class cProgressText;
 
 class cRenderer : public QObject
 {
@@ -57,6 +60,20 @@ public:
 
 private:
 	void CreateLineData(int y, QByteArray *lineData) const;
+	int InitProgresiveSteps();
+	void InitializeThreadData(cRenderWorker::sThreadData *threadData);
+	void LaunchThreads(
+		QThread **thread, cRenderWorker **worker, cRenderWorker::sThreadData *threadData);
+	void TerminateRendering();
+	double PeriodicUpdateStatusAndProgressBar(QString &statusText, QString &progressTxt,
+		cProgressText &progressText, QElapsedTimer &timerProgressRefresh);
+	QSet<int> UpdateImageDuringRendering(QList<int> &listToRefresh, QList<int> &listToSend);
+	void SendRenderedLinesToNetRender(QList<int> &listToSend);
+	void UpdateNetRenderToDoList();
+	void SendRenderedLinesToNetRenderAfterRendering(QList<int> listToSend);
+	void RenderSSAO();
+	void RenderDOF();
+	void RenderHDRBlur();
 
 	const sParamRender *params;
 	const cNineFractals *fractal;

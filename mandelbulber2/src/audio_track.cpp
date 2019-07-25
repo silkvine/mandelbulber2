@@ -1,7 +1,7 @@
 /**
  * Mandelbulber v2, a 3D fractal generator       ,=#MKNmMMKmmßMNWy,
  *                                             ,B" ]L,,p%%%,,,§;, "K
- * Copyright (C) 2016-18 Mandelbulber Team     §R-==%w["'~5]m%=L.=~5N
+ * Copyright (C) 2016-19 Mandelbulber Team     §R-==%w["'~5]m%=L.=~5N
  *                                        ,=mm=§M ]=4 yJKA"/-Nsaj  "Bw,==,,
  * This file is part of Mandelbulber.    §R.r= jw",M  Km .mM  FW ",§=ß., ,TN
  *                                     ,4R =%["w[N=7]J '"5=],""]]M,w,-; T=]M
@@ -116,8 +116,8 @@ void cAudioTrack::LoadAudio(const QString &_filename)
 
 		if (sfInfo.frames > 0)
 		{
-			rawAudio.reserve(sfInfo.frames);
-			rawAudio.resize(sfInfo.frames);
+			rawAudio.reserve(quint64(sfInfo.frames));
+			rawAudio.resize(quint64(sfInfo.frames));
 
 			float *tempBuff = new float[sfInfo.frames * sfInfo.channels];
 			const sf_count_t readSamples = sf_readf_float(infile, tempBuff, sfInfo.frames);
@@ -189,7 +189,7 @@ void cAudioTrack::slotReadBuffer()
 	QAudioBuffer audioBuffer = decoder->read();
 
 	const qint64 duration = decoder->duration();
-	const qint64 totalSamplesApprox = (duration + 1000) * sampleRate / 1000;
+	const quint64 totalSamplesApprox = quint64((duration + 1000) * sampleRate / 1000);
 
 	// reservation of memory if length is already known
 	if (duration > 0 && !memoryReserved)
@@ -205,8 +205,8 @@ void cAudioTrack::slotReadBuffer()
 
 		for (int i = 0; i < frameCount; i++)
 		{
-			float sample = frames[i] / 32768.0;
-			rawAudio.append(sample);
+			float sample = frames[i] / 32768.0f;
+			rawAudio.push_back(sample);
 			maxVolume = qMax(sample, maxVolume);
 		}
 	}
@@ -224,7 +224,7 @@ void cAudioTrack::slotFinished()
 	emit loadingFinished();
 }
 
-float cAudioTrack::getSample(int sampleIndex) const
+float cAudioTrack::getSample(quint64 sampleIndex) const
 {
 	if (isLoaded() && sampleIndex < length)
 	{
@@ -272,7 +272,7 @@ void cAudioTrack::calculateFFT()
 
 		fftAudio.reset(new cAudioFFTData[numberOfFrames]);
 
-		const int overSample = sampleRate / framesPerSecond / cAudioFFTData::fftSize + 2;
+		const int overSample = int(sampleRate / framesPerSecond / cAudioFFTData::fftSize + 2);
 
 #pragma omp parallel for
 		for (int frame = 0; frame < numberOfFrames; ++frame)
@@ -289,8 +289,8 @@ void cAudioTrack::calculateFFT()
 				for (int i = 0; i < cAudioFFTData::fftSize; i++)
 				{
 					fftData[2 * i] =
-						getSample(i + sampleOffset) * 0.5
-						* (1.0 - cos((2 * M_PI * i) / (cAudioFFTData::fftSize - 1))); // Hann window function
+						double(getSample(i + sampleOffset)) * 0.5
+						* (1.0 - cos((2.0 * M_PI * i) / (cAudioFFTData::fftSize - 1))); // Hann window function
 
 					fftData[2 * i + 1] = 0.0;
 				}
@@ -400,8 +400,9 @@ void cAudioTrack::calculateAnimation(double midFreq, double bandwidth, bool pitc
 		if (i == 0)
 			value = getBand(i, midFreq, bandwidth, pitchMode);
 		else
-			value = 0.5f * (getBand(i, midFreq, bandwidth, pitchMode)
-											 + getBand(i - 1, midFreq, bandwidth, pitchMode));
+			value = 0.5f
+							* (getBand(i, midFreq, bandwidth, pitchMode)
+									+ getBand(i - 1, midFreq, bandwidth, pitchMode));
 
 		animation.append(value);
 	}

@@ -33,7 +33,7 @@
  */
 
 // defined to force recompilation of kernels on NVidia cards with new releases
-#define MANDELBULBER_VERSION 2.18 - dev001
+#define MANDELBULBER_VERSION 2.19
 
 int GetInteger(int byte, __global char *array)
 {
@@ -94,7 +94,6 @@ kernel void fractal3D(__global sClPixel *out, __global char *inBuff,
 		renderData.palette = 0;
 		renderData.AOVectors = 0;
 		renderData.lights = 0;
-		renderData.paletteLength = 0;
 		renderData.numberOfLights = 0;
 		renderData.AOVectorsCount = 0;
 		renderData.reflectionsMax = 0;
@@ -137,7 +136,9 @@ kernel void fractal3D(__global sClPixel *out, __global char *inBuff,
 
 #ifdef STEREOSCOPIC
 #ifndef STEREO_REYCYAN
+#ifndef PERSP_EQUIRECTANGULAR
 		aspectRatio = StereoModifyAspectRatio(aspectRatio);
+#endif
 #endif
 #endif
 
@@ -159,13 +160,37 @@ kernel void fractal3D(__global sClPixel *out, __global char *inBuff,
 
 #ifdef STEREOSCOPIC
 #ifndef PERSP_FISH_EYE_CUT
+
+#ifdef PERSP_EQUIRECTANGULAR // reduce of stereo effect on poles
+		float stereoIntensity = 1.0f - pow(normalizedScreenPoint.y * 2.0f, 10.0f);
+#else
+		float stereoIntensity = 1.0f;
+#endif
+
 		start = StereoCalcEyePosition(start, viewVector, consts->params.topVector,
-			consts->params.stereoEyeDistance, eye, consts->params.stereoSwapEyes);
+			consts->params.stereoEyeDistance * stereoIntensity, eye, consts->params.stereoSwapEyes);
 
 		matrix33 rotInv = TransposeMatrix(rot);
-		StereoViewVectorCorrection(consts->params.stereoInfiniteCorrection, &rot, &rotInv, eye,
-			consts->params.stereoSwapEyes, &viewVector);
-#endif // PERSP_FISH_EYE_CUT
+		StereoViewVectorCorrection(consts->params.stereoInfiniteCorrection * stereoIntensity, &rot,
+			&rotInv, eye, consts->params.stereoSwapEyes, &viewVector);
+#else // PERSP_FISH_EYE_CUT
+		float3 eyePosition = 0.0f;
+		float3 sideVector = normalize(cross(viewVector, consts->params.topVector));
+		float3 rightVector =
+			normalize(cross(consts->params.target - consts->params.camera, consts->params.topVector));
+		float eyeDistance = consts->params.stereoEyeDistance;
+		if (consts->params.stereoSwapEyes) eyeDistance *= -1.0f;
+
+		if (eye == 0)
+		{
+			eyePosition = start + 0.5f * (rightVector * eyeDistance + sideVector * eyeDistance);
+		}
+		else
+		{
+			eyePosition = start - 0.5f * (rightVector * eyeDistance + sideVector * eyeDistance);
+		}
+		start = eyePosition;
+#endif
 #endif // STEREOSCOPIC
 
 		bool found = false;
@@ -202,6 +227,15 @@ kernel void fractal3D(__global sClPixel *out, __global char *inBuff,
 			}
 
 			step = (distance - 0.5f * distThresh) * consts->params.DEFactor;
+
+#ifdef ADVANCED_QUALITY
+			step = clamp(step, consts->params.absMinMarchingStep, consts->params.absMaxMarchingStep);
+
+			if (distThresh > consts->params.absMinMarchingStep)
+				step = clamp(step, consts->params.relMinMarchingStep * distThresh,
+					consts->params.relMaxMarchingStep * distThresh);
+#endif
+
 			scan += step / length(viewVector);
 		}
 

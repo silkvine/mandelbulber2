@@ -101,7 +101,7 @@ typedef struct
 	cl_int xyzYSqrdFalse;
 	cl_int xyzZSqrdFalse;
 
-	cl_int tempLimitFalse; // tempoary
+	cl_int tempLimitFalse; // temporary
 
 	enumFractalColoringCl coloringAlgorithm;
 	cl_int iStartValue;
@@ -123,7 +123,6 @@ typedef struct
 	cl_float hybridRadDivDeScale1;
 	cl_float icRadWeight;
 	cl_float initialColorValue;
-	// cl_float initialMinimumR;
 	cl_float iterAddScale;
 	cl_float iterScale;
 	cl_float maxColorValue;

@@ -77,7 +77,8 @@ typedef struct
 	bool maxiter;
 } formulaOut;
 
-typedef enum {
+typedef enum
+{
 	calcModeNormal = 0,
 	calcModeColouring = 1,
 	calcModeFake_AO = 2,
@@ -147,11 +148,12 @@ formulaOut Fractal(__constant sClInConstants *consts, float3 point, sClCalcParam
 	aux.const_c = c;
 	aux.old_z = z;
 	aux.sum_z = z;
-	aux.pos_neg = 1.0;
+	aux.pos_neg = 1.0f;
 	aux.cw = 0.0f;
 
 	aux.r = length(z);
 	aux.DE = 1.0f;
+	aux.dist = 1000.0f;
 	aux.pseudoKleinianDE = 1.0f;
 
 	aux.actualScale = consts->fractal[fractalIndex].mandelbox.scale;
@@ -160,8 +162,8 @@ formulaOut Fractal(__constant sClInConstants *consts, float3 point, sClCalcParam
 	aux.color = 1.0f;
 	aux.colorHybrid = 0.0f;
 
-	aux.temp100 = 100.0f;
-	aux.addDist = 0.0;
+	aux.temp1000 = 1000.0f;
+	aux.addDist = 0.0f;
 
 	int sequence = 0;
 	__constant sFractalCl *fractal;
@@ -420,10 +422,8 @@ formulaOut Fractal(__constant sClInConstants *consts, float3 point, sClCalcParam
 #ifdef FAKE_LIGHTS
 			else if (mode == calcModeOrbitTrap)
 			{
-				float4 delta = z - (float4){consts->params.common.fakeLightsOrbitTrap.x,
-														 consts->params.common.fakeLightsOrbitTrap.y,
-														 consts->params.common.fakeLightsOrbitTrap.z, 0.0f};
-				float distance = length(delta);
+				float distance = OrbitTrapShapeDistance(z, consts);
+
 				if (i >= consts->params.common.fakeLightsMinIter
 						&& i <= consts->params.common.fakeLightsMaxIter)
 					orbitTrapTotal += (1.0f / (distance * distance));
@@ -462,7 +462,7 @@ formulaOut Fractal(__constant sClInConstants *consts, float3 point, sClCalcParam
 		}
 	}
 
-// calculate estimated distance
+	// calculate estimated distance
 
 #ifdef IS_HYBRID
 #ifdef ANALYTIC_LOG_DE
@@ -530,6 +530,12 @@ formulaOut Fractal(__constant sClInConstants *consts, float3 point, sClCalcParam
 		out.colorIndex = CalculateColorIndex(consts->sequence.isHybrid, aux.r, z, colorMin, &aux,
 			fractalColoring, coloringFunction, defaultFractal);
 	}
+#endif
+
+#ifdef DELTA_JOS_KLEINIAN_DE
+	// needed for JosKleinian fractal to calculate spheres in deltaDE mode
+	if (consts->fractal[sequence].transformCommon.spheresEnabled)
+		z.y = min(z.y, consts->fractal[sequence].transformCommon.foldingValue - z.y);
 #endif
 
 	// end

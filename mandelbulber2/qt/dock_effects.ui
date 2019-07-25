@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>584</width>
-    <height>1103</height>
+    <width>608</width>
+    <height>1156</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -152,8 +152,8 @@
            <rect>
             <x>0</x>
             <y>0</y>
-            <width>545</width>
-            <height>1025</height>
+            <width>569</width>
+            <height>1078</height>
            </rect>
           </property>
           <layout class="QVBoxLayout" name="verticalLayout_34">
@@ -594,6 +594,25 @@ per pixel:</string>
                 </property>
                 <property name="text">
                  <string>Calculate MC global illumination</string>
+                </property>
+               </widget>
+              </item>
+              <item>
+               <widget class="MyCheckBox" name="checkBox_MC_global_illumination_volumetric">
+                <property name="enabled">
+                 <bool>false</bool>
+                </property>
+                <property name="sizePolicy">
+                 <sizepolicy hsizetype="Minimum" vsizetype="Maximum">
+                  <horstretch>0</horstretch>
+                  <verstretch>0</verstretch>
+                 </sizepolicy>
+                </property>
+                <property name="toolTip">
+                 <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Enables calculation of realistic global illumination using Monte Carlo algorithm. &lt;/p&gt;&lt;p&gt;Number of light bounces is defined by the &amp;quot;reflections depth&amp;quot; parameter at the top of tab.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+                </property>
+                <property name="text">
+                 <string>Global illumination by volumetric effects</string>
                 </property>
                </widget>
               </item>
@@ -1072,8 +1091,8 @@ per pixel:</string>
            <rect>
             <x>0</x>
             <y>0</y>
-            <width>545</width>
-            <height>1025</height>
+            <width>249</width>
+            <height>1037</height>
            </rect>
           </property>
           <layout class="QVBoxLayout" name="verticalLayout_35">
@@ -2019,8 +2038,8 @@ Set 100 to keep compatibility with version &lt;=2.12</string>
            <rect>
             <x>0</x>
             <y>0</y>
-            <width>545</width>
-            <height>1025</height>
+            <width>274</width>
+            <height>379</height>
            </rect>
           </property>
           <layout class="QVBoxLayout" name="verticalLayout_36">
@@ -2203,7 +2222,7 @@ Set 100 to keep compatibility with version &lt;=2.12</string>
               <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Enables covering of background sphere with selected image.&lt;/p&gt;&lt;p&gt;Example:&lt;/p&gt;&lt;p&gt;&lt;img src=&quot;:/tooltips/tooltips_images/image - shader - backhround texture.jpg&quot;/&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
              </property>
              <property name="title">
-              <string>Te&amp;xtured background</string>
+              <string>Text&amp;ured background</string>
              </property>
              <property name="checkable">
               <bool>true</bool>
@@ -2689,8 +2708,8 @@ Set 100 to keep compatibility with version &lt;=2.12</string>
            <rect>
             <x>0</x>
             <y>0</y>
-            <width>527</width>
-            <height>1707</height>
+            <width>551</width>
+            <height>1863</height>
            </rect>
           </property>
           <layout class="QVBoxLayout" name="verticalLayout_41">
@@ -4112,10 +4131,10 @@ of lights:</string>
            <item>
             <widget class="MyGroupBox" name="groupCheck_fake_lights_enabled">
              <property name="toolTip">
-              <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Simulates big amount of lights. These light sources are fast for rendering because they don't need to be calculated separately. They came from fractal equation.&lt;/p&gt;&lt;p&gt;Positions of lights are set by coordinates of orbit trap point. Where iterated function goes near selected point then this point is brighter.&lt;/p&gt;&lt;p&gt;This effect is difficult to setup and often you need to try many different orbit trap coordinates.&lt;/p&gt;&lt;p&gt;These light sources illuminate the fractal surface, but do not cast shadows.&lt;/p&gt;&lt;p&gt;Example:&lt;/p&gt;&lt;p&gt;&lt;img src=&quot;:/tooltips/tooltips_images/image - shader - orbit trap lights.jpg&quot;/&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+              <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Simulates a large amount of lights and is relatively fast to render.&lt;/p&gt;&lt;p&gt;An orbit trap is a point, a 2D, or 3D shape defined in 3D space. The brightness of the point is dependent on how close the point's orbit gets to the orbit trap shape during the chosen iterations.&lt;/p&gt;&lt;p&gt;This effect is difficult to setup and often you need to try many different orbit trap settings.&lt;/p&gt;&lt;p&gt;These light sources illuminate the fractal surface, but do not cast shadows.&lt;/p&gt;&lt;p&gt;Example:&lt;/p&gt;&lt;p&gt;&lt;img src=&quot;:/tooltips/tooltips_images/image - shader - orbit trap lights.jpg&quot;/&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
              </property>
              <property name="title">
-              <string>Fake lights based on orbit &amp;traps</string>
+              <string>Orbit &amp;trap lights</string>
              </property>
              <property name="checkable">
               <bool>true</bool>
@@ -4137,10 +4156,17 @@ of lights:</string>
                <number>2</number>
               </property>
               <item>
-               <layout class="QGridLayout" name="gridLayout_17" columnstretch="0,2,1">
+               <layout class="QGridLayout" name="gridLayout_17" columnstretch="0,0,0">
                 <property name="spacing">
                  <number>2</number>
                 </property>
+                <item row="7" column="0" rowspan="3">
+                 <widget class="QLabel" name="label_95">
+                  <property name="text">
+                   <string>Orbit trap center:</string>
+                  </property>
+                 </widget>
+                </item>
                 <item row="0" column="2">
                  <widget class="MySpinBox" name="spinboxInt_fake_lights_min_iter">
                   <property name="sizePolicy">
@@ -4160,7 +4186,7 @@ of lights:</string>
                 <item row="4" column="0">
                  <widget class="QLabel" name="label_94">
                   <property name="text">
-                   <string>Size:</string>
+                   <string>Softness:</string>
                   </property>
                  </widget>
                 </item>
@@ -4197,7 +4223,7 @@ of lights:</string>
                 <item row="2" column="0">
                  <widget class="QLabel" name="label_92">
                   <property name="text">
-                   <string>Intensity:</string>
+                   <string>Intensity on surface:</string>
                   </property>
                  </widget>
                 </item>
@@ -4235,11 +4261,11 @@ of lights:</string>
                 <item row="3" column="2">
                  <widget class="MyLineEdit" name="logedit_fake_lights_visibility">
                   <property name="toolTip">
-                   <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Brightness of visible lights&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+                   <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Brightness of visible lights. It is volumetric effect.&lt;/p&gt;&lt;p&gt;Quality of this effect can by controled by &lt;span style=&quot; font-style:italic;&quot;&gt;Effects / Volumetric / Custom DE step multiplier for volumetric effects&lt;/span&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
                   </property>
                  </widget>
                 </item>
-                <item row="6" column="1">
+                <item row="8" column="1">
                  <widget class="QLabel" name="label_97">
                   <property name="sizePolicy">
                    <sizepolicy hsizetype="Maximum" vsizetype="Preferred">
@@ -4265,25 +4291,21 @@ of lights:</string>
                 <item row="3" column="0">
                  <widget class="QLabel" name="label_93">
                   <property name="text">
-                   <string>Visibility:</string>
+                   <string>Visibility of glow (volumetric efect):</string>
+                  </property>
+                  <property name="wordWrap">
+                   <bool>true</bool>
                   </property>
                  </widget>
                 </item>
-                <item row="5" column="0">
-                 <widget class="QLabel" name="label_95">
-                  <property name="text">
-                   <string>Orbit trap:</string>
-                  </property>
-                 </widget>
-                </item>
-                <item row="5" column="2">
+                <item row="7" column="2">
                  <widget class="MyLineEdit" name="vect3_fake_lights_orbit_trap_x">
                   <property name="toolTip">
                    <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Position of orbit trap point&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
                   </property>
                  </widget>
                 </item>
-                <item row="5" column="1">
+                <item row="7" column="1">
                  <widget class="QLabel" name="label_96">
                   <property name="sizePolicy">
                    <sizepolicy hsizetype="Maximum" vsizetype="Preferred">
@@ -4299,14 +4321,14 @@ of lights:</string>
                   </property>
                  </widget>
                 </item>
-                <item row="6" column="2">
+                <item row="8" column="2">
                  <widget class="MyLineEdit" name="vect3_fake_lights_orbit_trap_y">
                   <property name="toolTip">
                    <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Position of orbit trap point&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
                   </property>
                  </widget>
                 </item>
-                <item row="7" column="1">
+                <item row="9" column="1">
                  <widget class="QLabel" name="label_98">
                   <property name="sizePolicy">
                    <sizepolicy hsizetype="Maximum" vsizetype="Preferred">
@@ -4322,27 +4344,231 @@ of lights:</string>
                   </property>
                  </widget>
                 </item>
-                <item row="7" column="2">
+                <item row="9" column="2">
                  <widget class="MyLineEdit" name="vect3_fake_lights_orbit_trap_z">
                   <property name="toolTip">
                    <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Position of orbit trap point&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
                   </property>
                  </widget>
                 </item>
-                <item row="8" column="0">
+                <item row="14" column="0">
                  <widget class="QLabel" name="label_45">
                   <property name="text">
                    <string>Color:</string>
                   </property>
                  </widget>
                 </item>
-                <item row="8" column="2">
+                <item row="14" column="2">
                  <widget class="MyColorButton" name="colorButton_fake_lights_color" native="true">
                   <property name="toolTip">
                    <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Color of light source&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
                   </property>
                   <property name="text" stdset="0">
                    <string>PushButton</string>
+                  </property>
+                 </widget>
+                </item>
+                <item row="6" column="0">
+                 <widget class="QLabel" name="label_104">
+                  <property name="text">
+                   <string>Shape:</string>
+                  </property>
+                 </widget>
+                </item>
+                <item row="11" column="2">
+                 <widget class="MyDoubleSpinBox" name="spinboxd3_fake_lights_orbit_rotation_x">
+                  <property name="sizePolicy">
+                   <sizepolicy hsizetype="Minimum" vsizetype="Maximum">
+                    <horstretch>0</horstretch>
+                    <verstretch>0</verstretch>
+                   </sizepolicy>
+                  </property>
+                  <property name="prefix">
+                   <string/>
+                  </property>
+                  <property name="suffix">
+                   <string/>
+                  </property>
+                  <property name="decimals">
+                   <number>2</number>
+                  </property>
+                  <property name="minimum">
+                   <double>-36000.000000000000000</double>
+                  </property>
+                  <property name="maximum">
+                   <double>36000.000000000000000</double>
+                  </property>
+                  <property name="singleStep">
+                   <double>0.100000000000000</double>
+                  </property>
+                 </widget>
+                </item>
+                <item row="10" column="2">
+                 <widget class="MyLineEdit" name="logedit_fake_lights_orbit_trap_size"/>
+                </item>
+                <item row="12" column="2">
+                 <widget class="MyDoubleSpinBox" name="spinboxd3_fake_lights_orbit_rotation_y">
+                  <property name="sizePolicy">
+                   <sizepolicy hsizetype="Minimum" vsizetype="Maximum">
+                    <horstretch>0</horstretch>
+                    <verstretch>0</verstretch>
+                   </sizepolicy>
+                  </property>
+                  <property name="prefix">
+                   <string/>
+                  </property>
+                  <property name="suffix">
+                   <string/>
+                  </property>
+                  <property name="decimals">
+                   <number>2</number>
+                  </property>
+                  <property name="minimum">
+                   <double>-36000.000000000000000</double>
+                  </property>
+                  <property name="maximum">
+                   <double>36000.000000000000000</double>
+                  </property>
+                  <property name="singleStep">
+                   <double>0.100000000000000</double>
+                  </property>
+                 </widget>
+                </item>
+                <item row="10" column="0">
+                 <widget class="QLabel" name="label_105">
+                  <property name="text">
+                   <string>Shape size:</string>
+                  </property>
+                 </widget>
+                </item>
+                <item row="6" column="2">
+                 <widget class="MyComboBox" name="comboBox_fake_lights_orbit_trap_shape">
+                  <item>
+                   <property name="text">
+                    <string>Point</string>
+                   </property>
+                  </item>
+                  <item>
+                   <property name="text">
+                    <string>Line</string>
+                   </property>
+                  </item>
+                  <item>
+                   <property name="text">
+                    <string>Circle</string>
+                   </property>
+                  </item>
+                  <item>
+                   <property name="text">
+                    <string>Square</string>
+                   </property>
+                  </item>
+                  <item>
+                   <property name="text">
+                    <string>Sphere</string>
+                   </property>
+                  </item>
+                  <item>
+                   <property name="text">
+                    <string>Cube</string>
+                   </property>
+                  </item>
+                 </widget>
+                </item>
+                <item row="13" column="2">
+                 <widget class="MyDoubleSpinBox" name="spinboxd3_fake_lights_orbit_rotation_z">
+                  <property name="sizePolicy">
+                   <sizepolicy hsizetype="Minimum" vsizetype="Maximum">
+                    <horstretch>0</horstretch>
+                    <verstretch>0</verstretch>
+                   </sizepolicy>
+                  </property>
+                  <property name="prefix">
+                   <string/>
+                  </property>
+                  <property name="suffix">
+                   <string/>
+                  </property>
+                  <property name="decimals">
+                   <number>2</number>
+                  </property>
+                  <property name="minimum">
+                   <double>-36000.000000000000000</double>
+                  </property>
+                  <property name="maximum">
+                   <double>36000.000000000000000</double>
+                  </property>
+                  <property name="singleStep">
+                   <double>0.100000000000000</double>
+                  </property>
+                 </widget>
+                </item>
+                <item row="13" column="1">
+                 <widget class="QLabel" name="label_108">
+                  <property name="sizePolicy">
+                   <sizepolicy hsizetype="Maximum" vsizetype="Preferred">
+                    <horstretch>0</horstretch>
+                    <verstretch>0</verstretch>
+                   </sizepolicy>
+                  </property>
+                  <property name="text">
+                   <string>z:</string>
+                  </property>
+                  <property name="alignment">
+                   <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+                  </property>
+                 </widget>
+                </item>
+                <item row="12" column="1">
+                 <widget class="QLabel" name="label_107">
+                  <property name="sizePolicy">
+                   <sizepolicy hsizetype="Maximum" vsizetype="Preferred">
+                    <horstretch>0</horstretch>
+                    <verstretch>0</verstretch>
+                   </sizepolicy>
+                  </property>
+                  <property name="text">
+                   <string>y:</string>
+                  </property>
+                  <property name="alignment">
+                   <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+                  </property>
+                 </widget>
+                </item>
+                <item row="11" column="1">
+                 <widget class="QLabel" name="label_106">
+                  <property name="sizePolicy">
+                   <sizepolicy hsizetype="Maximum" vsizetype="Preferred">
+                    <horstretch>0</horstretch>
+                    <verstretch>0</verstretch>
+                   </sizepolicy>
+                  </property>
+                  <property name="text">
+                   <string>x:</string>
+                  </property>
+                  <property name="alignment">
+                   <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+                  </property>
+                 </widget>
+                </item>
+                <item row="11" column="0" rowspan="3">
+                 <widget class="QLabel" name="label_102">
+                  <property name="text">
+                   <string>Shape rotation:</string>
+                  </property>
+                 </widget>
+                </item>
+                <item row="5" column="0">
+                 <widget class="QLabel" name="label_109">
+                  <property name="text">
+                   <string>Relative thickness:</string>
+                  </property>
+                 </widget>
+                </item>
+                <item row="5" column="2">
+                 <widget class="MyLineEdit" name="logedit_fake_lights_thickness">
+                  <property name="toolTip">
+                   <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Brightness of visible lights&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
                   </property>
                  </widget>
                 </item>
@@ -4432,8 +4658,8 @@ of lights:</string>
            <rect>
             <x>0</x>
             <y>0</y>
-            <width>545</width>
-            <height>1017</height>
+            <width>167</width>
+            <height>109</height>
            </rect>
           </property>
           <layout class="QVBoxLayout" name="verticalLayout_3">

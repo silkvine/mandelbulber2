@@ -127,10 +127,12 @@ cFlightAnimation::cFlightAnimation(cInterface *_interface, cAnimationFrames *_fr
 			mainInterface->systemTray, SLOT(showMessage(QString, QString)));
 
 		// connect QuestionMessage signal
-		connect(this, SIGNAL(QuestionMessage(const QString, const QString, QMessageBox::StandardButtons,
-										QMessageBox::StandardButton *)),
-			mainInterface->mainWindow, SLOT(slotQuestionMessage(const QString, const QString,
-																	 QMessageBox::StandardButtons, QMessageBox::StandardButton *)));
+		connect(this,
+			SIGNAL(QuestionMessage(
+				const QString, const QString, QMessageBox::StandardButtons, QMessageBox::StandardButton *)),
+			mainInterface->mainWindow,
+			SLOT(slotQuestionMessage(const QString, const QString, QMessageBox::StandardButtons,
+				QMessageBox::StandardButton *)));
 
 		table = ui->tableWidget_flightAnimation;
 	}
@@ -399,7 +401,7 @@ void cFlightAnimation::RecordFlight(bool continueRecording)
 		}
 
 		// integrator for position
-		if (strafe.Length() == 0)
+		if (qIsNull(strafe.Length()))
 		{
 			double goForward = (negativeFlightSpeed) ? -1.0 : 1.0;
 			cameraAcceleration =
@@ -410,11 +412,11 @@ void cFlightAnimation::RecordFlight(bool continueRecording)
 			CVector3 direction;
 			if (!orthogonalStrafe) direction = cameraTarget.GetForwardVector();
 
-			if (strafe.x != 0)
+			if (!qIsNull(strafe.x))
 			{
 				direction += cameraTarget.GetRightVector() * strafe.x;
 			}
-			if (strafe.y != 0)
+			if (!qIsNull(strafe.y))
 			{
 				direction += cameraTarget.GetTopVector() * strafe.y;
 			}
@@ -522,8 +524,8 @@ void cFlightAnimation::RecordFlight(bool continueRecording)
 void cFlightAnimation::UpdateThumbnailFromImage(int index) const
 {
 	table->blockSignals(true);
-	const QImage qImage(static_cast<const uchar *>(image->ConvertTo8bit()), image->GetWidth(),
-		image->GetHeight(), image->GetWidth() * sizeof(sRGB8), QImage::Format_RGB888);
+	const QImage qImage(static_cast<const uchar *>(image->ConvertTo8bit()), int(image->GetWidth()),
+		int(image->GetHeight()), int(image->GetWidth() * sizeof(sRGB8)), QImage::Format_RGB888);
 	QPixmap pixmap;
 	pixmap.convertFromImage(qImage);
 	const QIcon icon(
@@ -1296,8 +1298,9 @@ QString cFlightAnimation::GetFlightFilename(int index) const
 {
 	QString filename = params->Get<QString>("anim_flight_dir") + "frame_"
 										 + QString("%1").arg(index, 7, 10, QChar('0'));
-	filename += "." + ImageFileSave::ImageFileExtension(ImageFileSave::enumImageFileType(
-											params->Get<int>("flight_animation_image_type")));
+	filename += "."
+							+ ImageFileSave::ImageFileExtension(ImageFileSave::enumImageFileType(
+									params->Get<int>("flight_animation_image_type")));
 	return filename;
 }
 

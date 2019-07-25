@@ -94,7 +94,8 @@ bool cOpenClEngine::Build(const QByteArray &programString, QString *errorText)
 		// recompile also if selected devices changed
 		for (int d = 0; d < hardware->getEnabledDevices().size(); d++)
 		{
-			hashCryptProgram.addData((char *)&hardware->getSelectedDevicesIndices()[d], sizeof(int));
+			hashCryptProgram.addData(
+				reinterpret_cast<char *>(&hardware->getSelectedDevicesIndices()[d]), sizeof(int));
 		}
 		QByteArray hashProgram = hashCryptProgram.result();
 
@@ -119,7 +120,7 @@ bool cOpenClEngine::Build(const QByteArray &programString, QString *errorText)
 			sources.emplace_back(programString.constData(), size_t(programString.length()));
 
 			// creating cl::Program
-			cl_int err;
+			cl_int err = 0;
 
 			// Creates a program from source strings and Context.
 			// Context initialized with support for multiple devices.
@@ -157,6 +158,13 @@ bool cOpenClEngine::Build(const QByteArray &programString, QString *errorText)
 				if (checkErr(err, "program->build()"))
 				{
 					WriteLog("OpenCl kernel program successfully compiled", 2);
+
+					for (int d = 0; d < hardware->getEnabledDevices().size(); d++)
+					{
+						std::vector<size_t> sizes;
+						err = clPrograms[d]->getInfo(CL_PROGRAM_BINARY_SIZES, &sizes);
+						WriteLogInt("Program size", sizes[d], 2);
+					}
 					return true;
 				}
 				else
@@ -211,9 +219,8 @@ bool cOpenClEngine::CreateKernel4Program(const cParameterContainer *params)
 {
 	if (programsLoaded)
 	{
-		optimalJob.jobSizeMultiplier = params->Get<int>("opencl_job_size_multiplier");
+		optimalJob.jobSizeMultiplier = quint64(params->Get<int>("opencl_job_size_multiplier"));
 
-		// TODO: kernel
 		if (CreateKernels())
 		{
 			InitOptimalJob(params);
@@ -241,12 +248,6 @@ bool cOpenClEngine::CreateKernels()
 	{
 		size_t workGroupSize = 0;
 
-		// sets values for optimalJob
-		// TODO: support multiple devices
-		// TODO: create a optimalJob per device
-		// iterate through getEnabledDevices
-		// kernel->getWorkGroupInfo  workGroupSize
-
 		for (int d = 0; d < hardware->getEnabledDevices().size(); d++)
 		{
 			clKernels[d]->getWorkGroupInfo(
@@ -257,8 +258,6 @@ bool cOpenClEngine::CreateKernels()
 
 			size_t workGroupSizeOptimalMultiplier = 0;
 
-			// TODO: support multiple devices
-			// kernel->getWorkGroupInfo  workGroupSizeOptimalMultiplier
 			clKernels[d]->getWorkGroupInfo(*hardware->getEnabledDevices().at(d),
 				CL_KERNEL_PREFERRED_WORK_GROUP_SIZE_MULTIPLE, &workGroupSizeOptimalMultiplier);
 			WriteLogSizeT(
@@ -272,9 +271,9 @@ bool cOpenClEngine::CreateKernels()
 			}
 			else
 			{
-				optimalJob.workGroupSize = min(qint64(workGroupSize), optimalJob.workGroupSize);
+				optimalJob.workGroupSize = min(quint64(workGroupSize), optimalJob.workGroupSize);
 				optimalJob.workGroupSizeOptimalMultiplier =
-					max(qint64(workGroupSizeOptimalMultiplier * optimalJob.jobSizeMultiplier),
+					max(workGroupSizeOptimalMultiplier * optimalJob.jobSizeMultiplier,
 						optimalJob.workGroupSizeOptimalMultiplier);
 				;
 			}
@@ -294,25 +293,18 @@ bool cOpenClEngine::CreateKernels()
 
 void cOpenClEngine::InitOptimalJob(const cParameterContainer *params)
 {
-	size_t width = params->Get<int>("image_width");
-	size_t height = params->Get<int>("image_height");
-	size_t memoryLimitByUser = params->Get<int>("opencl_memory_limit") * 1024 * 1024;
-	size_t pixelCnt = width * height;
+	quint64 width = params->Get<int>("image_width");
+	quint64 height = params->Get<int>("image_height");
+	quint64 memoryLimitByUser = params->Get<int>("opencl_memory_limit") * 1024UL * 1024UL;
+	quint64 pixelCnt = width * height;
 
-	// TODO: support multi-GPU
-	// TODO: create a optimalJob per device
-	// iterate through getSelectedDevicesInformation
-	// requires deviceInfo.maxMemAllocSize for each device
-	// for now, we use the same optimal job for all GPU
-	// we will enable multi-gpu, but require the exact same gpu model
-	// *this requires update*
 	cOpenClDevice::sDeviceInformation deviceInfo = hardware->getSelectedDevicesInformation().at(0);
 
 	optimalJob.stepSize = optimalJob.workGroupSize * optimalJob.workGroupSizeOptimalMultiplier;
 
-	int exp = log(sqrt(optimalJob.stepSize + 1)) / log(2);
+	qint64 exp = qint64(log(sqrt(double(optimalJob.stepSize + 1))) / log(2.0));
 
-	optimalJob.stepSizeX = pow(2, exp);
+	optimalJob.stepSizeX = quint64(pow(2.0, double(exp)));
 	optimalJob.stepSizeY = optimalJob.stepSize / optimalJob.stepSizeX;
 
 	//	optimalJob.stepSizeX = 1;
@@ -321,11 +313,11 @@ void cOpenClEngine::InitOptimalJob(const cParameterContainer *params)
 	optimalJob.workGroupSizeMultiplier = optimalJob.workGroupSizeOptimalMultiplier;
 	optimalJob.lastProcessingTime = 1.0;
 
-	size_t maxAllocMemSize = deviceInfo.maxMemAllocSize;
-	size_t memSize = memoryLimitByUser;
+	quint64 maxAllocMemSize = quint64(deviceInfo.maxMemAllocSize);
+	quint64 memSize = memoryLimitByUser;
 	if (maxAllocMemSize > 0 && maxAllocMemSize * 0.75 < memoryLimitByUser)
 	{
-		memSize = maxAllocMemSize * 0.75;
+		memSize = quint64(maxAllocMemSize * 0.75);
 	}
 	if (optimalJob.sizeOfPixel != 0)
 	{
@@ -347,16 +339,13 @@ bool cOpenClEngine::CreateCommandQueue()
 	{
 		cl_int err;
 		bool wasNoError = true;
-		// TODO: support multiple devices
-		// TODO: create a separate queue per device
-		// iterate through getEnabledDevices
+
 		clQueues.clear();
 
 		for (int d = 0; d < hardware->getEnabledDevices().size(); d++)
 		{
-			clQueues.append(
-				QSharedPointer<cl::CommandQueue>(new cl::CommandQueue(*hardware->getContext(d),
-					*hardware->getEnabledDevices().at(d), CL_QUEUE_OUT_OF_ORDER_EXEC_MODE_ENABLE, &err)));
+			clQueues.append(QSharedPointer<cl::CommandQueue>(new cl::CommandQueue(
+				*hardware->getContext(d), *hardware->getEnabledDevices().at(d), 0, &err)));
 
 			if (!checkErr(err, QString("Device #%1: cl::CommandQueue()").arg(d))) wasNoError = false;
 		}
@@ -378,7 +367,7 @@ bool cOpenClEngine::CreateCommandQueue()
 	return false;
 }
 
-void cOpenClEngine::UpdateOptimalJobStart(size_t pixelsLeft)
+void cOpenClEngine::UpdateOptimalJobStart(quint64 pixelsLeft)
 {
 	optimalJob.timer.restart();
 	optimalJob.timer.start();
@@ -386,7 +375,7 @@ void cOpenClEngine::UpdateOptimalJobStart(size_t pixelsLeft)
 
 	optimalJob.workGroupSizeMultiplier *= processingCycleTime / optimalJob.lastProcessingTime;
 
-	qint64 maxWorkGroupSizeMultiplier = pixelsLeft / optimalJob.workGroupSize;
+	quint64 maxWorkGroupSizeMultiplier = pixelsLeft / optimalJob.workGroupSize;
 
 	if (optimalJob.workGroupSizeMultiplier > maxWorkGroupSizeMultiplier)
 		optimalJob.workGroupSizeMultiplier = maxWorkGroupSizeMultiplier;
@@ -516,34 +505,34 @@ bool cOpenClEngine::PreAllocateBuffers(const cParameterContainer *params)
 
 void cOpenClEngine::ReleaseMemory()
 {
-	for (int i = 0; i < outputBuffers.size(); i++)
+	for (auto &i : outputBuffers)
 	{
-		for (auto &outputBuffer : outputBuffers[i])
+		for (auto &outputBuffer : i)
 		{
 			outputBuffer.ptr.reset();
 			outputBuffer.clPtr.reset();
 		}
-		outputBuffers[i].clear();
+		i.clear();
 	}
 
-	for (int i = 0; i < inputBuffers.size(); i++)
+	for (auto &i : inputBuffers)
 	{
-		for (auto &inputBuffer : inputBuffers[i])
+		for (auto &inputBuffer : i)
 		{
 			inputBuffer.ptr.reset();
 			inputBuffer.clPtr.reset();
 		}
-		inputBuffers[i].clear();
+		i.clear();
 	}
 
-	for (int i = 0; i < inputAndOutputBuffers.size(); i++)
+	for (auto &i : inputAndOutputBuffers)
 	{
-		for (auto &inputAndOutputBuffer : inputAndOutputBuffers[i])
+		for (auto &inputAndOutputBuffer : i)
 		{
 			inputAndOutputBuffer.ptr.reset();
 			inputAndOutputBuffer.clPtr.reset();
 		}
-		inputAndOutputBuffers[i].clear();
+		i.clear();
 	}
 }
 
@@ -645,7 +634,7 @@ bool cOpenClEngine::ReadBuffersFromQueue(int deviceIndex)
 
 bool cOpenClEngine::AssignParametersToKernel(int deviceIndex)
 {
-	int argIterator = 0;
+	uint argIterator = 0;
 	if (deviceIndex < inputBuffers.size())
 	{
 		for (auto &inputBuffer : inputBuffers[deviceIndex])

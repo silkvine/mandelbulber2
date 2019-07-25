@@ -29,7 +29,7 @@
  *
  * Authors: Krzysztof Marczak (buddhi1980@gmail.com)
  *
- * TODO: description
+ * output queue for multi-gpu rendering
  */
 
 #ifndef MANDELBULBER2_SRC_OPENCL_WORKER_OUTPUT_QUEUE_H_
@@ -43,26 +43,26 @@ class cOpenCLWorkerOutputQueue
 public:
 	struct sClDataBuffer
 	{
-		sClDataBuffer(qint64 itemSize, qint64 length) : itemSize(itemSize), length(length)
+		sClDataBuffer(quint64 itemSize, quint64 length) : itemSize(itemSize), length(length)
 		{
 			data.reserve(itemSize * length);
 		}
 
-		qint64 size() const { return itemSize * length; }
-		qint64 itemSize;
-		qint64 length;
+		quint64 size() const { return itemSize * length; }
+		quint64 itemSize;
+		quint64 length;
 		std::vector<char> data;
 	};
 
 	struct sClSingleOutput
 	{
-		qint64 jobX;
-		qint64 jobY;
-		qint64 jobWidth;
-		qint64 jobHeight;
-		int gridX;
-		int gridY;
-		int tileIndex;
+		quint64 jobX;
+		quint64 jobY;
+		quint64 jobWidth;
+		quint64 jobHeight;
+		quint64 gridX;
+		quint64 gridY;
+		quint64 tileIndex;
 		int monteCarloLoop;
 		QList<sClDataBuffer> outputBuffers;
 	};

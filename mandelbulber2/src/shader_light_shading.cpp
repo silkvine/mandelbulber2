@@ -1,7 +1,7 @@
 /**
  * Mandelbulber v2, a 3D fractal generator       ,=#MKNmMMKmmßMNWy,
  *                                             ,B" ]L,,p%%%,,,§;, "K
- * Copyright (C) 2018 Mandelbulber Team        §R-==%w["'~5]m%=L.=~5N
+ * Copyright (C) 2018-19 Mandelbulber Team     §R-==%w["'~5]m%=L.=~5N
  *                                        ,=mm=§M ]=4 yJKA"/-Nsaj  "Bw,==,,
  * This file is part of Mandelbulber.    §R.r= jw",M  Km .mM  FW ",§=ß., ,TN
  *                                     ,4R =%["w[N=7]J '"5=],""]]M,w,-; T=]M
@@ -38,7 +38,7 @@
 #include "render_worker.hpp"
 
 sRGBAfloat cRenderWorker::LightShading(const sShaderInputData &input, sRGBAfloat surfaceColor,
-	const sLight *light, int number, sRGBAfloat *outSpecular) const
+	const sLight *light, int number, sGradientsCollection *gradients, sRGBAfloat *outSpecular) const
 {
 	sRGBAfloat shading;
 
@@ -61,10 +61,19 @@ sRGBAfloat cRenderWorker::LightShading(const sShaderInputData &input, sRGBAfloat
 	if (shade > 500.0f) shade = 500.0f;
 
 	// specular
-	sRGBAfloat specular = SpecularHighlightCombined(input, lightVector, surfaceColor);
+	sRGBAfloat specular =
+		SpecularHighlightCombined(input, lightVector, surfaceColor, gradients->diffuse);
 	specular.R *= intensity;
 	specular.G *= intensity;
 	specular.B *= intensity;
+
+	if (input.material->useColorsFromPalette && input.material->specularGradientEnable)
+	{
+		specular.R *= gradients->specular.R / 256.0;
+		specular.G *= gradients->specular.G / 256.0;
+		specular.B *= gradients->specular.B / 256.0;
+	}
+
 	float specularMax = dMax(specular.R, specular.G, specular.B);
 
 	// calculate shadow

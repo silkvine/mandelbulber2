@@ -1,7 +1,7 @@
 /**
  * Mandelbulber v2, a 3D fractal generator       ,=#MKNmMMKmmßMNWy,
  *                                             ,B" ]L,,p%%%,,,§;, "K
- * Copyright (C) 2018 Mandelbulber Team        §R-==%w["'~5]m%=L.=~5N
+ * Copyright (C) 2018-19 Mandelbulber Team     §R-==%w["'~5]m%=L.=~5N
  *                                        ,=mm=§M ]=4 yJKA"/-Nsaj  "Bw,==,,
  * This file is part of Mandelbulber.    §R.r= jw",M  Km .mM  FW ",§=ß., ,TN
  *                                     ,4R =%["w[N=7]J '"5=],""]]M,w,-; T=]M
@@ -35,7 +35,7 @@
 #ifdef AUX_LIGHTS
 float3 LightShading(__constant sClInConstants *consts, sRenderData *renderData,
 	sShaderInputDataCl *input, sClCalcParams *calcParam, float3 surfaceColor,
-	__global sLightCl *light, float3 *outSpecular)
+	__global sLightCl *light, sClGradientsCollection *gradients, float3 *outSpecular)
 {
 	float3 shading = 0.0f;
 
@@ -60,7 +60,14 @@ float3 LightShading(__constant sClInConstants *consts, sRenderData *renderData,
 
 	// specular
 	float3 specular =
-		SpecularHighlightCombined(input, calcParam, lightVector, surfaceColor) * intensity;
+		SpecularHighlightCombined(input, calcParam, lightVector, surfaceColor, gradients) * intensity;
+
+#ifdef USE_SPECULAR_GRADIENT
+	if (input->material->useColorsFromPalette && input->material->specularGradientEnable)
+	{
+		specular *= gradients->specular;
+	}
+#endif
 
 	float specularMax = max(max(specular.s0, specular.s1), specular.s2);
 

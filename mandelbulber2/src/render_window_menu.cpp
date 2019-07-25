@@ -45,6 +45,7 @@
 #include "global_data.hpp"
 #include "initparameters.hpp"
 #include "interface.hpp"
+#include "mandelbulb3d_settings.hpp"
 #include "material_item_model.h"
 #include "old_settings.hpp"
 #include "render_window.hpp"
@@ -80,13 +81,40 @@ void RenderWindow::slotImportOldSettings()
 	}
 }
 
+void RenderWindow::slotImportMandelbulb3dSettings()
+{
+	QFileDialog dialog(this);
+	dialog.setOption(QFileDialog::DontUseNativeDialog);
+	dialog.setFileMode(QFileDialog::ExistingFile);
+	dialog.setNameFilter(tr("Fractals (*.m3d *.fract)"));
+	dialog.setDirectory(
+		QDir::toNativeSeparators(QFileInfo(systemData.lastSettingsFile).absolutePath()));
+	dialog.selectFile(QDir::toNativeSeparators(systemData.lastSettingsFile));
+	dialog.setAcceptMode(QFileDialog::AcceptOpen);
+	dialog.setWindowTitle(tr("Import settings from Mandelbulb3d settings file ..."));
+	QStringList filenames;
+	if (dialog.exec())
+	{
+		filenames = dialog.selectedFiles();
+		QString filename = QDir::toNativeSeparators(filenames.first());
+		cMandelbulb3dSettings m3dSettings;
+		m3dSettings.LoadSettings(filename);
+		m3dSettings.ConvertToNewContainer(gPar, gParFractal);
+		gMainInterface->RebuildPrimitives(gPar);
+		gMainInterface->SynchronizeInterface(gPar, gParFractal, qInterface::write);
+		gMainInterface->ComboMouseClickUpdate();
+		systemData.lastSettingsFile = filename;
+		setWindowTitle(QString("Mandelbulber (") + filename + ")");
+	}
+}
+
 void RenderWindow::slotMenuAboutMandelbulber()
 {
 	QString text = "<h2>Mandelbulber</h2>";
 	text += "version: <b>" + QString(MANDELBULBER_VERSION_STRING) + "</b>" + "<br>";
 	text += "<br>";
 	text += "Licence: GNU GPL version 3.0<br>";
-	text += "Copyright Ⓒ 2018<br>";
+	text += "Copyright Ⓒ 2019<br>";
 	text += "project leader: Krzysztof Marczak<br>";
 	text += "programmers:<br>";
 	text += "Krzysztof Marczak<br>";
@@ -95,9 +123,12 @@ void RenderWindow::slotMenuAboutMandelbulber()
 	text += "Bernardo Martelli<br>";
 	text += "Robert Pancoast<br>";
 	text += "<br>";
+	text += "Thanks to many friends from Mandelbulber community<br>";
 	text +=
-		"Thanks to many friends from <a "
-		"href=\"http://www.fractalforums.com\">www.fractalforums.com</a> for help<br>";
+		"<a "
+		"href=\"https://www.facebook.com/groups/mandelbulber/\">https://www.facebook.com/groups/"
+		"mandelbulber/</a>";
+	text += "<br>for help<br>";
 	text += "<br>";
 	text += "<a href=\"http://www.mandelbulber.com\">www.mandelbulber.com</a>";
 
@@ -401,12 +432,13 @@ void RenderWindow::slotMenuLoadSettingsFromFile(QString fileName)
 	setWindowTitle(QString("Mandelbulber (") + fileName + ")");
 	gFlightAnimation->RefreshTable();
 	gKeyframeAnimation->RefreshTable();
-	gMainInterface->ReEnablePeriodicRefresh();
 	showDescriptionPopup();
 }
 
 void RenderWindow::slotMenuLoadSettingsFromClipboard()
 {
+	gMainInterface->DisablePeriodicRefresh();
+
 	gMainInterface->SynchronizeInterface(
 		gPar, gParFractal, qInterface::read); // update appParam before loading new settings
 
@@ -453,7 +485,22 @@ void RenderWindow::ResetDocksPositions()
 
 void RenderWindow::slotMenuResetDocksPositions()
 {
-	restoreState(gMainInterface->settings.value("mainWindowState").toByteArray());
+	// restoreState(gMainInterface->settings.value("mainWindowState").toByteArray());
+	ResetDocksPositions();
+	ui->dockWidget_histogram->hide();
+	ui->dockWidget_info->hide();
+	ui->dockWidget_queue_dock->hide();
+	ui->dockWidget_animation->hide();
+	ui->dockWidget_measurement->hide();
+	ui->dockWidget_gamepad_dock->hide();
+
+	tabifyDockWidget(ui->dockWidget_materialEditor, ui->dockWidget_effects);
+	tabifyDockWidget(ui->dockWidget_effects, ui->dockWidget_image_adjustments);
+	tabifyDockWidget(ui->dockWidget_image_adjustments, ui->dockWidget_rendering_engine);
+	tabifyDockWidget(ui->dockWidget_rendering_engine, ui->dockWidget_objects);
+	tabifyDockWidget(ui->dockWidget_objects, ui->dockWidget_histogram);
+
+	addDockWidget(Qt::LeftDockWidgetArea, ui->dockWidget_Materials);
 }
 
 void RenderWindow::slotMenuAnimationDocksPositions()

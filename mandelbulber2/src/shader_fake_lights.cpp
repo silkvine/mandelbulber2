@@ -87,7 +87,8 @@ sRGBAfloat cRenderWorker::FakeLights(
 	fakeLights.G = fakeLight2 * params->fakeLightsColor.G / 65536.0f;
 	fakeLights.B = fakeLight2 * params->fakeLightsColor.B / 65536.0f;
 
-	sRGBAfloat fakeSpecular = SpecularHighlightCombined(input, fakeLightNormal, surfaceColor);
+	sRGBAfloat fakeSpecular =
+		SpecularHighlightCombined(input, fakeLightNormal, surfaceColor, sRGBFloat(1.0, 1.0, 1.0));
 
 	fakeSpec->R = fakeSpecular.R / r * params->fakeLightsColor.R / 65536.0f;
 	fakeSpec->G = fakeSpecular.G / r * params->fakeLightsColor.G / 65536.0f;

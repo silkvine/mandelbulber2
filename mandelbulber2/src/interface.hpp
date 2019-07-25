@@ -154,19 +154,22 @@ public:
 
 	bool stopRequest;
 	bool repeatRequest; // request to repeat start loop
+	int numberOfStartedRenders;
 
 	struct sCameraDragData
 	{
-		bool cameraDraggingStarted;
+		sCameraDragData() {}
+		bool cameraDraggingStarted{false};
 		CVector2<double> startScreenPoint;
 		CVector2<double> startNormalizedPoint;
-		double startZ;
+		double startZ{0.0};
 		CVector3 startCamera;
 		CVector3 startTarget;
 		CVector3 startTopVector;
 		CVector3 startIndicatedPoint;
-		Qt::MouseButtons button;
+		Qt::MouseButtons button{Qt::NoButton};
 		QElapsedTimer lastRefreshTime;
+		qint64 lastStartRenderingTime{0};
 	} cameraDragData;
 };
 

@@ -1,7 +1,7 @@
 /**
  * Mandelbulber v2, a 3D fractal generator       ,=#MKNmMMKmmßMNWy,
  *                                             ,B" ]L,,p%%%,,,§;, "K
- * Copyright (C) 2018 Mandelbulber Team        §R-==%w["'~5]m%=L.=~5N
+ * Copyright (C) 2018-19 Mandelbulber Team     §R-==%w["'~5]m%=L.=~5N
  *                                        ,=mm=§M ]=4 yJKA"/-Nsaj  "Bw,==,,
  * This file is part of Mandelbulber.    §R.r= jw",M  Km .mM  FW ",§=ß., ,TN
  *                                     ,4R =%["w[N=7]J '"5=],""]]M,w,-; T=]M
@@ -44,6 +44,8 @@ typedef struct
 	float3 texColor;
 	float3 texDiffuse;
 	float3 texLuminosity;
+	float3 texReflectance;
+	float3 texTransparency;
 #endif
 	float distThresh; // distance threshold depend on 'detailLevel'
 	float lastDist;
@@ -55,6 +57,58 @@ typedef struct
 	bool invertMode;
 	__global sMaterialCl *material;
 	__global float4 *palette;
-	int paletteSize;
 
+#ifdef USE_SURFACE_GRADIENT
+	int paletteSurfaceOffset;
+	int paletteSurfaceLength;
+#endif
+#ifdef USE_SPECULAR_GRADIENT
+	int paletteSpecularOffset;
+	int paletteSpecularLength;
+#endif
+#ifdef USE_DIFFUSE_GRADIENT
+	int paletteDiffuseOffset;
+	int paletteDiffuseLength;
+#endif
+#ifdef USE_LUMINOSITY_GRADIENT
+	int paletteLuminosityOffset;
+	int paletteLuminosityLength;
+#endif
+#ifdef USE_ROUGHNESS_GRADIENT
+	int paletteRoughnessOffset;
+	int paletteRoughnessLength;
+#endif
+#ifdef USE_REFLECTANCE_GRADIENT
+	int paletteReflectanceOffset;
+	int paletteReflectanceLength;
+#endif
+#ifdef USE_TRANSPARENCY_GRADIENT
+	int paletteTransparencyOffset;
+	int paletteTransparencyLength;
+#endif
 } sShaderInputDataCl;
+
+typedef struct
+{
+#ifdef USE_SURFACE_GRADIENT
+	float3 surface;
+#endif
+#ifdef USE_SPECULAR_GRADIENT
+	float3 specular;
+#endif
+#ifdef USE_DIFFUSE_GRADIENT
+	float3 diffuse;
+#endif
+#ifdef USE_LUMINOSITY_GRADIENT
+	float3 luminosity;
+#endif
+#ifdef USE_ROUGHNESS_GRADIENT
+	float3 roughness;
+#endif
+#ifdef USE_REFLECTANCE_GRADIENT
+	float3 reflectance;
+#endif
+#ifdef USE_TRANSPARENCY_GRADIENT
+	float3 transparency;
+#endif
+} sClGradientsCollection;

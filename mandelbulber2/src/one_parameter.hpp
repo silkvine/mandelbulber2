@@ -1,7 +1,7 @@
 /**
  * Mandelbulber v2, a 3D fractal generator       ,=#MKNmMMKmmßMNWy,
  *                                             ,B" ]L,,p%%%,,,§;, "K
- * Copyright (C) 2014-17 Mandelbulber Team     §R-==%w["'~5]m%=L.=~5N
+ * Copyright (C) 2014-19 Mandelbulber Team     §R-==%w["'~5]m%=L.=~5N
  *                                        ,=mm=§M ]=4 yJKA"/-Nsaj  "Bw,==,,
  * This file is part of Mandelbulber.    §R.r= jw",M  Km .mM  FW ",§=ß., ,TN
  *                                     ,4R =%["w[N=7]J '"5=],""]]M,w,-; T=]M
@@ -65,7 +65,7 @@ enum enumValueSelection
 	valueMin,
 	valueMax
 };
-}
+} // namespace parameterContainer
 using namespace parameterContainer;
 
 class cOneParameter
@@ -84,6 +84,8 @@ public:
 	QString GetOriginalContainerName() const { return originalContainer; }
 	void SetParameterType(enumParameterType _parType) { parType = _parType; }
 	void SetMorphType(enumMorphType _morphType) { morphType = _morphType; }
+	void SetAsGradient() { isGradientString = true; }
+	bool IsGradient() { return isGradientString; }
 	void SetOriginalContainerName(const QString &containerName) { originalContainer = containerName; }
 	bool isDefaultValue() const;
 	cMultiVal GetMultiVal(enumValueSelection selection) const;
@@ -116,6 +118,23 @@ private:
 	bool limitsDefined;
 	bool isEmpty;
 	QStringList enumLookup;
+	bool isGradientString;
 };
+
+extern template void cOneParameter::Set<double>(double val, enumValueSelection selection);
+extern template void cOneParameter::Set<int>(int val, enumValueSelection selection);
+extern template void cOneParameter::Set<QString>(QString val, enumValueSelection selection);
+extern template void cOneParameter::Set<CVector3>(CVector3 val, enumValueSelection selection);
+extern template void cOneParameter::Set<CVector4>(CVector4 val, enumValueSelection selection);
+extern template void cOneParameter::Set<sRGB>(sRGB val, enumValueSelection selection);
+extern template void cOneParameter::Set<bool>(bool val, enumValueSelection selection);
+
+extern template double cOneParameter::Get<double>(enumValueSelection selection) const;
+extern template int cOneParameter::Get<int>(enumValueSelection selection) const;
+extern template QString cOneParameter::Get<QString>(enumValueSelection selection) const;
+extern template CVector3 cOneParameter::Get<CVector3>(enumValueSelection selection) const;
+extern template CVector4 cOneParameter::Get<CVector4>(enumValueSelection selection) const;
+extern template sRGB cOneParameter::Get<sRGB>(enumValueSelection selection) const;
+extern template bool cOneParameter::Get<bool>(enumValueSelection selection) const;
 
 #endif /* MANDELBULBER2_SRC_ONE_PARAMETER_HPP_ */

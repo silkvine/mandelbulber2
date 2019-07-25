@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>579</width>
-    <height>657</height>
+    <width>612</width>
+    <height>819</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -57,8 +57,8 @@
            <rect>
             <x>0</x>
             <y>0</y>
-            <width>555</width>
-            <height>581</height>
+            <width>588</width>
+            <height>743</height>
            </rect>
           </property>
           <layout class="QVBoxLayout" name="verticalLayout_general">
@@ -316,7 +316,7 @@
                   </property>
                  </widget>
                 </item>
-                <item row="5" column="0" colspan="2">
+                <item row="6" column="0" colspan="2">
                  <widget class="MyGroupBox" name="groupCheck_ui_colorize">
                   <property name="title">
                    <string>Colorize group&amp;Boxes</string>
@@ -362,6 +362,13 @@
                     </layout>
                    </item>
                   </layout>
+                 </widget>
+                </item>
+                <item row="5" column="0" colspan="2">
+                 <widget class="MyCheckBox" name="checkBox_display_tooltips">
+                  <property name="text">
+                   <string>Display tooltips</string>
+                  </property>
                  </widget>
                 </item>
                </layout>
@@ -516,6 +523,16 @@
                 </item>
                </layout>
               </item>
+              <item>
+               <widget class="QLabel" name="label_path_to_logfile">
+                <property name="text">
+                 <string>Path to log file:</string>
+                </property>
+                <property name="wordWrap">
+                 <bool>true</bool>
+                </property>
+               </widget>
+              </item>
              </layout>
             </widget>
            </item>
@@ -585,8 +602,8 @@
            <rect>
             <x>0</x>
             <y>0</y>
-            <width>367</width>
-            <height>455</height>
+            <width>588</width>
+            <height>743</height>
            </rect>
           </property>
           <layout class="QVBoxLayout" name="verticalLayout_image">
@@ -765,7 +782,26 @@
                   </property>
                  </widget>
                 </item>
-                <item row="4" column="0" colspan="3">
+               </layout>
+              </item>
+             </layout>
+            </widget>
+           </item>
+           <item>
+            <layout class="QVBoxLayout" name="verticalLayout_10">
+             <item>
+              <widget class="MyGroupBox" name="groupCheck_optional_image_channels_enabled">
+               <property name="title">
+                <string>Op&amp;tional Image Channels</string>
+               </property>
+               <property name="checkable">
+                <bool>true</bool>
+               </property>
+               <layout class="QGridLayout" name="gridLayout_optional_image_channels">
+                <property name="spacing">
+                 <number>2</number>
+                </property>
+                <item row="0" column="0" colspan="3">
                  <widget class="QLabel" name="label_rerender_required_info">
                   <property name="text">
                    <string>Following channels are only rendered on demand
@@ -773,14 +809,35 @@ and will only be present after enabling and re-render.</string>
                   </property>
                  </widget>
                 </item>
-                <item row="5" column="0">
+                <item row="1" column="0">
+                 <widget class="QLabel" name="label_image_channel_optional">
+                  <property name="text">
+                   <string>Image Channel</string>
+                  </property>
+                 </widget>
+                </item>
+                <item row="1" column="1">
+                 <widget class="QLabel" name="label_image_quality_optional">
+                  <property name="text">
+                   <string>Quality</string>
+                  </property>
+                 </widget>
+                </item>
+                <item row="1" column="2">
+                 <widget class="QLabel" name="label_image_postfix_optional">
+                  <property name="text">
+                   <string>Postfix</string>
+                  </property>
+                 </widget>
+                </item>
+                <item row="2" column="0">
                  <widget class="MyCheckBox" name="checkBox_normal_enabled">
                   <property name="text">
                    <string>Surface Normal</string>
                   </property>
                  </widget>
                 </item>
-                <item row="5" column="1">
+                <item row="2" column="1">
                  <widget class="MyComboBox" name="comboBox_normal_quality">
                   <item>
                    <property name="text">
@@ -799,21 +856,21 @@ and will only be present after enabling and re-render.</string>
                   </item>
                  </widget>
                 </item>
-                <item row="5" column="2">
+                <item row="2" column="2">
                  <widget class="MyLineEdit" name="text_normal_postfix">
                   <property name="text">
                    <string/>
                   </property>
                  </widget>
                 </item>
-                <item row="6" column="0">
+                <item row="3" column="0">
                  <widget class="MyCheckBox" name="checkBox_specular_enabled">
                   <property name="text">
                    <string>Specular</string>
                   </property>
                  </widget>
                 </item>
-                <item row="6" column="1">
+                <item row="3" column="1">
                  <widget class="MyComboBox" name="comboBox_specular_quality">
                   <item>
                    <property name="text">
@@ -832,17 +889,83 @@ and will only be present after enabling and re-render.</string>
                   </item>
                  </widget>
                 </item>
-                <item row="6" column="2">
+                <item row="3" column="2">
                  <widget class="MyLineEdit" name="text_specular_postfix">
                   <property name="text">
                    <string/>
                   </property>
                  </widget>
                 </item>
+                <item row="4" column="0">
+                 <widget class="MyCheckBox" name="checkBox_world_enabled">
+                  <property name="text">
+                   <string>World</string>
+                  </property>
+                 </widget>
+                </item>
+                <item row="4" column="1">
+                 <widget class="MyComboBox" name="comboBox_world_quality">
+                  <item>
+                   <property name="text">
+                    <string>8 bit</string>
+                   </property>
+                  </item>
+                  <item>
+                   <property name="text">
+                    <string>16 bit</string>
+                   </property>
+                  </item>
+                  <item>
+                   <property name="text">
+                    <string>32 bit</string>
+                   </property>
+                  </item>
+                 </widget>
+                </item>
+                <item row="4" column="2">
+                 <widget class="MyLineEdit" name="text_world_postfix">
+                  <property name="text">
+                   <string/>
+                  </property>
+                 </widget>
+                </item>
+                <item row="5" column="0">
+                 <widget class="MyCheckBox" name="checkBox_diffuse_enabled">
+                  <property name="text">
+                   <string>Diffuse</string>
+                  </property>
+                 </widget>
+                </item>
+                <item row="5" column="1">
+                 <widget class="MyComboBox" name="comboBox_diffuse_quality">
+                  <item>
+                   <property name="text">
+                    <string>8 bit</string>
+                   </property>
+                  </item>
+                  <item>
+                   <property name="text">
+                    <string>16 bit</string>
+                   </property>
+                  </item>
+                  <item>
+                   <property name="text">
+                    <string>32 bit</string>
+                   </property>
+                  </item>
+                 </widget>
+                </item>
+                <item row="5" column="2">
+                 <widget class="MyLineEdit" name="text_diffuse_postfix">
+                  <property name="text">
+                   <string/>
+                  </property>
+                 </widget>
+                </item>
                </layout>
-              </item>
-             </layout>
-            </widget>
+              </widget>
+             </item>
+            </layout>
            </item>
            <item>
             <widget class="QGroupBox" name="groupBox_2">
@@ -947,6 +1070,17 @@ and will only be present after enabling and re-render.</string>
                 <property name="spacing">
                  <number>2</number>
                 </property>
+                <item row="0" column="2">
+                 <widget class="QPushButton" name="pushButton_generate_thumbnail_cache">
+                  <property name="text">
+                   <string>Generate</string>
+                  </property>
+                  <property name="icon">
+                   <iconset theme="applications-graphics" resource="icons.qrc">
+                    <normaloff>:/system/icons/applications-graphics.svg</normaloff>:/system/icons/applications-graphics.svg</iconset>
+                  </property>
+                 </widget>
+                </item>
                 <item row="0" column="0">
                  <widget class="QPushButton" name="pushButton_clear_thumbnail_cache">
                   <property name="text">
@@ -969,14 +1103,10 @@ and will only be present after enabling and re-render.</string>
                   </property>
                  </widget>
                 </item>
-                <item row="0" column="2">
-                 <widget class="QPushButton" name="pushButton_generate_thumbnail_cache">
+                <item row="1" column="0" colspan="3">
+                 <widget class="MyCheckBox" name="checkBox_thumbnails_with_opencl">
                   <property name="text">
-                   <string>Generate</string>
-                  </property>
-                  <property name="icon">
-                   <iconset theme="applications-graphics" resource="icons.qrc">
-                    <normaloff>:/system/icons/applications-graphics.svg</normaloff>:/system/icons/applications-graphics.svg</iconset>
+                   <string>Render thumbnails with OpenCL (if OpenCL enabled)</string>
                   </property>
                  </widget>
                 </item>
@@ -1022,9 +1152,9 @@ and will only be present after enabling and re-render.</string>
           <property name="geometry">
            <rect>
             <x>0</x>
-            <y>-73</y>
-            <width>537</width>
-            <height>841</height>
+            <y>0</y>
+            <width>251</width>
+            <height>912</height>
            </rect>
           </property>
           <layout class="QVBoxLayout" name="verticalLayout_OpenCL">
@@ -1323,7 +1453,7 @@ and will only be present after enabling and re-render.</string>
               <item>
                <widget class="QLabel" name="label_explanation_opencl_missing_features">
                 <property name="text">
-                 <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Mandelbulber can use OpenCL to accelerate rendering.&lt;br/&gt;For more information about setup and workflow see the User Manual&lt;br/&gt;under Menu &amp;gt; Help &amp;gt; User Manual.&lt;/p&gt;&lt;p&gt;OpenCL support is still alpha and lacks the following features&lt;br/&gt;present in the non-OpenCL mode:&lt;/p&gt;&lt;ul style=&quot;margin-top: 0px; margin-bottom: 0px; margin-left: 0px; margin-right: 0px; -qt-list-indent: 1;&quot;&gt;&lt;li style=&quot; margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;&quot;&gt;HDR blur&lt;/li&gt;&lt;li style=&quot; margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;&quot;&gt;stereoscopic images&lt;/li&gt;&lt;li style=&quot; margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;&quot;&gt;NetRender&lt;/li&gt;&lt;li style=&quot; margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;&quot;&gt;anti-aliasing&lt;/li&gt;&lt;/ul&gt;&lt;/body&gt;&lt;/html&gt;</string>
+                 <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Mandelbulber can use OpenCL to accelerate rendering.&lt;br/&gt;For more information about setup and workflow see the User Manual&lt;br/&gt;under Menu &amp;gt; Help &amp;gt; User Manual.&lt;/p&gt;&lt;p&gt;OpenCL support is still alpha and lacks the following features&lt;br/&gt;present in the non-OpenCL mode:&lt;/p&gt;&lt;ul style=&quot;margin-top: 0px; margin-bottom: 0px; margin-left: 0px; margin-right: 0px; -qt-list-indent: 1;&quot;&gt;&lt;li style=&quot; margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;&quot;&gt;HDR blur&lt;/li&gt;&lt;li style=&quot; margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;&quot;&gt;NetRender&lt;/li&gt;&lt;li style=&quot; margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;&quot;&gt;anti-aliasing&lt;/li&gt;&lt;/ul&gt;&lt;/body&gt;&lt;/html&gt;</string>
                 </property>
                 <property name="wordWrap">
                  <bool>true</bool>

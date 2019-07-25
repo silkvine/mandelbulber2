@@ -1,7 +1,7 @@
 /**
  * Mandelbulber v2, a 3D fractal generator       ,=#MKNmMMKmmßMNWy,
  *                                             ,B" ]L,,p%%%,,,§;, "K
- * Copyright (C) 2018 Mandelbulber Team        §R-==%w["'~5]m%=L.=~5N
+ * Copyright (C) 2018-19 Mandelbulber Team     §R-==%w["'~5]m%=L.=~5N
  *                                        ,=mm=§M ]=4 yJKA"/-Nsaj  "Bw,==,,
  * This file is part of Mandelbulber.    §R.r= jw",M  Km .mM  FW ",§=ß., ,TN
  *                                     ,4R =%["w[N=7]J '"5=],""]]M,w,-; T=]M
@@ -32,23 +32,24 @@
  * calculation of combined highlights from plastic and metalic surfaces
  */
 
-float3 SpecularHighlightCombined(
-	sShaderInputDataCl *input, sClCalcParams *calcParam, float3 lightVector, float3 surfaceColor)
+float3 SpecularHighlightCombined(sShaderInputDataCl *input, sClCalcParams *calcParam,
+	float3 lightVector, float3 surfaceColor, sClGradientsCollection *gradients)
 {
 	float3 specular = 0.0f;
 	float3 specularPlastic = 0.0f;
 	if (input->material->specularPlasticEnable)
 	{
-		specularPlastic =
-			SpecularHighlight(input, calcParam, lightVector, input->material->specularWidth, 0.0f);
+		specularPlastic = SpecularHighlight(
+			input, calcParam, lightVector, input->material->specularWidth, 0.0f, gradients);
 		specularPlastic *= input->material->specular;
 	}
 
 	float3 specularMetallic = 0.0f;
 	if (input->material->metallic)
 	{
-		specularMetallic = SpecularHighlight(input, calcParam, lightVector,
-			input->material->specularMetallicWidth, input->material->specularMetallicRoughness);
+		specularMetallic =
+			SpecularHighlight(input, calcParam, lightVector, input->material->specularMetallicWidth,
+				input->material->specularMetallicRoughness, gradients);
 		specularMetallic *= input->material->specularMetallic * surfaceColor;
 	}
 

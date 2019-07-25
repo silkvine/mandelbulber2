@@ -1,7 +1,7 @@
 /**
  * Mandelbulber v2, a 3D fractal generator       ,=#MKNmMMKmmßMNWy,
  *                                             ,B" ]L,,p%%%,,,§;, "K
- * Copyright (C) 2018 Mandelbulber Team        §R-==%w["'~5]m%=L.=~5N
+ * Copyright (C) 2018-19 Mandelbulber Team     §R-==%w["'~5]m%=L.=~5N
  *                                        ,=mm=§M ]=4 yJKA"/-Nsaj  "Bw,==,,
  * This file is part of Mandelbulber.    §R.r= jw",M  Km .mM  FW ",§=ß., ,TN
  *                                     ,4R =%["w[N=7]J '"5=],""]]M,w,-; T=]M
@@ -34,7 +34,8 @@
 
 #ifdef FAKE_LIGHTS
 float3 FakeLightsShader(__constant sClInConstants *consts, sShaderInputDataCl *input,
-	sClCalcParams *calcParams, float3 surfaceColor, float3 *specularOut)
+	sClCalcParams *calcParams, float3 surfaceColor, sClGradientsCollection *gradients,
+	float3 *specularOut)
 {
 	float3 fakeLights;
 
@@ -76,7 +77,8 @@ float3 FakeLightsShader(__constant sClInConstants *consts, sShaderInputDataCl *i
 
 	fakeLights = fakeLight2 * consts->params.fakeLightsColor;
 
-	float3 fakeSpec = SpecularHighlightCombined(input, calcParams, fakeLightNormal, surfaceColor);
+	float3 fakeSpec =
+		SpecularHighlightCombined(input, calcParams, fakeLightNormal, surfaceColor, gradients);
 	fakeSpec = fakeSpec * consts->params.fakeLightsColor / r;
 
 	fakeSpec = 0.0f; // TODO to check why in CPU code it's zero

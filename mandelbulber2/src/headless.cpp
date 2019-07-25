@@ -1,7 +1,7 @@
 /**
  * Mandelbulber v2, a 3D fractal generator       ,=#MKNmMMKmmßMNWy,
  *                                             ,B" ]L,,p%%%,,,§;, "K
- * Copyright (C) 2015-18 Mandelbulber Team     §R-==%w["'~5]m%=L.=~5N
+ * Copyright (C) 2015-19 Mandelbulber Team     §R-==%w["'~5]m%=L.=~5N
  *                                        ,=mm=§M ]=4 yJKA"/-Nsaj  "Bw,==,,
  * This file is part of Mandelbulber.    §R.r= jw",M  Km .mM  FW ",§=ß., ,TN
  *                                     ,4R =%["w[N=7]J '"5=],""]]M,w,-; T=]M
@@ -53,9 +53,7 @@
 #include "rendering_configuration.hpp"
 #include "voxel_export.hpp"
 
-cHeadless::cHeadless() : QObject()
-{
-}
+cHeadless::cHeadless() : QObject() {}
 
 cHeadless::~cHeadless() = default;
 
@@ -189,7 +187,7 @@ void cHeadless::RenderVoxel(QString voxelFormat)
 		QList<MeshFileSave::enumMeshContentType> meshContent({MeshFileSave::MESH_CONTENT_GEOMETRY});
 		if (gPar->Get<bool>("mesh_color")) meshContent << MeshFileSave::MESH_CONTENT_COLOR;
 		MeshFileSave::structSaveMeshConfig meshConfig(MeshFileSave::MESH_FILE_TYPE_PLY, meshContent,
-			(MeshFileSave::enumMeshFileModeType)gPar->Get<int>("mesh_file_mode"));
+			MeshFileSave::enumMeshFileModeType(gPar->Get<int>("mesh_file_mode")));
 
 		cMeshExport *meshExport = new cMeshExport(
 			samplesX, samplesY, samplesZ, limitMin, limitMax, fileString, maxIter, meshConfig);
@@ -207,10 +205,12 @@ void cHeadless::RenderFlightAnimation() const
 	cImage *image = new cImage(gPar->Get<int>("image_width"), gPar->Get<int>("image_height"));
 	gFlightAnimation =
 		new cFlightAnimation(gMainInterface, gAnimFrames, image, nullptr, gPar, gParFractal, nullptr);
-	QObject::connect(gFlightAnimation, SIGNAL(updateProgressAndStatus(const QString &,
-																			 const QString &, double, cProgressText::enumProgressType)),
-		this, SLOT(slotUpdateProgressAndStatus(
-						const QString &, const QString &, double, cProgressText::enumProgressType)));
+	QObject::connect(gFlightAnimation,
+		SIGNAL(updateProgressAndStatus(
+			const QString &, const QString &, double, cProgressText::enumProgressType)),
+		this,
+		SLOT(slotUpdateProgressAndStatus(
+			const QString &, const QString &, double, cProgressText::enumProgressType)));
 	// QObject::connect(gFlightAnimation, SIGNAL(updateProgressHide(cProgressText::enumProgressType)),
 	// unused
 	//								 this, SLOT(slotUpdateProgressHide(cProgressText::enumProgressType)));
@@ -228,10 +228,12 @@ void cHeadless::RenderKeyframeAnimation() const
 	cImage *image = new cImage(gPar->Get<int>("image_width"), gPar->Get<int>("image_height"));
 	gKeyframeAnimation =
 		new cKeyframeAnimation(gMainInterface, gKeyframes, image, nullptr, gPar, gParFractal, nullptr);
-	QObject::connect(gKeyframeAnimation, SIGNAL(updateProgressAndStatus(const QString &,
-																				 const QString &, double, cProgressText::enumProgressType)),
-		this, SLOT(slotUpdateProgressAndStatus(
-						const QString &, const QString &, double, cProgressText::enumProgressType)));
+	QObject::connect(gKeyframeAnimation,
+		SIGNAL(updateProgressAndStatus(
+			const QString &, const QString &, double, cProgressText::enumProgressType)),
+		this,
+		SLOT(slotUpdateProgressAndStatus(
+			const QString &, const QString &, double, cProgressText::enumProgressType)));
 	// QObject::connect(gKeyframeAnimation,
 	// SIGNAL(updateProgressHide(cProgressText::enumProgressType)), unused
 	// 								 this, SLOT(slotUpdateProgressHide(cProgressText::enumProgressType)));

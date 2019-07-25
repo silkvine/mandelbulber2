@@ -39,17 +39,29 @@
 float CalcDistThresh(float3 point, __constant sClInConstants *consts)
 {
 	float distThresh;
-	if (consts->params.constantDEThreshold)
-		distThresh = consts->params.DEThresh;
+	if (consts->params.common.iterThreshMode)
+	{
+		distThresh =
+			length(consts->params.camera - point) * consts->params.resolution * consts->params.fov;
+	}
 	else
-		distThresh = length(consts->params.camera - point) * consts->params.resolution
-								 * consts->params.fov / consts->params.detailLevel;
+	{
+		if (consts->params.constantDEThreshold)
+			distThresh = consts->params.DEThresh;
+		else
+			distThresh = length(consts->params.camera - point) * consts->params.resolution
+									 * consts->params.fov / consts->params.detailLevel;
+	}
 
 #if defined(PERSP_FISH_EYE) || defined(PERSP_FISH_EYE_CUT) || defined(PERSP_EQUIRECTANGULAR)
 	distThresh *= M_PI;
 #endif
 
+#ifdef ADVANCED_QUALITY
+	distThresh = clamp(distThresh, consts->params.detailSizeMin, consts->params.detailSizeMax);
+#else
 	distThresh = max(distThresh, 1e-6f);
+#endif
 
 	return distThresh;
 }
@@ -165,8 +177,12 @@ formulaOut CalculateDistance(__constant sClInConstants *consts, float3 point,
 #endif
 	{
 
+#ifdef ADVANCED_QUALITY
+		float delta =
+			max(length(point) * 1.0e-6f, calcParam->detailSize * consts->params.deltaDERelativeDelta);
+#else
 		float delta = max(length(point) * 1.0e-6f, calcParam->detailSize * 0.1f);
-		// float delta = 1.0e-5f;
+#endif
 		float3 dr = 0.0f;
 
 		out = Fractal(consts, point, calcParam, calcModeDeltaDE1, NULL, forcedFormulaIndex);
@@ -217,6 +233,11 @@ formulaOut CalculateDistance(__constant sClInConstants *consts, float3 point,
 #elif DELTA_PSEUDO_KLEINIAN_DE
 			float rxy = native_sqrt(out.z.x * out.z.x + out.z.y * out.z.y);
 			out.distance = max(rxy - 0.92784f, fabs(rxy * out.z.z) / r) / d;
+#elif DELTA_JOS_KLEINIAN_DE
+			float4 z = out.z;
+			float rxy = native_sqrt(z.x * z.x + z.z * z.z);
+			out.distance = (fabs(rxy * z.y) / r) / d;
+			out.maxiter = false;
 #endif
 		}
 

@@ -69,7 +69,7 @@ int main(int argc, char *argv[])
 	// configure debug output
 	qInstallMessageHandler(myMessageOutput);
 
-	UpdateLanguage(gCoreApplication);
+	UpdateLanguage();
 
 	cCommandLineInterface commandLineInterface(gApplication);
 
@@ -140,7 +140,7 @@ int main(int argc, char *argv[])
 	DefineFractalList(&fractalList);
 
 	// Netrender
-	gNetRender = new CNetRender(systemData.numberOfThreads);
+	gNetRender = new CNetRender();
 
 	// loading AppSettings
 	QString iniFileName = systemData.GetIniFile();
@@ -161,7 +161,7 @@ int main(int argc, char *argv[])
 		UpdateUIStyle();
 		UpdateUISkin();
 	}
-	UpdateLanguage(gApplication);
+	UpdateLanguage();
 
 #ifdef USE_OPENCL
 	gOpenCl = new cGlobalOpenCl();
@@ -222,7 +222,10 @@ int main(int argc, char *argv[])
 	// start main Qt loop
 	WriteLog("application->exec()", 2);
 	int result = 0;
-	if (!commandLineInterface.isNoGUI() && !dataFoldersUpdated) result = gApplication->exec();
+	if (!systemData.globalStopRequest)
+	{
+		if (!commandLineInterface.isNoGUI() && !dataFoldersUpdated) result = gApplication->exec();
+	}
 
 	// clean objects when exit
 	delete gPar;

@@ -1,7 +1,7 @@
 /**
  * Mandelbulber v2, a 3D fractal generator       ,=#MKNmMMKmmßMNWy,
  *                                             ,B" ]L,,p%%%,,,§;, "K
- * Copyright (C) 2018 Mandelbulber Team        §R-==%w["'~5]m%=L.=~5N
+ * Copyright (C) 2018-19 Mandelbulber Team     §R-==%w["'~5]m%=L.=~5N
  *                                        ,=mm=§M ]=4 yJKA"/-Nsaj  "Bw,==,,
  * This file is part of Mandelbulber.    §R.r= jw",M  Km .mM  FW ",§=ß., ,TN
  *                                     ,4R =%["w[N=7]J '"5=],""]]M,w,-; T=]M
@@ -36,14 +36,15 @@
 #include "material.h"
 #include "render_worker.hpp"
 
-sRGBAfloat cRenderWorker::SpecularHighlightCombined(
-	const sShaderInputData &input, CVector3 lightVector, sRGBAfloat surfaceColor) const
+sRGBAfloat cRenderWorker::SpecularHighlightCombined(const sShaderInputData &input,
+	CVector3 lightVector, sRGBAfloat surfaceColor, sRGBFloat diffuseGradient) const
 {
 	sRGBAfloat specular;
 	sRGBAfloat specularPlastic;
 	if (input.material->specularPlasticEnable)
 	{
-		specularPlastic = SpecularHighlight(input, lightVector, input.material->specularWidth, 0.0f);
+		specularPlastic =
+			SpecularHighlight(input, lightVector, input.material->specularWidth, 0.0f, diffuseGradient);
 		specularPlastic.R *= input.material->specular;
 		specularPlastic.G *= input.material->specular;
 		specularPlastic.B *= input.material->specular;
@@ -53,7 +54,7 @@ sRGBAfloat cRenderWorker::SpecularHighlightCombined(
 	if (input.material->metallic)
 	{
 		specularMetallic = SpecularHighlight(input, lightVector, input.material->specularMetallicWidth,
-			input.material->specularMetallicRoughness);
+			input.material->specularMetallicRoughness, diffuseGradient);
 		specularMetallic.R *= input.material->specularMetallic * surfaceColor.R;
 		specularMetallic.G *= input.material->specularMetallic * surfaceColor.G;
 		specularMetallic.B *= input.material->specularMetallic * surfaceColor.B;

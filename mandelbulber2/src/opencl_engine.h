@@ -52,32 +52,20 @@ class cOpenClEngine : public QObject
 
 	struct sOptimalJob
 	{
-		sOptimalJob()
-				: workGroupSize(0),
-					workGroupSizeOptimalMultiplier(0),
-					stepSize(0),
-					stepSizeX(0),
-					stepSizeY(0),
-					workGroupSizeMultiplier(1),
-					jobSizeMultiplier(1),
-					lastProcessingTime(1.0),
-					sizeOfPixel(0),
-					jobSizeLimit(0),
-					optimalProcessingCycle(0.1)
-		{
-		}
-		qint64 workGroupSize;
-		qint64 workGroupSizeOptimalMultiplier;
-		qint64 stepSize;
-		qint64 stepSizeX;
-		qint64 stepSizeY;
-		qint64 workGroupSizeMultiplier;
-		qint64 jobSizeMultiplier;
+		sOptimalJob() {}
+
+		quint64 workGroupSize{0};
+		quint64 workGroupSizeOptimalMultiplier{0};
+		quint64 stepSize{0};
+		quint64 stepSizeX{0};
+		quint64 stepSizeY{0};
+		quint64 workGroupSizeMultiplier{1};
+		quint64 jobSizeMultiplier{1};
 		QElapsedTimer timer;
-		double lastProcessingTime;
-		qint64 sizeOfPixel;
-		qint64 jobSizeLimit;
-		double optimalProcessingCycle;
+		double lastProcessingTime{1.0};
+		quint64 sizeOfPixel{0};
+		quint64 jobSizeLimit{0};
+		double optimalProcessingCycle{0.1};
 	};
 
 public:
@@ -100,7 +88,7 @@ public:
 	void SetUseFastRelaxedMath(bool usefastMath) { useFastRelaxedMath = usefastMath; }
 	void ReleaseMemory();
 	bool AssignParametersToKernel(int deviceIndex);
-	virtual bool AssignParametersToKernelAdditional(int argIterator, int deviceIndex)
+	virtual bool AssignParametersToKernelAdditional(uint argIterator, int deviceIndex)
 	{
 		Q_UNUSED(argIterator);
 		Q_UNUSED(deviceIndex);
@@ -113,7 +101,7 @@ protected:
 	bool Build(const QByteArray &programString, QString *errorText);
 	bool CreateKernels();
 	void InitOptimalJob(const cParameterContainer *params);
-	void UpdateOptimalJobStart(size_t pixelsLeft);
+	void UpdateOptimalJobStart(quint64 pixelsLeft);
 	void UpdateOptimalJobEnd();
 	virtual size_t CalcNeededMemory() = 0;
 

@@ -65,6 +65,9 @@ typedef struct
 	cl_float colorTextureIntensity;
 	cl_float diffusionTextureIntensity;
 	cl_float luminosityTextureIntensity;
+	cl_float reflectanceTextureIntensity;
+	cl_float transparencyTextureIntensity;
+	cl_float roughnessTextureIntensity;
 	cl_float displacementTextureHeight;
 	cl_float normalMapTextureHeight;
 	cl_float iridescenceIntensity;
@@ -89,9 +92,6 @@ typedef struct
 	cl_int useColorsFromPalette;
 	cl_int specularPlasticEnable;
 	cl_int metallic;
-	cl_int luminosityColorTheSame;
-	cl_int reflectionsColorTheSame;
-	cl_int transparencyColorTheSame;
 	cl_int roughSurface;
 
 	cl_int useColorTexture;
@@ -101,6 +101,9 @@ typedef struct
 	cl_int useNormalMapTexture;
 	cl_int normalMapTextureFromBumpmap;
 	cl_int normalMapTextureInvertGreen;
+	cl_int useReflectanceTexture;
+	cl_int useTransparencyTexture;
+	cl_int useRoughnessTexture;
 	cl_int iridescenceEnabled;
 	cl_int textureFractalize;
 
@@ -109,6 +112,17 @@ typedef struct
 	cl_int luminosityTextureIndex;
 	cl_int displacementTextureIndex;
 	cl_int normalMapTextureIndex;
+	cl_int reflectanceTextureIndex;
+	cl_int transparencyTextureIndex;
+	cl_int roughnessTextureIndex;
+
+	cl_int surfaceGradientEnable;
+	cl_int specularGradientEnable;
+	cl_int diffuseGradientEnable;
+	cl_int luminosityGradientEnable;
+	cl_int roughnessGradientEnable;
+	cl_int reflectanceGradientEnable;
+	cl_int transparencyGradientEnable;
 
 	sFractalColoringCl fractalColoring;
 } sMaterialCl;
@@ -137,6 +151,9 @@ sMaterialCl clCopySMaterialCl(const cMaterial &source)
 	target.colorTextureIntensity = source.colorTextureIntensity;
 	target.diffusionTextureIntensity = source.diffusionTextureIntensity;
 	target.luminosityTextureIntensity = source.luminosityTextureIntensity;
+	target.reflectanceTextureIntensity = source.reflectanceTextureIntensity;
+	target.transparencyTextureIntensity = source.transparencyTextureIntensity;
+	target.roughnessTextureIntensity = source.roughnessTextureIntensity;
 	target.displacementTextureHeight = source.displacementTextureHeight;
 	target.normalMapTextureHeight = source.normalMapTextureHeight;
 	target.iridescenceIntensity = source.iridescenceIntensity;
@@ -161,9 +178,6 @@ sMaterialCl clCopySMaterialCl(const cMaterial &source)
 	target.useColorsFromPalette = source.useColorsFromPalette;
 	target.specularPlasticEnable = source.specularPlasticEnable;
 	target.metallic = source.metallic;
-	target.reflectionsColorTheSame = source.reflectionsColorTheSame;
-	target.luminosityColorTheSame = source.luminosityColorTheSame;
-	target.transparencyColorTheSame = source.transparencyColorTheSame;
 	target.roughSurface = source.roughSurface;
 
 	target.useColorTexture = source.useColorTexture;
@@ -173,8 +187,19 @@ sMaterialCl clCopySMaterialCl(const cMaterial &source)
 	target.useNormalMapTexture = source.useNormalMapTexture;
 	target.normalMapTextureFromBumpmap = source.normalMapTextureFromBumpmap;
 	target.normalMapTextureInvertGreen = source.normalMapTextureInvertGreen;
+	target.useReflectanceTexture = source.useReflectanceTexture;
+	target.useTransparencyTexture = source.useTransparencyTexture;
+	target.useRoughnessTexture = source.useRoughnessTexture;
 	target.iridescenceEnabled = source.iridescenceEnabled;
 	target.textureFractalize = source.textureFractalize;
+
+	target.surfaceGradientEnable = source.surfaceGradientEnable;
+	target.specularGradientEnable = source.specularGradientEnable;
+	target.diffuseGradientEnable = source.diffuseGradientEnable;
+	target.luminosityGradientEnable = source.luminosityGradientEnable;
+	target.roughnessGradientEnable = source.roughnessGradientEnable;
+	target.reflectanceGradientEnable = source.reflectanceGradientEnable;
+	target.transparencyGradientEnable = source.transparencyGradientEnable;
 
 	target.fractalColoring = clCopySFractalColoringCl(source.fractalColoring);
 

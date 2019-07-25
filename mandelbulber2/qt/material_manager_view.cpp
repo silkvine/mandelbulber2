@@ -1,7 +1,7 @@
 /**
  * Mandelbulber v2, a 3D fractal generator       ,=#MKNmMMKmmßMNWy,
  *                                             ,B" ]L,,p%%%,,,§;, "K
- * Copyright (C) 2016-17 Mandelbulber Team     §R-==%w["'~5]m%=L.=~5N
+ * Copyright (C) 2016-19 Mandelbulber Team     §R-==%w["'~5]m%=L.=~5N
  *                                        ,=mm=§M ]=4 yJKA"/-Nsaj  "Bw,==,,
  * This file is part of Mandelbulber.    §R.r= jw",M  Km .mM  FW ",§=ß., ,TN
  *                                     ,4R =%["w[N=7]J '"5=],""]]M,w,-; T=]M
@@ -213,6 +213,7 @@ void cMaterialManagerView::slotEditMaterial()
 
 	cMaterialEditor *materialEditor = new cMaterialEditor(dialog);
 	materialEditor->setMinimumWidth(500);
+	materialEditor->setMinimumHeight(650);
 
 	dialog->layout()->addWidget(materialEditor);
 
@@ -232,6 +233,9 @@ void cMaterialManagerView::slotEditMaterial()
 
 	connect(buttonBox, SIGNAL(accepted()), dialog, SLOT(accept()));
 	connect(buttonBox, SIGNAL(rejected()), dialog, SLOT(reject()));
+
+	if (gPar->Get<bool>("ui_colorize"))
+		materialEditor->Colorize(gPar->Get<int>("ui_colorize_random_seed"));
 
 	int result = dialog->exec();
 

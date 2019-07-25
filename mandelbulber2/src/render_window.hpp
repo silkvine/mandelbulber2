@@ -86,6 +86,9 @@ public:
 	QWidget *GetCentralWidget() const;
 	QComboBox *GetComboBoxMouseClickFunction() const;
 
+protected:
+	bool eventFilter(QObject *obj, QEvent *event) override;
+
 private:
 	void closeEvent(QCloseEvent *event) override;
 	void changeEvent(QEvent *event) override;
@@ -132,6 +135,7 @@ private slots:
 
 	// pull down menu
 	void slotImportOldSettings();
+	void slotImportMandelbulb3dSettings();
 	void slotMenuAboutMandelbulber();
 	void slotMenuAboutQt();
 	void slotMenuAboutManual();

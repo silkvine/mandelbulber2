@@ -39,6 +39,7 @@
 #include "fractal_formulas.hpp"
 #include "material.h"
 #include "nine_fractals.hpp"
+#include "orbit_trap_shape.hpp"
 
 using namespace fractal;
 
@@ -66,8 +67,6 @@ void Compute(const cNineFractals &fractals, const sFractalIn &in, sFractalOut *o
 
 	double r = z.Length();
 
-	double initR = r;
-
 	double initialWAxisColor = z.w;
 
 	double orbitTrapTotal = 0.0;
@@ -93,6 +92,7 @@ void Compute(const cNineFractals &fractals, const sFractalIn &in, sFractalOut *o
 
 	extendedAux.r = r;
 	extendedAux.DE = 1.0;
+	extendedAux.dist = 1000.0;
 	extendedAux.pseudoKleinianDE = 1.0;
 
 	extendedAux.actualScale = fractals.GetFractal(fractalIndex)->mandelbox.scale;
@@ -101,7 +101,7 @@ void Compute(const cNineFractals &fractals, const sFractalIn &in, sFractalOut *o
 	extendedAux.color = 1.0;
 	extendedAux.colorHybrid = 0.0;
 
-	extendedAux.temp100 = 100.0;
+	extendedAux.temp1000 = 1000.0;
 	extendedAux.addDist = 0.0;
 
 	// main iteration loop
@@ -370,8 +370,8 @@ void Compute(const cNineFractals &fractals, const sFractalIn &in, sFractalOut *o
 
 			else if (Mode == calcModeOrbitTrap)
 			{
-				CVector4 delta = z - CVector4(in.common.fakeLightsOrbitTrap, 0.0);
-				double distance = delta.Length();
+				double distance = OrbitTrapShapeDistance(z, in.common);
+
 				if (i >= in.common.fakeLightsMinIter && i <= in.common.fakeLightsMaxIter)
 					orbitTrapTotal += (1.0 / (distance * distance));
 				if (distance > fractals.GetBailout(sequence))
@@ -436,6 +436,8 @@ void Compute(const cNineFractals &fractals, const sFractalIn &in, sFractalOut *o
 				}
 				else if (fractals.GetDEFunctionType(0) == fractal::josKleinianDEFunction)
 				{
+					//								out->distance = extendedAux.dist;
+
 					if (fractals.GetFractal(0)->transformCommon.spheresEnabled)
 						z.y = min(z.y, fractals.GetFractal(0)->transformCommon.foldingValue - z.y);
 
@@ -444,11 +446,15 @@ void Compute(const cNineFractals &fractals, const sFractalIn &in, sFractalOut *o
 				}
 				/*else if (fractals.GetDEFunctionType(0) == fractal:: testingDEFunction)
 				{
-					double logDE = ((0.5 * r * log(r)) - in.common.linearDEOffset) / extendedAux.DE;
-					double linDE = (r - in.common.linearDEOffset) / extendedAux.DE;
+					out->distance = extendedAux.dist;
 
-					out->distance = linDE + (logDE - linDE) * extendedAux.temp100;
-				// (logDE, linDE, extendedAux.temp100 / 100)); // temp use of auxtemp100.
+
+
+					//double logDE = ((0.5 * r * log(r)) - in.common.linearDEOffset) / extendedAux.DE;
+					//double linDE = (r - in.common.linearDEOffset) / extendedAux.DE;
+
+				//	out->distance = linDE + (logDE - linDE) * extendedAux.temp1000;
+				// (logDE, linDE, extendedAux.temp1000 / 100)); // temp use of auxtemp1000.
 				}*/
 			}
 			else
@@ -491,13 +497,6 @@ void Compute(const cNineFractals &fractals, const sFractalIn &in, sFractalOut *o
 					case analyticFunctionNone: out->distance = -1.0; break;
 					case analyticFunctionUndefined: out->distance = r; break;
 				}
-			}
-			// TEMPORARY CODE.  To be removed afer testing
-			if (fractals.GetFractal(sequence)->transformCommon.functionEnabledTempFalse)
-			{
-				out->distance =
-					out->distance * initR * initR
-					/ (fractals.GetFractal(sequence)->transformCommon.maxR2d1 + initR * out->distance);
 			}
 		}
 		else

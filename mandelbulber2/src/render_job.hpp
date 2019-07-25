@@ -44,8 +44,8 @@
 #include "camera_target.hpp"
 #include "fractal_container.hpp"
 #include "parameters.hpp"
-#include "rendered_tile_data.hpp"
 #include "region.hpp"
+#include "rendered_tile_data.hpp"
 #include "statistics.h"
 
 // forward declarations
@@ -106,10 +106,12 @@ private:
 #ifdef USE_OPENCL
 	bool RenderFractalWithOpenCl(
 		sParamRender *params, cNineFractals *fractals, cProgressText *progressText);
-	void RenderSSAOWithOpenCl(
-		sParamRender *params, const cRegion<int> &region, cProgressText *progressText, bool *result);
+	void RenderSSAOWithOpenCl(sParamRender *params, const cRegion<int> &region,
+		cProgressText *progressText, bool *result);
 	void RenderDOFWithOpenCl(sParamRender *params, bool *result);
 #endif
+
+	void LoadTextures(int frameNo, const cRenderingConfiguration &config);
 
 	bool hasQWidget;
 	bool inProgress;
@@ -140,7 +142,7 @@ signals:
 	void sendRenderedTilesList(QList<sRenderedTileData>);
 	void SendNetRenderJob(
 		cParameterContainer settings, cFractalContainer fractal, QStringList listOfTextures);
-	void SendNetRenderSetup(int clientIndex, int id, QList<int> startingPositions);
+	void SendNetRenderSetup(int clientIndex, QList<int> startingPositions);
 	void SetMinimumWidgetSize(int width, int height);
 };
 

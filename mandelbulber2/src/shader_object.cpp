@@ -37,7 +37,7 @@
 #include "render_worker.hpp"
 
 sRGBAfloat cRenderWorker::ObjectShader(const sShaderInputData &_input, sRGBAfloat *surfaceColour,
-	sRGBAfloat *specularOut, sRGBFloat *iridescenceOut) const
+	sRGBAfloat *specularOut, sRGBFloat *iridescenceOut, sGradientsCollection *gradients) const
 {
 	sRGBAfloat output;
 
@@ -67,8 +67,10 @@ sRGBAfloat cRenderWorker::ObjectShader(const sShaderInputData &_input, sRGBAfloa
 	sRGBAfloat shadow(1.0, 1.0, 1.0, 1.0);
 	if (params->shadow && params->mainLightEnable) shadow = MainShadow(input);
 
+	gradients->specular = sRGBFloat(1.0, 1.0, 1.0);
+
 	// calculate surface colour
-	sRGBAfloat colour = SurfaceColour(input);
+	sRGBAfloat colour = SurfaceColour(input, gradients);
 	float texColInt = mat->colorTextureIntensity;
 	float texColIntN = 1.0f - mat->colorTextureIntensity;
 	colour.R *= input.texColor.R * texColInt + texColIntN;
@@ -80,7 +82,13 @@ sRGBAfloat cRenderWorker::ObjectShader(const sShaderInputData &_input, sRGBAfloa
 	sRGBAfloat specular;
 	if (params->mainLightEnable)
 	{
-		specular = SpecularHighlightCombined(input, input.lightVect, colour);
+		specular = SpecularHighlightCombined(input, input.lightVect, colour, gradients->diffuse);
+		if (mat->useColorsFromPalette && mat->specularGradientEnable)
+		{
+			specular.R *= gradients->specular.R;
+			specular.G *= gradients->specular.G;
+			specular.B *= gradients->specular.B;
+		}
 	}
 
 	// ambient occlusion
@@ -115,7 +123,7 @@ sRGBAfloat cRenderWorker::ObjectShader(const sShaderInputData &_input, sRGBAfloa
 	// additional lights
 	sRGBAfloat auxLights;
 	sRGBAfloat auxLightsSpecular;
-	auxLights = AuxLightsShader(input, colour, &auxLightsSpecular);
+	auxLights = AuxLightsShader(input, colour, gradients, &auxLightsSpecular);
 
 	// fake orbit trap lights
 	sRGBAfloat fakeLights(0.0, 0.0, 0.0, 0.0);
@@ -127,14 +135,14 @@ sRGBAfloat cRenderWorker::ObjectShader(const sShaderInputData &_input, sRGBAfloa
 
 	// luminosity
 	sRGBAfloat luminosity;
-	if (mat->luminosityColorTheSame)
+	if (mat->useColorsFromPalette && mat->luminosityGradientEnable)
 	{
-		luminosity.R =
-			input.texLuminosity.R * mat->luminosityTextureIntensity + mat->luminosity * colour.R;
-		luminosity.G =
-			input.texLuminosity.G * mat->luminosityTextureIntensity + mat->luminosity * colour.G;
-		luminosity.B =
-			input.texLuminosity.B * mat->luminosityTextureIntensity + mat->luminosity * colour.B;
+		luminosity.R = input.texLuminosity.R * mat->luminosityTextureIntensity
+									 + mat->luminosity * gradients->luminosity.R;
+		luminosity.G = input.texLuminosity.G * mat->luminosityTextureIntensity
+									 + mat->luminosity * gradients->luminosity.G;
+		luminosity.B = input.texLuminosity.B * mat->luminosityTextureIntensity
+									 + mat->luminosity * gradients->luminosity.B;
 	}
 	else
 	{

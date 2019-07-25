@@ -47,15 +47,17 @@
 
 struct sImageOptional
 {
-	sImageOptional() : optionalNormal(false), optionalSpecular(false) {}
+	sImageOptional() {}
 	inline bool operator==(sImageOptional other) const
 	{
-		return other.optionalNormal == optionalNormal;
-		return other.optionalSpecular == optionalSpecular;
+		return other.optionalNormal == optionalNormal && other.optionalSpecular == optionalSpecular
+					 && other.optionalDiffuse == optionalDiffuse && other.optionalWorld == optionalWorld;
 	}
 
-	bool optionalNormal;
-	bool optionalSpecular;
+	bool optionalNormal{false};
+	bool optionalSpecular{false};
+	bool optionalDiffuse{false};
+	bool optionalWorld{false};
 };
 
 struct sAllImageData
@@ -65,6 +67,7 @@ struct sAllImageData
 	quint16 opacityBuffer;
 	sRGBFloat normalFloat;
 	sRGBFloat normalSpecular;
+	sRGBFloat worldPosition;
 	sRGB8 colourBuffer;
 	float zBuffer;
 };
@@ -77,14 +80,14 @@ public:
 
 	~cImage();
 	bool IsAllocated() const { return isAllocated; }
-	bool ChangeSize(int w, int h, sImageOptional optional);
+	bool ChangeSize(quint64 w, quint64 h, sImageOptional optional);
 	void ClearImage();
-	void ClearRGB(QScopedArrayPointer<sRGBFloat> &rgbFloat, QScopedArrayPointer<sRGB16> &rgb16,
-		QScopedArrayPointer<sRGB8> &rgb8);
-	void AllocRGB(QScopedArrayPointer<sRGBFloat> &rgbFloat, QScopedArrayPointer<sRGB16> &rgb16,
-		QScopedArrayPointer<sRGB8> &rgb8);
-	void FreeRGB(QScopedArrayPointer<sRGBFloat> &rgbFloat, QScopedArrayPointer<sRGB16> &rgb16,
-		QScopedArrayPointer<sRGB8> &rgb8);
+	void ClearRGB(
+		std::vector<sRGBFloat> &rgbFloat, std::vector<sRGB16> &rgb16, std::vector<sRGB8> &rgb8);
+	void AllocRGB(
+		std::vector<sRGBFloat> &rgbFloat, std::vector<sRGB16> &rgb16, std::vector<sRGB8> &rgb8);
+	void FreeRGB(
+		std::vector<sRGBFloat> &rgbFloat, std::vector<sRGB16> &rgb16, std::vector<sRGB8> &rgb8);
 
 	bool IsUsed() const { return isUsed; }
 	void BlockImage() { isUsed = true; }
@@ -95,12 +98,12 @@ public:
 
 	void SetFastPreview(bool enable) { fastPreview = enable; }
 
-	inline qint64 getImageIndex(const qint64 x, const qint64 y) const
+	inline quint64 getImageIndex(const quint64 x, const quint64 y) const
 	{
 		// assert(x >= 0 && x < width && y >= 0 && y < height);
-		if (x >= 0 && x < width && y >= 0 && y < height)
+		if (x < width && y < height)
 		{
-			return qint64(x) + qint64(y) * qint64(width);
+			return x + y * width;
 		}
 		else
 		{
@@ -110,131 +113,134 @@ public:
 		}
 	}
 
-	inline void PutPixelImage(qint64 x, qint64 y, sRGBFloat pixel)
+	inline void PutPixelImage(quint64 x, quint64 y, sRGBFloat pixel)
 	{
 		imageFloat[getImageIndex(x, y)] = pixel;
 	}
-	inline void PutPixelPostImage(qint64 x, qint64 y, sRGBFloat pixel)
+	inline void PutPixelPostImage(quint64 x, quint64 y, sRGBFloat pixel)
 	{
 		postImageFloat[getImageIndex(x, y)] = pixel;
 	}
-	inline void PutPixelImage16(qint64 x, qint64 y, sRGB16 pixel)
+	inline void PutPixelImage16(quint64 x, quint64 y, sRGB16 pixel)
 	{
 		image16[getImageIndex(x, y)] = pixel;
 	}
-	inline void PutPixelColor(qint64 x, qint64 y, sRGB8 pixel)
+	inline void PutPixelColor(quint64 x, quint64 y, sRGB8 pixel)
 	{
 		colourBuffer[getImageIndex(x, y)] = pixel;
 	}
-	inline void PutPixelZBuffer(qint64 x, qint64 y, float pixel)
+	inline void PutPixelZBuffer(quint64 x, quint64 y, float pixel)
 	{
 		zBuffer[getImageIndex(x, y)] = pixel;
 	}
-	inline void PutPixelAlpha(qint64 x, qint64 y, quint16 pixel)
+	inline void PutPixelAlpha(quint64 x, quint64 y, quint16 pixel)
 	{
 		alphaBuffer16[getImageIndex(x, y)] = pixel;
 	}
-	inline void PutPixelOpacity(qint64 x, qint64 y, quint16 pixel)
+	inline void PutPixelOpacity(quint64 x, quint64 y, quint16 pixel)
 	{
 		opacityBuffer[getImageIndex(x, y)] = pixel;
 	}
-	inline void PutPixelNormal(qint64 x, qint64 y, sRGBFloat pixel)
+	inline void PutPixelNormal(quint64 x, quint64 y, sRGBFloat pixel)
 	{
 		normalFloat[getImageIndex(x, y)] = pixel;
 	}
-	inline void PutPixelSpecular(qint64 x, qint64 y, sRGBFloat pixel)
+	inline void PutPixelSpecular(quint64 x, quint64 y, sRGBFloat pixel)
 	{
 		specularFloat[getImageIndex(x, y)] = pixel;
 	}
-	inline sRGBFloat GetPixelImage(qint64 x, qint64 y) const
+	inline void PutPixelDiffuse(quint64 x, quint64 y, sRGBFloat pixel)
+	{
+		diffuseFloat[getImageIndex(x, y)] = pixel;
+	}
+	inline void PutPixelWorld(quint64 x, quint64 y, sRGBFloat pixel)
+	{
+		worldFloat[getImageIndex(x, y)] = pixel;
+	}
+	inline sRGBFloat GetPixelImage(quint64 x, quint64 y) const
 	{
 		return imageFloat[getImageIndex(x, y)];
 	}
-	inline sRGBFloat GetPixelPostImage(qint64 x, qint64 y) const
+	inline sRGBFloat GetPixelPostImage(quint64 x, quint64 y) const
 	{
 		return postImageFloat[getImageIndex(x, y)];
 	}
-	inline sRGB16 GetPixelImage16(qint64 x, qint64 y) const { return image16[getImageIndex(x, y)]; }
-	inline sRGB8 GetPixelImage8(qint64 x, qint64 y) const { return image8[getImageIndex(x, y)]; }
-	inline quint16 GetPixelAlpha(qint64 x, qint64 y) const
+	inline sRGB16 GetPixelImage16(quint64 x, quint64 y) const { return image16[getImageIndex(x, y)]; }
+	inline sRGB8 GetPixelImage8(quint64 x, quint64 y) const { return image8[getImageIndex(x, y)]; }
+	inline quint16 GetPixelAlpha(quint64 x, quint64 y) const
 	{
 		return alphaBuffer16[getImageIndex(x, y)];
 	}
-	inline quint8 GetPixelAlpha8(qint64 x, qint64 y) const
+	inline quint8 GetPixelAlpha8(quint64 x, quint64 y) const
 	{
 		return alphaBuffer8[getImageIndex(x, y)];
 	}
-	inline quint16 GetPixelOpacity(qint64 x, qint64 y) const
+	inline quint16 GetPixelOpacity(quint64 x, quint64 y) const
 	{
 		return opacityBuffer[getImageIndex(x, y)];
 	}
-	inline sRGB8 GetPixelColor(qint64 x, qint64 y) const { return colourBuffer[getImageIndex(x, y)]; }
-	inline float GetPixelZBuffer(qint64 x, qint64 y) const { return zBuffer[getImageIndex(x, y)]; }
-	inline sRGBFloat GetPixelNormal(qint64 x, qint64 y)
+	inline sRGB8 GetPixelColor(quint64 x, quint64 y) const
+	{
+		return colourBuffer[getImageIndex(x, y)];
+	}
+	inline float GetPixelZBuffer(quint64 x, quint64 y) const { return zBuffer[getImageIndex(x, y)]; }
+	inline sRGBFloat GetPixelNormal(quint64 x, quint64 y)
 	{
 		return GetPixelGeneric(normalFloat, opt.optionalNormal, x, y);
 	}
-	inline sRGB16 GetPixelNormal16(qint64 x, qint64 y)
-	{
-		return GetPixelGeneric16(normal16, opt.optionalNormal, x, y);
-	}
-	inline sRGB8 GetPixelNormal8(qint64 x, qint64 y)
-	{
-		return GetPixelGeneric8(normal8, opt.optionalNormal, x, y);
-	}
-	inline sRGBFloat GetPixelSpecular(qint64 x, qint64 y)
+	inline sRGBFloat GetPixelSpecular(quint64 x, quint64 y)
 	{
 		return GetPixelGeneric(specularFloat, opt.optionalSpecular, x, y);
 	}
-	inline sRGB16 GetPixelSpecular16(qint64 x, qint64 y)
+	inline sRGBFloat GetPixelDiffuse(quint64 x, quint64 y)
 	{
-		return GetPixelGeneric16(specular16, opt.optionalSpecular, x, y);
+		return GetPixelGeneric(diffuseFloat, opt.optionalDiffuse, x, y);
 	}
-	inline sRGB8 GetPixelSpecular8(qint64 x, qint64 y)
+	inline sRGBFloat GetPixelWorld(quint64 x, quint64 y)
 	{
-		return GetPixelGeneric8(specular8, opt.optionalSpecular, x, y);
+		return GetPixelGeneric(worldFloat, opt.optionalWorld, x, y);
 	}
 
 	inline sRGBFloat GetPixelGeneric(
-		QScopedArrayPointer<sRGBFloat> &from, bool available, qint64 x, qint64 y)
+		const std::vector<sRGBFloat> &from, bool available, quint64 x, quint64 y)
 	{
 		if (!available) return BlackFloat();
 		return from[getImageIndex(x, y)];
 	}
 	inline sRGB16 GetPixelGeneric16(
-		QScopedArrayPointer<sRGB16> &from, bool available, qint64 x, qint64 y)
+		const std::vector<sRGB16> &from, bool available, quint64 x, quint64 y)
 	{
 		if (!available) return Black16();
 		return from[getImageIndex(x, y)];
 	}
 	inline sRGB8 GetPixelGeneric8(
-		QScopedArrayPointer<sRGB8> &from, bool available, qint64 x, qint64 y)
+		const std::vector<sRGB8> &from, bool available, quint64 x, quint64 y)
 	{
 		if (!available) return Black8();
 		return from[getImageIndex(x, y)];
 	}
-	inline void BlendPixelImage16(qint64 x, qint64 y, float factor, sRGB16 other)
+	inline void BlendPixelImage16(quint64 x, quint64 y, float factor, sRGB16 other)
 	{
 		float factorN = 1.0f - factor;
-		qint64 imgIndex = getImageIndex(x, y);
+		quint64 imgIndex = getImageIndex(x, y);
 		image16[imgIndex].R = quint16(image16[imgIndex].R * factorN + other.R * factor);
 		image16[imgIndex].G = quint16(image16[imgIndex].G * factorN + other.G * factor);
 		image16[imgIndex].B = quint16(image16[imgIndex].B * factorN + other.B * factor);
 	}
 
-	inline void BlendPixelPostImage(qint64 x, qint64 y, float factor, sRGBFloat other)
+	inline void BlendPixelPostImage(quint64 x, quint64 y, float factor, sRGBFloat other)
 	{
 		float factorN = 1.0f - factor;
-		qint64 imgIndex = getImageIndex(x, y);
+		quint64 imgIndex = getImageIndex(x, y);
 		postImageFloat[imgIndex].R = postImageFloat[imgIndex].R * factorN + other.R * factor;
 		postImageFloat[imgIndex].G = postImageFloat[imgIndex].G * factorN + other.G * factor;
 		postImageFloat[imgIndex].B = postImageFloat[imgIndex].B * factorN + other.B * factor;
 	}
 
-	inline void BlendPixelAlpha(qint64 x, qint64 y, float factor, quint16 other)
+	inline void BlendPixelAlpha(quint64 x, quint64 y, float factor, quint16 other)
 	{
 		float factorN = 1.0f - factor;
-		qint64 imgIndex = getImageIndex(x, y);
+		quint64 imgIndex = getImageIndex(x, y);
 		alphaBuffer16[imgIndex] = quint16(alphaBuffer16[imgIndex] * factorN + other * factor);
 	}
 
@@ -249,16 +255,18 @@ public:
 	quint16 *GetOpacityPtr() { return opacityBuffer.data(); }
 	size_t GetZBufferSize() const { return sizeof(float) * quint64(height) * quint64(width); }
 	QWidget *GetImageWidget() { return imageWidget; }
+	sRGB8 *GetPreviewPtr() { return preview2.data(); }
+	sRGB8 *GetPreviewPrimaryPtr() { return preview.data(); }
 
 	void CompileImage(QList<int> *list = nullptr);
 	void CompileImage(const QList<QRect> *list);
 	void NullPostEffect(QList<int> *list = nullptr);
 	void NullPostEffect(const QList<QRect> *list);
 
-	int GetWidth() const { return width; }
-	int GetHeight() const { return height; }
-	int GetPreviewWidth() const { return previewWidth; }
-	int GetPreviewHeight() const { return previewHeight; }
+	quint64 GetWidth() const { return width; }
+	quint64 GetHeight() const { return height; }
+	quint64 GetPreviewWidth() const { return previewWidth; }
+	quint64 GetPreviewHeight() const { return previewHeight; }
 	int GetPreviewVisibleWidth() const { return previewVisibleWidth; }
 	int GetPreviewVisibleHeight() const { return previewVisibleHeight; }
 	int GetUsedMB() const;
@@ -267,35 +275,29 @@ public:
 	void SetImageOptional(sImageOptional optInput) { opt = optInput; }
 	sImageOptional *GetImageOptional() { return &opt; }
 
-	quint8 *ConvertGenericRGBTo8bit(
-		QScopedArrayPointer<sRGBFloat> &from, QScopedArrayPointer<sRGB8> &to);
-	quint8 *ConvertGenericRGBTo16bit(
-		QScopedArrayPointer<sRGBFloat> &from, QScopedArrayPointer<sRGB16> &to);
+	quint8 *ConvertGenericRGBTo8bit(std::vector<sRGBFloat> &from, std::vector<sRGB8> &to);
+	quint8 *ConvertGenericRGBTo16bit(std::vector<sRGBFloat> &from, std::vector<sRGB16> &to);
 	quint8 *ConvertTo8bit();
 	quint8 *ConvertTo8bit(const QList<QRect> *list);
 	quint8 *ConvertAlphaTo8bit();
-	quint8 *ConvertNormalTo16Bit();
-	quint8 *ConvertNormalTo8Bit();
-	quint8 *ConvertSpecularTo16Bit();
-	quint8 *ConvertSpecularTo8Bit();
 
 	quint8 *CreatePreview(double scale, int visibleWidth, int visibleHeight, QWidget *widget);
 	void UpdatePreview(QList<int> *list = nullptr);
 	void UpdatePreview(const QList<QRect> *list);
-	quint8 *GetPreviewPtr() const;
-	quint8 *GetPreviewPrimaryPtr() const;
+	const quint8 *GetPreviewConstPtr() const;
+	const quint8 *GetPreviewPrimaryConstPtr() const;
 	bool IsPreview() const;
 	void RedrawInWidget(QWidget *qWidget = nullptr);
 	double GetPreviewScale() const { return previewScale; }
-	void Squares(int y, int progressiveFactor);
+	void Squares(quint64 y, int progressiveFactor);
 	void CalculateGammaTable();
 	sRGB16 CalculatePixel(sRGBFloat pixel);
 
-	void PutPixelAlfa(qint64 x, qint64 y, float z, sRGB8 color, sRGBFloat opacity, int layer);
-	void AntiAliasedPoint(double x, double y, float z, sRGB8 color, sRGBFloat opacity, int layer);
-	void AntiAliasedLine(double x1, double y1, double x2, double y2, float z1, float z2, sRGB8 color,
+	void PutPixelAlfa(quint64 x, quint64 y, float z, sRGB8 color, sRGBFloat opacity, int layer);
+	void AntiAliasedPoint(float x, float y, float z, sRGB8 color, sRGBFloat opacity, int layer);
+	void AntiAliasedLine(float x1, float y1, float x2, float y2, float z1, float z2, sRGB8 color,
 		sRGBFloat opacity, int layer);
-	void CircleBorder(double x, double y, float z, double r, sRGB8 border, double borderWidth,
+	void CircleBorder(float x, float y, float z, float r, sRGB8 border, float borderWidth,
 		sRGBFloat opacity, int layer);
 
 	bool IsStereoLeftRight() const { return isStereoLeftRight; }
@@ -317,38 +319,35 @@ private:
 	static inline sRGB8 Black8() { return sRGB8(0, 0, 0); }
 	static inline sRGBFloat BlackFloat() { return sRGBFloat(0, 0, 0); }
 
-	QScopedArrayPointer<sRGB8> image8;
-	QScopedArrayPointer<sRGB16> image16;
-	QScopedArrayPointer<sRGBFloat> imageFloat;
-	QScopedArrayPointer<sRGBFloat> postImageFloat;
+	std::vector<sRGB8> image8;
+	std::vector<sRGB16> image16;
+	std::vector<sRGBFloat> imageFloat;
+	std::vector<sRGBFloat> postImageFloat;
 
-	QScopedArrayPointer<quint8> alphaBuffer8;
-	QScopedArrayPointer<quint16> alphaBuffer16;
-	QScopedArrayPointer<quint16> opacityBuffer;
-	QScopedArrayPointer<sRGB8> colourBuffer;
-	QScopedArrayPointer<float> zBuffer;
+	std::vector<quint8> alphaBuffer8;
+	std::vector<quint16> alphaBuffer16;
+	std::vector<quint16> opacityBuffer;
+	std::vector<sRGB8> colourBuffer;
+	std::vector<float> zBuffer;
 
 	// optional image buffers
-	QScopedArrayPointer<sRGBFloat> normalFloat;
-	QScopedArrayPointer<sRGB8> normal8;
-	QScopedArrayPointer<sRGB16> normal16;
+	std::vector<sRGBFloat> normalFloat;
+	std::vector<sRGBFloat> specularFloat;
+	std::vector<sRGBFloat> diffuseFloat;
+	std::vector<sRGBFloat> worldFloat;
 
-	QScopedArrayPointer<sRGBFloat> specularFloat;
-	QScopedArrayPointer<sRGB8> specular8;
-	QScopedArrayPointer<sRGB16> specular16;
-
-	QScopedArrayPointer<sRGB8> preview;
-	QScopedArrayPointer<sRGB8> preview2;
+	std::vector<sRGB8> preview;
+	std::vector<sRGB8> preview2;
 	QWidget *imageWidget;
 
 	sImageAdjustments adj;
 	sImageOptional opt;
-	qint64 width;
-	qint64 height;
-	QScopedArrayPointer<int> gammaTable;
+	quint64 width;
+	quint64 height;
+	std::vector<int> gammaTable;
 	bool previewAllocated;
-	int previewWidth;
-	int previewHeight;
+	quint64 previewWidth;
+	quint64 previewHeight;
 	double previewScale;
 	int previewVisibleWidth;
 	int previewVisibleHeight;

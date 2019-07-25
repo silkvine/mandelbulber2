@@ -1,7 +1,7 @@
 /**
  * Mandelbulber v2, a 3D fractal generator       ,=#MKNmMMKmmßMNWy,
  *                                             ,B" ]L,,p%%%,,,§;, "K
- * Copyright (C) 2016 Mandelbulber Team        §R-==%w["'~5]m%=L.=~5N
+ * Copyright (C) 2016-19 Mandelbulber Team     §R-==%w["'~5]m%=L.=~5N
  *                                        ,=mm=§M ]=4 yJKA"/-Nsaj  "Bw,==,,
  * This file is part of Mandelbulber.    §R.r= jw",M  Km .mM  FW ",§=ß., ,TN
  *                                     ,4R =%["w[N=7]J '"5=],""]]M,w,-; T=]M
@@ -51,7 +51,9 @@ enum enumTextureSelection
 	texDiffuse = 1,
 	texLuminosity = 2,
 	texDisplacement = 3,
+	texReflectance = 4,
+	texTransparency = 5
 };
-}
+} // namespace texture
 
 #endif /* MANDELBULBER2_SRC_TEXTURE_ENUMS_HPP_ */

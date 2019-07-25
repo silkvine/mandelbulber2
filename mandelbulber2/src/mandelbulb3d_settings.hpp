@@ -1,7 +1,7 @@
 /**
  * Mandelbulber v2, a 3D fractal generator       ,=#MKNmMMKmmßMNWy,
  *                                             ,B" ]L,,p%%%,,,§;, "K
- * Copyright (C) 2014-17 Mandelbulber Team     §R-==%w["'~5]m%=L.=~5N
+ * Copyright (C) 2019 Mandelbulber Team        §R-==%w["'~5]m%=L.=~5N
  *                                        ,=mm=§M ]=4 yJKA"/-Nsaj  "Bw,==,,
  * This file is part of Mandelbulber.    §R.r= jw",M  Km .mM  FW ",§=ß., ,TN
  *                                     ,4R =%["w[N=7]J '"5=],""]]M,w,-; T=]M
@@ -27,48 +27,41 @@
  *
  * ###########################################################################
  *
- * Authors: Krzysztof Marczak (buddhi1980@gmail.com)
+ * Authors: Sebastian Jennen (jenzebas@gmail.com)
  *
- * ColorPaletteWidget class - promoted QWidget for displaying color palette
+ * cMandelbulb3dSettings class - importing settings from Mandelbulb3d
  */
 
-#ifndef MANDELBULBER2_QT_COLOR_PALETTE_WIDGET_H_
-#define MANDELBULBER2_QT_COLOR_PALETTE_WIDGET_H_
+#ifndef MANDELBULBER2_SRC_MANDELBULB3D_SETTINGS_HPP_
+#define MANDELBULBER2_SRC_MANDELBULB3D_SETTINGS_HPP_
 
-#include <QColorDialog>
-#include <QMouseEvent>
-#include <QWidget>
-#include <QtCore>
+#include <vector>
 
-#include "common_my_widget_wrapper.h"
+#include "algebra.hpp"
+#include "color_structures.hpp"
 
-#include "src/color_palette.hpp"
+// forward declarations
+class cFractalContainer;
+class cParameterContainer;
 
-class ColorPaletteWidget : public QWidget, public CommonMyWidgetWrapper
+class cMandelbulb3dSettings
 {
-	Q_OBJECT
-
 public:
-	ColorPaletteWidget(QWidget *parent = nullptr);
-	void SetPalette(const cColorPalette &_palette);
-	cColorPalette GetPalette() const { return palette; }
-	void SetOffset(double offset);
+	cMandelbulb3dSettings();
+	~cMandelbulb3dSettings();
+	bool LoadSettings(const QString &filename);
+	void ConvertToNewContainer(cParameterContainer *params, cFractalContainer *fractal);
+	quint64 FourCharsTo3Bytes(char* fourChars);
 
 private:
-	cColorPalette palette;
-	double paletteOffset;
-	cColorPalette GetDefault();
-	cColorPalette defaultValue;
-	void paintEvent(QPaintEvent *event) override;
+	int getSettingsInt(int position);
+	int getSettings16Bit(int position);
+	int getSettings8Bit(int position);
+	double getSettingsDouble(int position);
 
-	// methods to define from CommonMyWidgetWrapper
-	void resetToDefault() override;
-	QString getDefaultAsString() override;
-	QString getFullParameterName() override;
-
-protected:
-	void mousePressEvent(QMouseEvent *event) override;
-	void contextMenuEvent(QContextMenuEvent *event) override;
+	QString settingsBinaryString;
+	QString settingsTitle;
+	QByteArray settings;
 };
 
-#endif /* MANDELBULBER2_QT_COLOR_PALETTE_WIDGET_H_ */
+#endif /* MANDELBULBER2_SRC_MANDELBULB3D_SETTINGS_HPP_ */

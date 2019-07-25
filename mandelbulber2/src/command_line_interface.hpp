@@ -1,7 +1,7 @@
 /**
  * Mandelbulber v2, a 3D fractal generator       ,=#MKNmMMKmmßMNWy,
  *                                             ,B" ]L,,p%%%,,,§;, "K
- * Copyright (C) 2015-18 Mandelbulber Team     §R-==%w["'~5]m%=L.=~5N
+ * Copyright (C) 2015-19 Mandelbulber Team     §R-==%w["'~5]m%=L.=~5N
  *                                        ,=mm=§M ]=4 yJKA"/-Nsaj  "Bw,==,,
  * This file is part of Mandelbulber.    §R.r= jw",M  Km .mM  FW ",§=ß., ,TN
  *                                     ,4R =%["w[N=7]J '"5=],""]]M,w,-; T=]M
@@ -90,12 +90,12 @@ public:
 private:
 	// ## helper methods for ReadCLI
 	// arguments to cause print and exit
-	static void printExampleHelpAndExit();
-	static void printInputHelpAndExit();
-	static void printOpenCLHelpAndExit();
-	static void printParametersAndExit();
-	static void runTestCasesAndExit();
-	void runBenchmarksAndExit();
+	[[noreturn]] static void printExampleHelpAndExit();
+	[[noreturn]] static void printInputHelpAndExit();
+	[[noreturn]] static void printOpenCLHelpAndExit();
+	[[noreturn]] static void printParametersAndExit();
+	[[noreturn]] static void runTestCasesAndExit();
+	[[noreturn]] void runBenchmarksAndExit();
 
 	// argument handling methods
 	void handleServer();

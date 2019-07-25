@@ -1,7 +1,7 @@
 /**
  * Mandelbulber v2, a 3D fractal generator       ,=#MKNmMMKmmßMNWy,
  *                                             ,B" ]L,,p%%%,,,§;, "K
- * Copyright (C) 2016-18 Mandelbulber Team     §R-==%w["'~5]m%=L.=~5N
+ * Copyright (C) 2016-19 Mandelbulber Team     §R-==%w["'~5]m%=L.=~5N
  *                                        ,=mm=§M ]=4 yJKA"/-Nsaj  "Bw,==,,
  * This file is part of Mandelbulber.    §R.r= jw",M  Km .mM  FW ",§=ß., ,TN
  *                                     ,4R =%["w[N=7]J '"5=],""]]M,w,-; T=]M
@@ -59,6 +59,11 @@ cMaterialEditor::cMaterialEditor(QWidget *parent) : QWidget(parent), ui(new Ui::
 	automatedWidgets = new cAutomatedWidgets(this);
 	automatedWidgets->ConnectSignalsForSlidersInWindow(this);
 
+	ui->colorpalette_diffuse_gradient->SetGrayscale();
+	ui->colorpalette_roughness_gradient->SetGrayscale();
+
+	// ui->colorpalette_surface_color_gradient->SetViewModeOnly();
+
 	ConnectSignals();
 }
 
@@ -69,17 +74,8 @@ cMaterialEditor::~cMaterialEditor()
 
 void cMaterialEditor::ConnectSignals()
 {
-	connect(ui->pushButton_randomize, SIGNAL(clicked()), this, SLOT(slotPressedButtonRandomize()));
-	connect(ui->pushButton_randomPalette, SIGNAL(clicked()), this,
-		SLOT(slotPressedButtonNewRandomPalette()));
-	connect(ui->spinbox_coloring_palette_offset, SIGNAL(valueChanged(double)), this,
-		SLOT(slotChangedSpinBoxPaletteOffset(double)));
-	connect(ui->spinboxInt_coloring_palette_size, SIGNAL(valueChanged(int)), this,
-		SLOT(slotChangedSpinBoxPaletteSize(int)));
 	connect(ui->comboBox_fractal_coloring_algorithm, SIGNAL(currentIndexChanged(int)), this,
 		SLOT(slotChangedComboFractalColoringAlgorithm(int)));
-	connect(ui->pushButton_getPaletteFromImage, SIGNAL(clicked()), this,
-		SLOT(slotPressedButtonGetPaletteFromImage()));
 	connect(
 		ui->widget_material_preview, SIGNAL(materialChanged(int)), this, SIGNAL(materialChanged(int)));
 }
@@ -116,63 +112,6 @@ void cMaterialEditor::AssignMaterial(cParameterContainer *params, int index)
 	}
 }
 
-cColorPalette cMaterialEditor::GetPaletteFromImage(const QString &filename) const
-{
-	cColorPalette palette;
-	QImage imagePalette(filename);
-
-	SynchronizeInterfaceWindow(
-		ui->groupCheck_use_color_texture, parameterContainer, qInterface::read);
-	int paletteSize =
-		parameterContainer->Get<int>(cMaterial::Name("coloring_palette_size", materialIndex));
-
-	if (!imagePalette.isNull())
-	{
-		int width = imagePalette.width();
-		int height = imagePalette.height();
-
-		for (int i = 0; i < paletteSize; i++)
-		{
-			double angle = double(i) / paletteSize * M_PI * 2.0;
-			double x = width / 2 + cos(angle) * width * 0.4;
-			double y = height / 2 + sin(angle) * height * 0.4;
-			QRgb pixel = imagePalette.pixel(x, y);
-			sRGB pixelRGB(qRed(pixel), qGreen(pixel), qBlue(pixel));
-			palette.AppendColor(pixelRGB);
-		}
-	}
-	return palette;
-}
-
-void cMaterialEditor::slotPressedButtonNewRandomPalette() const
-{
-	SynchronizeInterfaceWindow(
-		ui->groupCheck_use_colors_from_palette, parameterContainer, qInterface::read);
-	cColorPalette palette(
-		parameterContainer->Get<int>(cMaterial::Name("coloring_palette_size", materialIndex)),
-		parameterContainer->Get<int>(cMaterial::Name("coloring_random_seed", materialIndex)),
-		parameterContainer->Get<double>(cMaterial::Name("coloring_saturation", materialIndex)));
-	ui->colorpalette_surface_color_palette->SetPalette(palette);
-}
-
-void cMaterialEditor::slotPressedButtonRandomize() const
-{
-	srand(static_cast<unsigned int>(QTime::currentTime().msec()));
-	int seed = Random(999999);
-	ui->spinboxInt_coloring_random_seed->setValue(seed);
-	slotPressedButtonNewRandomPalette();
-}
-
-void cMaterialEditor::slotChangedSpinBoxPaletteOffset(double value) const
-{
-	ui->colorpalette_surface_color_palette->SetOffset(value);
-}
-
-void cMaterialEditor::slotChangedSpinBoxPaletteSize(int value) const
-{
-	ui->slider_coloring_palette_offset->setMaximum(value * 100);
-}
-
 void cMaterialEditor::slotChangedComboFractalColoringAlgorithm(int index) const
 {
 	enumFractalColoring selection = enumFractalColoring(index);
@@ -181,29 +120,6 @@ void cMaterialEditor::slotChangedComboFractalColoringAlgorithm(int index) const
 	ui->vect4_fractal_coloring_line_direction_y->setEnabled(selection == fractalColoring_Line);
 	ui->vect4_fractal_coloring_line_direction_z->setEnabled(selection == fractalColoring_Line);
 	ui->vect4_fractal_coloring_line_direction_w->setEnabled(selection == fractalColoring_Line);
-}
-
-void cMaterialEditor::slotPressedButtonGetPaletteFromImage()
-{
-	PreviewFileDialog dialog(this);
-	dialog.setFileMode(QFileDialog::ExistingFile);
-	dialog.setNameFilter(tr("Images (*.jpg *.jpeg *.png *.bmp)"));
-	// dialog.setDirectory(QDir::toNativeSeparators(
-	// 	systemData.dataDirectory + QDir::separator() + "textures" + QDir::separator()));
-	// there is no texture folder in data folder, is images folder OK?
-	dialog.setDirectory(QDir::toNativeSeparators(systemData.GetImagesFolder() + QDir::separator()));
-	dialog.selectFile(QDir::toNativeSeparators(systemData.lastImagePaletteFile));
-	dialog.setAcceptMode(QFileDialog::AcceptOpen);
-	dialog.setWindowTitle(tr("Select image to grab colors..."));
-	QStringList filenames;
-	if (dialog.exec())
-	{
-		filenames = dialog.selectedFiles();
-		QString filename = QDir::toNativeSeparators(filenames.first());
-		cColorPalette palette = GetPaletteFromImage(filename);
-		ui->colorpalette_surface_color_palette->SetPalette(palette);
-		systemData.lastImagePaletteFile = filename;
-	}
 }
 
 void cMaterialEditor::Colorize(int randomSeed)
