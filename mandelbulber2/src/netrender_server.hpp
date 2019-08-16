@@ -44,12 +44,12 @@
 // forward declarations
 struct sRenderData;
 
-class CNetRenderServer : public QObject
+class cNetRenderServer : public QObject
 {
 	Q_OBJECT
 public:
-	explicit CNetRenderServer();
-	~CNetRenderServer() override;
+	explicit cNetRenderServer();
+	~cNetRenderServer() override;
 	void SetServer(int _portNo);
 	void DeleteServer();
 
@@ -80,6 +80,10 @@ public:
 	void SetCurrentJob(const cParameterContainer &settings, const cFractalContainer &fractal,
 		QStringList listOfTextures);
 
+	// send parameters and start rendering animation from frame n
+	void SetCurrentAnimation(
+		const cParameterContainer &settings, const cFractalContainer &fractal, bool isFlight);
+
 private slots:
 	// received data from client
 	void ClientDisconnected();
@@ -97,6 +101,7 @@ signals:
 	void ClientsChanged(int i, int j);
 	// send data of newly rendered lines to cRenderer
 	void NewLinesArrived(QList<int> lineNumbers, QList<QByteArray> lines);
+	void FinishedFrame(int frameIndex, int sizeOfDoDoList);
 
 private:
 	// process received data and send response if needed
@@ -109,6 +114,7 @@ private:
 	void ProcessRequestWorker(sMessage *inMsg, int index, QTcpSocket *socket);
 	void ProcessRequestData(sMessage *inMsg, int index, QTcpSocket *socket);
 	void ProcessRequestStatus(sMessage *inMsg, int index, QTcpSocket *socket);
+	void ProcessRequestFrameDone(sMessage *inMsg, int index, QTcpSocket *socket);
 
 	QList<sClient> clients;
 	sClient nullClient; // dummy client for fail-safe purposes

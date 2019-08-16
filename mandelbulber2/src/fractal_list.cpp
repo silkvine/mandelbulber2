@@ -422,6 +422,13 @@ void DefineFractalList(QList<sFractalDescription> *fractalList)
 		riemannBulbMsltoeMod2, RiemannBulbMsltoeMod2Iteration, deltaDEType, logarithmicDEFunction,
 		cpixelDisabledByDefault, 1.5, analyticFunctionNone, coloringFunctionDefault));
 
+	fractalList->append(sFractalDescription("Riemann - Sphere Hobold", "riemann_sphere_hobold",
+		riemannSphereHobold, RiemannSphereHoboldIteration, deltaDEType, logarithmicDEFunction,
+		cpixelEnabledByDefault, 10, analyticFunctionNone, coloringFunctionDefault));
+
+
+
+
 	// Scator Algebra formulas
 	fractalList->append(sFractalDescription("Scator Power 2 Real", "scator_power2_real",
 		scatorPower2Real, ScatorPower2RealIteration, deltaDEType, logarithmicDEFunction,
@@ -841,6 +848,18 @@ void DefineFractalList(QList<sFractalDescription> *fractalList)
 		transfSurfBoxFoldV24d, TransfSurfBoxFoldV24dIteration, analyticDEType, linearDEFunction,
 		cpixelDisabledByDefault, 100, analyticFunctionLinear, coloringFunctionDefault));
 
+	fractalList->append(sFractalDescription("DIFS Box Diagonal V1", "dIFS_box_diagonal_v1", dIFSBoxDiagonalV1,
+		DIFSBoxDiagonalV1Iteration, analyticDEType, dIFSDEFunction, cpixelDisabledByDefault, 100,
+		analyticFunctionDIFS, coloringFunctionDefault));
+
+	fractalList->append(sFractalDescription("DIFS Box Diagonal V2", "dIFS_box_diagonal_v2", dIFSBoxDiagonalV2,
+		DIFSBoxDiagonalV2Iteration, analyticDEType, dIFSDEFunction, cpixelDisabledByDefault, 100,
+		analyticFunctionDIFS, coloringFunctionDefault));
+
+	fractalList->append(sFractalDescription("DIFS Box Diagonal V3", "dIFS_box_diagonal_v3", dIFSBoxDiagonalV3,
+		DIFSBoxDiagonalV3Iteration, analyticDEType, dIFSDEFunction, cpixelDisabledByDefault, 100,
+		analyticFunctionDIFS, coloringFunctionDefault));
+
 	// ------------------ hybrid color trial -----------------------
 
 	fractalList->append(sFractalDescription("T>Hybrid Color", "transf_hybrid_color",
@@ -854,7 +873,7 @@ void DefineFractalList(QList<sFractalDescription> *fractalList)
 		cpixelDisabledByDefault, 100, analyticFunctionNone, coloringFunctionDefault));
 
 	fractalList->append(sFractalDescription("Testing", "testing", testing, TestingIteration,
-		analyticDEType, withoutDEFunction, cpixelDisabledByDefault, 100, analyticFunctionNone,
+		analyticDEType, dIFSDEFunction, cpixelDisabledByDefault, 100, analyticFunctionDIFS,
 		coloringFunctionDefault));
 
 	fractalList->append(sFractalDescription("Testing Log", "testing_log", testingLog,

@@ -188,7 +188,7 @@ void InitParams(cParameterContainer *par)
 	par->addParam("bailout", 1e2, 1.0, 1e15, morphLinear, paramStandard);
 	par->addParam("repeat_from", 1, 1, 9, morphLinear, paramStandard);
 	par->addParam(
-		"delta_DE_function", int(fractal::preferredDEFunction), 0, 4, morphNone, paramStandard);
+		"delta_DE_function", int(fractal::preferredDEFunction), 0, 5, morphNone, paramStandard);
 	par->addParam("delta_DE_method", int(fractal::preferredDEMethod), 0, 2, morphNone, paramStandard);
 	par->addParam("use_default_bailout", true, morphNone, paramStandard);
 	par->addParam("initial_waxis", 0.0, morphAkima, paramStandard);
@@ -468,7 +468,7 @@ void InitParams(cParameterContainer *par)
 	par->addParam("auto_save_images", false, morphNone, paramApp);
 	par->addParam("save_image_format", 0, morphNone, paramApp);
 	par->addParam("image_preview_scale", 3, 0, 6, morphNone, paramApp);
-	par->addParam("netrender_mode", int(CNetRender::netRenderServer), morphNone, paramApp);
+	par->addParam("netrender_mode", int(cNetRender::netRenderModeServer), morphNone, paramApp);
 	par->addParam("netrender_client_remote_address", QString("localhost"), morphNone, paramApp);
 	par->addParam("netrender_client_remote_port", 5555, morphNone, paramApp);
 	par->addParam("netrender_server_local_port", 5555, morphNone, paramApp);
@@ -821,6 +821,7 @@ void InitFractalParams(cParameterContainer *par)
 	par->addParam("transf_offsetA_0", 0.0, morphAkima, paramStandard);
 	par->addParam("transf_offsetB_0", 0.0, morphAkima, paramStandard);
 	par->addParam("transf_offsetC_0", 0.0, morphAkima, paramStandard);
+	par->addParam("transf_offsetD_0", 0.0, morphAkima, paramStandard);
 	par->addParam("transf_offset_0005", 0.005, morphAkima, paramStandard);
 	par->addParam("transf_offset_05", 0.5, morphAkima, paramStandard);
 	par->addParam("transf_offset_1", 1.0, morphAkima, paramStandard);
@@ -971,6 +972,8 @@ void InitFractalParams(cParameterContainer *par)
 	par->addParam("transf_offset_000", CVector3(0.0, 0.0, 0.0), morphAkima, paramStandard);
 	par->addParam("transf_offsetA_000", CVector3(0.0, 0.0, 0.0), morphAkima, paramStandard);
 	par->addParam("transf_offsetF_000", CVector3(0.0, 0.0, 0.0), morphAkima, paramStandard);
+	par->addParam("transf_offset_001", CVector3(0.0, 0.0, 1.0), morphAkima, paramStandard);
+	par->addParam("transf_offset_002", CVector3(0.0, 0.0, 2.0), morphAkima, paramStandard);
 	par->addParam("transf_offset_010", CVector3(0.0, 1.0, 0.0), morphAkima, paramStandard);
 	par->addParam("transf_offset_100", CVector3(1.0, 0.0, 0.0), morphAkima, paramStandard);
 	par->addParam("transf_offset_1105", CVector3(1.0, 1.0, 0.5), morphAkima, paramStandard);

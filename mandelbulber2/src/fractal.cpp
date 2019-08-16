@@ -286,6 +286,7 @@ sFractal::sFractal(const cParameterContainer *container)
 	transformCommon.offsetA0 = container->Get<double>("transf_offsetA_0");
 	transformCommon.offsetB0 = container->Get<double>("transf_offsetB_0");
 	transformCommon.offsetC0 = container->Get<double>("transf_offsetC_0");
+	transformCommon.offsetD0 = container->Get<double>("transf_offsetD_0");
 	transformCommon.offset0005 = container->Get<double>("transf_offset_0005");
 	transformCommon.offset05 = container->Get<double>("transf_offset_05");
 	transformCommon.offset1 = container->Get<double>("transf_offset_1");
@@ -334,6 +335,7 @@ sFractal::sFractal(const cParameterContainer *container)
 	transformCommon.startIterations = container->Get<int>("transf_start_iterations");
 	transformCommon.startIterations250 = container->Get<int>("transf_start_iterations_250");
 	transformCommon.stopIterations = container->Get<int>("transf_stop_iterations");
+	transformCommon.stopIterations1 = container->Get<int>("transf_stop_iterations_1");
 	transformCommon.stopIterations15 = container->Get<int>("transf_stop_iterations_15");
 	transformCommon.startIterationsA = container->Get<int>("transf_start_iterations_A");
 	transformCommon.stopIterationsA = container->Get<int>("transf_stop_iterations_A");
@@ -378,7 +380,7 @@ sFractal::sFractal(const cParameterContainer *container)
 	transformCommon.startIterationsTM = container->Get<int>("transf_start_iterationsTM");
 	transformCommon.stopIterationsTM1 = container->Get<int>("transf_stop_iterationsTM_1");
 
-	transformCommon.stopIterations1 = container->Get<int>("transf_stop_iterations_1");
+
 
 	transformCommon.startIterationsX = container->Get<int>("transf_start_iterations_X");
 	transformCommon.stopIterationsX = container->Get<int>("transf_stop_iterations_X");
@@ -439,6 +441,8 @@ sFractal::sFractal(const cParameterContainer *container)
 	transformCommon.offset000 = CVector4(container->Get<CVector3>("transf_offset_000"), 0.0);
 	transformCommon.offsetA000 = CVector4(container->Get<CVector3>("transf_offsetA_000"), 0.0);
 	transformCommon.offsetF000 = CVector4(container->Get<CVector3>("transf_offsetF_000"), 0.0);
+	transformCommon.offset001 = CVector4(container->Get<CVector3>("transf_offset_001"), 0.0);
+	transformCommon.offset002 = CVector4(container->Get<CVector3>("transf_offset_002"), 0.0);
 	transformCommon.offset010 = CVector4(container->Get<CVector3>("transf_offset_010"), 0.0);
 	transformCommon.offset100 = CVector4(container->Get<CVector3>("transf_offset_100"), 0.0);
 	transformCommon.offset1105 = CVector4(container->Get<CVector3>("transf_offset_1105"), 0.0);

@@ -194,6 +194,7 @@ void RiemannSphereMsltoeIteration(CVector4 &z, const sFractal *fractal, sExtende
 void RiemannSphereMsltoeV1Iteration(CVector4 &z, const sFractal *fractal, sExtendedAux &aux);
 void RiemannSphereMsltoeV2Iteration(CVector4 &z, const sFractal *fractal, sExtendedAux &aux);
 void RiemannBulbMsltoeMod2Iteration(CVector4 &z, const sFractal *fractal, sExtendedAux &aux);
+void RiemannSphereHoboldIteration(CVector4 &z, const sFractal *fractal, sExtendedAux &aux);
 
 void ScatorPower2ImaginaryIteration(CVector4 &z, const sFractal *fractal, sExtendedAux &aux);
 void ScatorPower2RealIteration(CVector4 &z, const sFractal *fractal, sExtendedAux &aux);
@@ -326,6 +327,13 @@ void TransfRotation4dIteration(CVector4 &z, const sFractal *fractal, sExtendedAu
 void TransfScale4dIteration(CVector4 &z, const sFractal *fractal, sExtendedAux &aux);
 void TransfSphericalFold4dIteration(CVector4 &z, const sFractal *fractal, sExtendedAux &aux);
 void TransfSurfBoxFoldV24dIteration(CVector4 &z, const sFractal *fractal, sExtendedAux &aux);
+
+
+// dIFS
+void DIFSBoxDiagonalV1Iteration(CVector4 &z, const sFractal *fractal, sExtendedAux &aux);
+void DIFSBoxDiagonalV2Iteration(CVector4 &z, const sFractal *fractal, sExtendedAux &aux);
+void DIFSBoxDiagonalV3Iteration(CVector4 &z, const sFractal *fractal, sExtendedAux &aux);
+
 
 void TransfHybridColorIteration(CVector4 &z, const sFractal *fractal, sExtendedAux &aux);
 void TransfHybridColor2Iteration(CVector4 &z, const sFractal *fractal, sExtendedAux &aux);

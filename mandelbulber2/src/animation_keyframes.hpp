@@ -85,6 +85,7 @@ public:
 	void ChangeMorphType(int row, parameterContainer::enumMorphType morphType);
 	QList<int> CheckForCollisions(double minDist, bool *stopRequest);
 	void UpdateActualCameraPosition(const CVector3 &cameraPosition);
+	void SetNetRenderStartingFrames(const QVector<int> &startingFrames);
 
 public slots:
 	void UpdateLimitsForFrameRange() const;
@@ -95,6 +96,7 @@ public slots:
 	void slotIncreaseCurrentTableIndex();
 	void slotDecreaseCurrentTableIndex();
 	void slotModifyKeyframe();
+	void slotNetRenderFinishedFrame(int frameIndex, int sizeOfToDoList);
 
 private slots:
 	void slotSelectKeyframeAnimImageDir() const;
@@ -139,6 +141,7 @@ private:
 	bool lastToRenderMax = false;
 	QSize previewSize;
 	CVector3 actualCameraPosition;
+	QList<int> netRenderListOfFramesToRender;
 
 signals:
 	void updateProgressAndStatus(const QString &text, const QString &progressText, double progress,
@@ -151,6 +154,11 @@ signals:
 	void showErrorMessage(
 		QString text, cErrorMessage::enumMessageType messageType, QWidget *parent = nullptr);
 	void notifyRenderKeyframeRenderStatus(QString text, QString progressText);
+
+	void SendNetRenderSetup(int clientIndex, QList<int> startingPositions);
+	void NetRenderCurrentAnimation(
+		const cParameterContainer &settings, const cFractalContainer &fractal, bool isFlight);
+	void NetRenderConfirmRendered(int frameIndex, int toDoListLength);
 };
 
 extern cKeyframeAnimation *gKeyframeAnimation;

@@ -48,34 +48,34 @@
 // forward declarations
 struct sRenderData;
 
-class CNetRender : public QObject
+class cNetRender : public QObject
 {
 	Q_OBJECT
 public:
-	explicit CNetRender();
-	~CNetRender() override;
+	explicit cNetRender();
+	~cNetRender() override;
 
 	//--------------- enumerations ---------------------
 public:
 	enum typeOfDevice
 	{
-		netRender_CLIENT,
-		netRender_SERVER,
-		netRender_UNKNOWN
+		netRenderDeviceType_CLIENT,
+		netRenderDeviceType_SERVER,
+		netRenderDevuceType_UNKNOWN
 	};
 
 	enum enumUiNetRenderMode
 	{
-		netRenderClient,
-		netRenderServer
+		netRenderModeClient,
+		netRenderModeServer
 	};
 
 	//----------------- public methods --------------------------
 public:
 	// ask if server is established
-	bool IsServer() const { return deviceType == netRender_SERVER; }
+	bool IsServer() const { return deviceType == netRenderDeviceType_SERVER; }
 	// ask if client is connected
-	bool IsClient() const { return deviceType == netRender_CLIENT; }
+	bool IsClient() const { return deviceType == netRenderDeviceType_CLIENT; }
 	// initializing server
 	void SetServer(qint32 _portNo);
 	// deleting server
@@ -97,30 +97,32 @@ public:
 
 	//++++++++++++++++++ Server related  +++++++++++++++++
 	// get client
-	const sClient &GetClient(int index) { return cNetRenderServer->GetClient(index); }
+	const sClient &GetClient(int index) { return netRenderServer->GetClient(index); }
 	// get number of connected clients
-	qint32 GetClientCount() const { return cNetRenderServer->GetClientCount(); }
+	qint32 GetClientCount() const { return netRenderServer->GetClientCount(); }
 	// get number of CPU cores for selected client
-	qint32 GetWorkerCount(qint32 index) { return cNetRenderServer->GetWorkerCount(index); }
+	qint32 GetWorkerCount(qint32 index) { return netRenderServer->GetWorkerCount(index); }
 	// get total number of available CPUs
-	qint32 getTotalWorkerCount() { return cNetRenderServer->getTotalWorkerCount(); }
+	qint32 getTotalWorkerCount() { return netRenderServer->getTotalWorkerCount(); }
 	// get status of Client
 	netRenderStatus GetClientStatus(int index);
 	// in cli mode this method enables waiting for the clients before start of rendering
 	bool WaitForAllClientsReady(double timeout)
 	{
-		return cNetRenderServer->WaitForAllClientsReady(timeout);
+		return netRenderServer->WaitForAllClientsReady(timeout);
 	}
+	void SetAnimation(bool isAnim) { isAnimation = isAnim; }
+	bool IsAnimation() { return isAnimation; }
 
 	//++++++++++++++++++ Client related  +++++++++++++++++
 	// get name of the connected server
-	QString GetServerName() const { return cNetRenderClient->GetServerName(); }
+	QString GetServerName() const { return netRenderClient->GetServerName(); }
 	// get line numbers which should be rendered first
-	QList<int> GetStartingPositions() const { return cNetRenderClient->GetStartingPositions(); }
+	QVector<int> GetStartingPositions() const { return netRenderClient->GetStartingPositions(); }
 	// get received textures
 	QByteArray *GetTexture(const QString &textureName, int frameNo)
 	{
-		return cNetRenderClient->GetTexture(textureName, frameNo);
+		return netRenderClient->GetTexture(textureName, frameNo);
 	}
 
 	// setting status test
@@ -130,11 +132,12 @@ public:
 
 	//---------------- private data -----------------
 private:
-	CNetRenderClient *cNetRenderClient;
-	CNetRenderServer *cNetRenderServer;
+	CNetRenderClient *netRenderClient;
+	cNetRenderServer *netRenderServer;
 	netRenderStatus status;
 	typeOfDevice deviceType;
 	bool isUsed;
+	bool isAnimation;
 
 	//------------------- public slots -------------------
 public slots:
@@ -142,6 +145,9 @@ public slots:
 	// send parameters and textures to all clients and start rendering
 	void SetCurrentJob(const cParameterContainer &settings, const cFractalContainer &fractal,
 		QStringList listOfTextures);
+	// send parameters and start rendering animation
+	void SetCurrentAnimation(
+		const cParameterContainer &settings, const cFractalContainer &fractal, bool isFlight);
 	// send list of already rendered lines
 	void SendToDoList(int clientIndex, const QList<int> &done); // send list of already rendered lines
 	// send message to all clients to stop rendering
@@ -158,6 +164,8 @@ public slots:
 	void SendRenderedLines(const QList<int> &lineNumbers, const QList<QByteArray> &lines);
 	// notify the server about client status change
 	void NotifyStatus();
+	// notify server that frame was just rendered
+	void ConfirmRenderedFrame(int frameIndex, int sizeOfToDoList);
 
 	//------------------- private slots ------------------
 private slots:
@@ -181,11 +189,15 @@ signals:
 	void ToDoListArrived(QList<int> done);
 	// confirmation of data receive
 	void AckReceived();
+	// signal to start rendering keyframe animation
+	void KeyframeAnimationRender();
+	// signal to animation about finished frame
+	void FinishedFrame(int, int);
 
 	void NewStatusClient();
 	void NewStatusServer();
 };
 
-extern CNetRender *gNetRender;
+extern cNetRender *gNetRender;
 
 #endif /* MANDELBULBER2_SRC_NETRENDER_HPP_ */

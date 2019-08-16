@@ -171,7 +171,7 @@ enum enumFractalFormula
 	aboxMod12 = 123,
 	quaternionCubic4d = 124,
 	boxFoldBulbPow2V2 = 125,
-	boxFoldBulbPow2V3 = 126,
+	boxFoldBulbPow2V3 = 126, // added sphere invert
 	aboxMod13 = 127,
 	boxFoldQuat = 128,
 	// 2.13
@@ -203,12 +203,23 @@ enum enumFractalFormula
 	mandelbulbPower1234 = 148,
 	mengerPolyFold = 149,
 	ifsXY = 150,
+	// 2.20
+	riemannSphereHobold = 151,
+
 
 	// 152 to 172 reserved for scator
 	scatorPower2Imaginary = 152, // fixed r calc v2.14
-	scatorPower2Real = 156,			 // added V2.15
-	scatorPower2 = 173,					 // added V2.15
-	scatorPower2StdR = 174,			 // added V2.15
+	scatorPower2Real = 156, // added V2.15
+	scatorPower2 = 173, // added V2.15
+	scatorPower2StdR = 174, // added V2.15
+
+	// mandelbulber dIFS
+	dIFSBoxDiagonalV1 = 600,
+	dIFSBoxDiagonalV2 = 601,
+	dIFSBoxDiagonalV3 = 602,
+
+
+
 
 	mandelbulbEye = 800,
 
@@ -253,7 +264,7 @@ enum enumFractalFormula
 	transfAddConstant4d = 1039,
 	transfBoxFold4d = 1040,
 	transfIterationWeight4d = 1041, // fixed V2.10
-	transfSphericalFold4d = 1042,		// updated V2.11
+	transfSphericalFold4d = 1042, // updated V2.11
 	transfScale4d = 1043,
 	transfAbsAddConstant4d = 1044,
 	transfAbsAddTgladFold4d = 1045,
@@ -264,7 +275,7 @@ enum enumFractalFormula
 	transfSphericalFoldAbox = 1049,
 	transfSphericalFoldVaryV1 = 1050,
 	transfQuaternionFold = 1051, // changed DE v2.15
-	transfMengerFold = 1052,		 // fixed  v2.15
+	transfMengerFold = 1052, // fixed  v2.15
 	// V2.09
 	transfInvCylindrical = 1053,
 	transfRpow3 = 1054,
@@ -282,7 +293,7 @@ enum enumFractalFormula
 	transfAbsAddConditional = 1065, // scale fixed v2.17
 	transfReciprocal4d = 1066,
 	transfAbsAddConditional4d = 1067, // scale fixed v2.17
-	transfSphericalOffsetVCL = 1068,	// fixed v2.14
+	transfSphericalOffsetVCL = 1068, // fixed v2.14
 	transfRotation4d = 1069,
 	// 2.11
 	transfParabFold = 1070,
@@ -298,7 +309,7 @@ enum enumFractalFormula
 	transfAddCpixelRotated = 1078,
 	transfAddConstantMod1 = 1079,
 	// 2.14
-	transfPolyFoldSymXY = 1080,		 // updated v2.19
+	transfPolyFoldSymXY = 1080, // updated v2.19
 	transfPolyFoldSymMulti = 1081, // updated v2.19
 	// 2.15
 	transfSinOrCos = 1082,
@@ -314,7 +325,7 @@ enum enumFractalFormula
 	transfBoxWrap4d = 1089,
 	transfSphericalInvV2 = 1090,
 	// 2.18
-	transfRotationIterControls = 1091,
+	transfRotationIterControls = 1091, // fix order of rot v2.20
 	transfClamp4d = 1092,
 	transfAbsAddMulti4d = 1093,
 	transfRotateAboutVec3 = 1094,
@@ -333,6 +344,9 @@ enum enumFractalFormula
 	testing = 2100,
 	testing4d = 2101,
 	testingLog = 2103,
+
+
+
 };
 }
 

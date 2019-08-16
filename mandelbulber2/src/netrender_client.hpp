@@ -58,11 +58,13 @@ public:
 	// get received textures
 	QByteArray *GetTexture(const QString &textureName, int frameNo);
 	// get line numbers which should be rendered first
-	QList<int> GetStartingPositions() { return startingPositions; }
+	QVector<int> GetStartingPositions() { return startingPositions; }
 	// send to server a list of numbers and image data of already rendered lines
 	void SendRenderedLines(const QList<int> &lineNumbers, const QList<QByteArray> &lines);
 	// get name of the connected server
 	QString GetServerName() const { return serverName; }
+	// notify server that frame was just rendered
+	void ConfirmRenderedFrame(int frameIndex, int sizeOfToDoList);
 
 private slots:
 	// try to connect to server
@@ -83,6 +85,8 @@ signals:
 	void changeClientStatus(netRenderStatus status);
 	// notify about the current status
 	void NotifyStatus();
+	// signal to start rendering keyframe animation
+	void KeyframeAnimationRender();
 
 private:
 	void ProcessData();
@@ -96,6 +100,7 @@ private:
 	void ProcessRequestSetup(sMessage *inMsg);
 	void ProcessRequestAck(sMessage *inMsg);
 	void ProcessRequestKickAndKill(sMessage *inMsg);
+	void ProcessRequestRenderAnimation(sMessage *inMsg);
 
 	QTcpSocket *clientSocket;
 	QTimer *reconnectTimer;
@@ -105,7 +110,8 @@ private:
 	sMessage msgFromServer;
 
 	qint32 actualId;
-	QList<int> startingPositions;
+	QVector<int> startingPositions;
+	QList<int> framesToRender;
 	QMap<QString, QByteArray> textures;
 };
 
