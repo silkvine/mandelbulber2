@@ -292,6 +292,12 @@ void DefineFractalList(QList<sFractalDescription> *fractalList)
 	fractalList->append(sFractalDescription("Mandelbulb - Kali Multi", "mandelbulb_kali_multi",
 		mandelbulbKaliMulti, MandelbulbKaliMultiIteration, analyticDEType, logarithmicDEFunction,
 		cpixelEnabledByDefault, 10, analyticFunctionLogarithmic, coloringFunctionDefault));
+	fractalList->append(sFractalDescription("Mandelbulb - Kosalos", "mandelbulb_kosalos",
+		mandelbulbKosalos, MandelbulbKosalosIteration, analyticDEType, logarithmicDEFunction,
+		cpixelDisabledByDefault, 10, analyticFunctionLogarithmic, coloringFunctionDefault));
+	fractalList->append(sFractalDescription("Mandelbulb - Kosalos V2", "mandelbulb_kosalos_v2",
+		mandelbulbKosalosV2, MandelbulbKosalosV2Iteration, analyticDEType, logarithmicDEFunction,
+		cpixelDisabledByDefault, 10, analyticFunctionLogarithmic, coloringFunctionDefault));
 	fractalList->append(sFractalDescription("Mandelbulb - Multi", "mandelbulb_multi", mandelbulbMulti,
 		MandelbulbMultiIteration, analyticDEType, logarithmicDEFunction, cpixelEnabledByDefault, 10,
 		analyticFunctionLogarithmic, coloringFunctionDefault));
@@ -421,11 +427,15 @@ void DefineFractalList(QList<sFractalDescription> *fractalList)
 	fractalList->append(sFractalDescription("Riemann - Bulb Msltoe Mod2", "riemann_bulb_msltoe_mod2",
 		riemannBulbMsltoeMod2, RiemannBulbMsltoeMod2Iteration, deltaDEType, logarithmicDEFunction,
 		cpixelDisabledByDefault, 1.5, analyticFunctionNone, coloringFunctionDefault));
-
-	fractalList->append(sFractalDescription("Riemann - Sphere Hobold", "riemann_sphere_hobold",
-		riemannSphereHobold, RiemannSphereHoboldIteration, deltaDEType, logarithmicDEFunction,
-		cpixelEnabledByDefault, 10, analyticFunctionNone, coloringFunctionDefault));
-
+	fractalList->append(sFractalDescription("Riemann - Sphere Hobold Pow4", "riemann_sphere_hobold_pow4",
+		riemannSphereHoboldPow4, RiemannSphereHoboldPow4Iteration, analyticDEType, logarithmicDEFunction,
+		cpixelEnabledByDefault, 2.5, analyticFunctionLogarithmic, coloringFunctionDefault));
+	fractalList->append(sFractalDescription("Riemann - Sphere Hobold Pow8", "riemann_sphere_hobold_pow8",
+		riemannSphereHoboldPow8, RiemannSphereHoboldPow8Iteration, analyticDEType, logarithmicDEFunction,
+		cpixelEnabledByDefault, 2.5, analyticFunctionLogarithmic, coloringFunctionDefault));
+	fractalList->append(sFractalDescription("Riemann - Sphere Hobold Multi", "riemann_sphere_hobold_multi",
+		riemannSphereHoboldMulti, RiemannSphereHoboldMultiIteration, analyticDEType, logarithmicDEFunction,
+		cpixelEnabledByDefault, 2.5, analyticFunctionLogarithmic, coloringFunctionDefault));
 
 
 
@@ -527,6 +537,17 @@ void DefineFractalList(QList<sFractalDescription> *fractalList)
 	fractalList->append(sFractalDescription("T>Add Constant Mod1", "transf_add_constant_mod1",
 		transfAddConstantMod1, TransfAddConstantMod1Iteration, analyticDEType, linearDEFunction,
 		cpixelDisabledByDefault, 100, analyticFunctionLinear, coloringFunctionDefault));
+	fractalList->append(sFractalDescription("T>Add Constant Mod2", "transf_add_constant_mod2",
+		transfAddConstantMod2, TransfAddConstantMod2Iteration, analyticDEType, linearDEFunction,
+		cpixelDisabledByDefault, 100, analyticFunctionLinear, coloringFunctionDefault));
+
+	fractalList->append(sFractalDescription("T>Add Constant Rot V1", "transf_add_constant_rot_v1",
+		transfAddConstantRotV1, TransfAddConstantRotV1Iteration, analyticDEType, linearDEFunction,
+		cpixelDisabledByDefault, 100, analyticFunctionLinear, coloringFunctionDefault));
+
+
+
+
 
 	// Add Cpixel Transforms
 	fractalList->append(sFractalDescription("T>Add Cpixel", "transf_add_cpixel", transfAddCpixel,
@@ -852,13 +873,22 @@ void DefineFractalList(QList<sFractalDescription> *fractalList)
 		DIFSBoxDiagonalV1Iteration, analyticDEType, dIFSDEFunction, cpixelDisabledByDefault, 100,
 		analyticFunctionDIFS, coloringFunctionDefault));
 
-	fractalList->append(sFractalDescription("DIFS Box Diagonal V2", "dIFS_box_diagonal_v2", dIFSBoxDiagonalV2,
-		DIFSBoxDiagonalV2Iteration, analyticDEType, dIFSDEFunction, cpixelDisabledByDefault, 100,
+	fractalList->append(sFractalDescription("DIFS Box V1", "dIFS_box_v1", dIFSBoxV1,
+		DIFSBoxV1Iteration, analyticDEType, dIFSDEFunction, cpixelDisabledByDefault, 100,
 		analyticFunctionDIFS, coloringFunctionDefault));
 
 	fractalList->append(sFractalDescription("DIFS Box Diagonal V3", "dIFS_box_diagonal_v3", dIFSBoxDiagonalV3,
 		DIFSBoxDiagonalV3Iteration, analyticDEType, dIFSDEFunction, cpixelDisabledByDefault, 100,
 		analyticFunctionDIFS, coloringFunctionDefault));
+
+	fractalList->append(sFractalDescription("DIFS Cylinder", "dIFS_cylinder", dIFSCylinder,
+		DIFSCylinderIteration, analyticDEType, dIFSDEFunction, cpixelDisabledByDefault, 100,
+		analyticFunctionDIFS, coloringFunctionDefault));
+
+	fractalList->append(sFractalDescription("DIFS Sphere", "dIFS_sphere", dIFSSphere,
+		DIFSSphereIteration, analyticDEType, dIFSDEFunction, cpixelDisabledByDefault, 100,
+		analyticFunctionDIFS, coloringFunctionDefault));
+
 
 	// ------------------ hybrid color trial -----------------------
 
@@ -877,7 +907,7 @@ void DefineFractalList(QList<sFractalDescription> *fractalList)
 		coloringFunctionDefault));
 
 	fractalList->append(sFractalDescription("Testing Log", "testing_log", testingLog,
-		TestingLogIteration, analyticDEType, logarithmicDEFunction, cpixelEnabledByDefault, 2,
+		TestingLogIteration, analyticDEType, logarithmicDEFunction, cpixelEnabledByDefault, 10,
 		analyticFunctionLogarithmic, coloringFunctionDefault));
 
 	fractalList->append(sFractalDescription("Testing4d", "testing4d", testing4d, Testing4dIteration,
@@ -887,4 +917,11 @@ void DefineFractalList(QList<sFractalDescription> *fractalList)
 	fractalList->append(sFractalDescription("T>Blockify", "transf_blockify", transfBlockify,
 		TransfBlockifyIteration, analyticDEType, linearDEFunction, cpixelDisabledByDefault, 100,
 		analyticFunctionLinear, coloringFunctionDefault)); //  log or linear???
+
+	fractalList->append(sFractalDescription("Testing Transform", "testing_transform", testingTransform, TestingTransformIteration,
+		analyticDEType, dIFSDEFunction, cpixelDisabledByDefault, 100, analyticFunctionDIFS,
+		coloringFunctionDefault));
+
+
+
 }

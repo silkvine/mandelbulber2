@@ -95,10 +95,10 @@ cMaterial::cMaterial()
 	transparencyGradientEnable = false;
 }
 
-cMaterial::cMaterial(
-	int _id, const cParameterContainer *materialParam, bool loadTextures, bool quiet)
+cMaterial::cMaterial(int _id, const cParameterContainer *materialParam, bool loadTextures,
+	bool quiet, bool useNetRender)
 {
-	setParameters(_id, materialParam, loadTextures, quiet);
+	setParameters(_id, materialParam, loadTextures, quiet, useNetRender);
 }
 
 cMaterial::~cMaterial() = default;
@@ -159,8 +159,8 @@ QStringList cMaterial::paramsList = {"color_texture_intensity", "coloring_palett
 	"surface_color_gradient", "specular_gradient", "diffuse_gradient", "luminosity_gradient",
 	"roughness_gradient", "reflectance_gradient", "transparency_gradient"};
 
-void cMaterial::setParameters(
-	int _id, const cParameterContainer *materialParam, bool loadTextures, bool quiet)
+void cMaterial::setParameters(int _id, const cParameterContainer *materialParam, bool loadTextures,
+	bool quiet, bool useNetRender)
 {
 	id = _id;
 
@@ -172,7 +172,7 @@ void cMaterial::setParameters(
 	specularMetallic = materialParam->Get<float>(Name("specular_metallic", id));
 	specularMetallicWidth = materialParam->Get<float>(Name("specular_metallic_width", id));
 	specularMetallicRoughness = materialParam->Get<float>(Name("specular_metallic_roughness", id));
-	specularColor = materialParam->Get<sRGB>(Name("specular_color", id));
+	specularColor = toRGBFloat(materialParam->Get<sRGB>(Name("specular_color", id)));
 	specularPlasticEnable = materialParam->Get<bool>(Name("specular_plastic_enable", id));
 	metallic = materialParam->Get<bool>(Name("metallic", id));
 	reflectance = materialParam->Get<float>(Name("reflectance", id));
@@ -185,11 +185,12 @@ void cMaterial::setParameters(
 	paletteOffset = materialParam->Get<double>(Name("coloring_palette_offset", id));
 	coloring_speed = materialParam->Get<double>(Name("coloring_speed", id));
 
-	color = materialParam->Get<sRGB>(Name("surface_color", id));
-	luminosityColor = materialParam->Get<sRGB>(Name("luminosity_color", id));
-	transparencyInteriorColor = materialParam->Get<sRGB>(Name("transparency_interior_color", id));
-	reflectionsColor = materialParam->Get<sRGB>(Name("reflections_color", id));
-	transparencyColor = materialParam->Get<sRGB>(Name("transparency_color", id));
+	color = toRGBFloat(materialParam->Get<sRGB>(Name("surface_color", id)));
+	luminosityColor = toRGBFloat(materialParam->Get<sRGB>(Name("luminosity_color", id)));
+	transparencyInteriorColor =
+		toRGBFloat(materialParam->Get<sRGB>(Name("transparency_interior_color", id)));
+	reflectionsColor = toRGBFloat(materialParam->Get<sRGB>(Name("reflections_color", id)));
+	transparencyColor = toRGBFloat(materialParam->Get<sRGB>(Name("transparency_color", id)));
 
 	roughSurface = materialParam->Get<bool>(Name("rough_surface", id));
 
@@ -398,102 +399,100 @@ void cMaterial::setParameters(
 
 	if (loadTextures)
 	{
-		if (gNetRender->IsClient())
-		{
-			if (useColorTexture)
-				colorTexture.FromQByteArray(
-					gNetRender->GetTexture(
-						materialParam->Get<QString>(Name("file_color_texture", id)), frameNo),
-					cTexture::useMipmaps);
+		//		if (gNetRender->IsClient())
+		//		{
+		//			if (useColorTexture)
+		//				colorTexture.FromQByteArray(
+		//					gNetRender->GetTexture(
+		//						materialParam->Get<QString>(Name("file_color_texture", id)), frameNo),
+		//					cTexture::useMipmaps);
+		//
+		//			if (useDiffusionTexture)
+		//				diffusionTexture.FromQByteArray(
+		//					gNetRender->GetTexture(
+		//						materialParam->Get<QString>(Name("file_diffusion_texture", id)), frameNo),
+		//					cTexture::useMipmaps);
+		//
+		//			if (useLuminosityTexture)
+		//				luminosityTexture.FromQByteArray(
+		//					gNetRender->GetTexture(
+		//						materialParam->Get<QString>(Name("file_luminosity_texture", id)), frameNo),
+		//					cTexture::useMipmaps);
+		//
+		//			if (useDisplacementTexture)
+		//				displacementTexture.FromQByteArray(
+		//					gNetRender->GetTexture(
+		//						materialParam->Get<QString>(Name("file_displacement_texture", id)), frameNo),
+		//					cTexture::doNotUseMipmaps);
+		//
+		//			if (useNormalMapTexture)
+		//				normalMapTexture.FromQByteArray(
+		//					gNetRender->GetTexture(
+		//						materialParam->Get<QString>(Name("file_normal_map_texture", id)), frameNo),
+		//					cTexture::doNotUseMipmaps);
+		//
+		//			if (useReflectanceTexture)
+		//				reflectanceTexture.FromQByteArray(
+		//					gNetRender->GetTexture(
+		//						materialParam->Get<QString>(Name("file_reflectance_texture", id)), frameNo),
+		//					cTexture::useMipmaps);
+		//
+		//			if (useTransparencyTexture)
+		//				transparencyTexture.FromQByteArray(
+		//					gNetRender->GetTexture(
+		//						materialParam->Get<QString>(Name("file_transparency_texture", id)), frameNo),
+		//					cTexture::useMipmaps);
+		//
+		//			if (useRoughnessTexture)
+		//				roughnessTexture.FromQByteArray(
+		//					gNetRender->GetTexture(
+		//						materialParam->Get<QString>(Name("file_roughness_texture", id)), frameNo),
+		//					cTexture::useMipmaps);
+		//		}
+		//		else
+		//		{
+		if (useColorTexture)
+			colorTexture = cTexture(materialParam->Get<QString>(Name("file_color_texture", id)),
+				cTexture::useMipmaps, frameNo, quiet, useNetRender);
 
-			if (useDiffusionTexture)
-				diffusionTexture.FromQByteArray(
-					gNetRender->GetTexture(
-						materialParam->Get<QString>(Name("file_diffusion_texture", id)), frameNo),
-					cTexture::useMipmaps);
+		if (useDiffusionTexture)
+			diffusionTexture = cTexture(materialParam->Get<QString>(Name("file_diffusion_texture", id)),
+				cTexture::useMipmaps, frameNo, quiet, useNetRender);
 
-			if (useLuminosityTexture)
-				luminosityTexture.FromQByteArray(
-					gNetRender->GetTexture(
-						materialParam->Get<QString>(Name("file_luminosity_texture", id)), frameNo),
-					cTexture::useMipmaps);
+		if (useLuminosityTexture)
+			luminosityTexture = cTexture(materialParam->Get<QString>(Name("file_luminosity_texture", id)),
+				cTexture::useMipmaps, frameNo, quiet, useNetRender);
 
-			if (useDisplacementTexture)
-				displacementTexture.FromQByteArray(
-					gNetRender->GetTexture(
-						materialParam->Get<QString>(Name("file_displacement_texture", id)), frameNo),
-					cTexture::doNotUseMipmaps);
+		if (useDisplacementTexture)
+			displacementTexture =
+				cTexture(materialParam->Get<QString>(Name("file_displacement_texture", id)),
+					cTexture::doNotUseMipmaps, frameNo, quiet, useNetRender);
 
-			if (useNormalMapTexture)
-				normalMapTexture.FromQByteArray(
-					gNetRender->GetTexture(
-						materialParam->Get<QString>(Name("file_normal_map_texture", id)), frameNo),
-					cTexture::doNotUseMipmaps);
+		if (useNormalMapTexture)
+			normalMapTexture = cTexture(materialParam->Get<QString>(Name("file_normal_map_texture", id)),
+				cTexture::useMipmaps, frameNo, quiet, useNetRender);
 
-			if (useReflectanceTexture)
-				reflectanceTexture.FromQByteArray(
-					gNetRender->GetTexture(
-						materialParam->Get<QString>(Name("file_reflectance_texture", id)), frameNo),
-					cTexture::useMipmaps);
+		if (useReflectanceTexture)
+			reflectanceTexture =
+				cTexture(materialParam->Get<QString>(Name("file_reflectance_texture", id)),
+					cTexture::useMipmaps, frameNo, quiet, useNetRender);
 
-			if (useTransparencyTexture)
-				transparencyTexture.FromQByteArray(
-					gNetRender->GetTexture(
-						materialParam->Get<QString>(Name("file_transparency_texture", id)), frameNo),
-					cTexture::useMipmaps);
+		if (useTransparencyTexture)
+			transparencyTexture =
+				cTexture(materialParam->Get<QString>(Name("file_transparency_texture", id)),
+					cTexture::useMipmaps, frameNo, quiet, useNetRender);
 
-			if (useRoughnessTexture)
-				roughnessTexture.FromQByteArray(
-					gNetRender->GetTexture(
-						materialParam->Get<QString>(Name("file_roughness_texture", id)), frameNo),
-					cTexture::useMipmaps);
-		}
-		else
-		{
-			if (useColorTexture)
-				colorTexture = cTexture(materialParam->Get<QString>(Name("file_color_texture", id)),
-					cTexture::useMipmaps, frameNo, quiet);
-
-			if (useDiffusionTexture)
-				diffusionTexture = cTexture(materialParam->Get<QString>(Name("file_diffusion_texture", id)),
-					cTexture::useMipmaps, frameNo, quiet);
-
-			if (useLuminosityTexture)
-				luminosityTexture =
-					cTexture(materialParam->Get<QString>(Name("file_luminosity_texture", id)),
-						cTexture::useMipmaps, frameNo, quiet);
-
-			if (useDisplacementTexture)
-				displacementTexture =
-					cTexture(materialParam->Get<QString>(Name("file_displacement_texture", id)),
-						cTexture::doNotUseMipmaps, frameNo, quiet);
-
-			if (useNormalMapTexture)
-				normalMapTexture =
-					cTexture(materialParam->Get<QString>(Name("file_normal_map_texture", id)),
-						cTexture::useMipmaps, frameNo, quiet);
-
-			if (useReflectanceTexture)
-				reflectanceTexture =
-					cTexture(materialParam->Get<QString>(Name("file_reflectance_texture", id)),
-						cTexture::useMipmaps, frameNo, quiet);
-
-			if (useTransparencyTexture)
-				transparencyTexture =
-					cTexture(materialParam->Get<QString>(Name("file_transparency_texture", id)),
-						cTexture::useMipmaps, frameNo, quiet);
-
-			if (useRoughnessTexture)
-				roughnessTexture = cTexture(materialParam->Get<QString>(Name("file_roughness_texture", id)),
-					cTexture::useMipmaps, frameNo, quiet);
-		}
+		if (useRoughnessTexture)
+			roughnessTexture = cTexture(materialParam->Get<QString>(Name("file_roughness_texture", id)),
+				cTexture::useMipmaps, frameNo, quiet, useNetRender);
+		//		}
 	}
 
 	rotMatrix.SetRotation2(textureRotation / 180 * M_PI);
 }
 
-void CreateMaterialsMap(
-	const cParameterContainer *params, QMap<int, cMaterial> *materials, bool loadTextures, bool quiet)
+void CreateMaterialsMap(const cParameterContainer *params, QMap<int, cMaterial> *materials,
+	bool loadTextures, bool quiet, bool useNetRender)
 {
 	materials->clear();
 	QList<QString> listOfParameters = params->GetListOfParameters();
@@ -505,7 +504,7 @@ void CreateMaterialsMap(
 			int matIndex = parameterName.midRef(3, positionOfDash - 3).toInt();
 			if (parameterName.midRef(positionOfDash + 1) == "is_defined")
 			{
-				materials->insert(matIndex, cMaterial(matIndex, params, loadTextures, quiet));
+				materials->insert(matIndex, cMaterial(matIndex, params, loadTextures, quiet, useNetRender));
 			}
 		}
 	}

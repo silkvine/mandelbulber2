@@ -149,6 +149,7 @@ bool cRenderJob::Init(enumMode _mode, const cRenderingConfiguration &config)
 
 	sImageOptional imageOptional;
 	imageOptional.optionalNormal = paramsContainer->Get<bool>("normal_enabled");
+	imageOptional.optionalNormalWorld = paramsContainer->Get<bool>("normalWorld_enabled");
 	imageOptional.optionalSpecular = paramsContainer->Get<bool>("specular_enabled");
 	imageOptional.optionalWorld = paramsContainer->Get<bool>("world_enabled");
 	imageOptional.optionalDiffuse = paramsContainer->Get<bool>("diffuse_enabled");
@@ -179,10 +180,8 @@ bool cRenderJob::Init(enumMode _mode, const cRenderingConfiguration &config)
 		// connect signals
 		if (gNetRender->IsServer() && !gNetRender->IsAnimation())
 		{
-			connect(this, SIGNAL(SendNetRenderJob(cParameterContainer, cFractalContainer, QStringList)),
-				gNetRender, SLOT(SetCurrentJob(cParameterContainer, cFractalContainer, QStringList)));
-			connect(this, SIGNAL(SendNetRenderSetup(int, QList<int>)), gNetRender,
-				SLOT(SendSetup(int, QList<int>)));
+			connect(this, &cRenderJob::SendNetRenderJob, gNetRender, &cNetRender::SetCurrentJob);
+			connect(this, &cRenderJob::SendNetRenderSetup, gNetRender, &cNetRender::SendSetup);
 		}
 	}
 
@@ -195,8 +194,7 @@ bool cRenderJob::Init(enumMode _mode, const cRenderingConfiguration &config)
 	renderData = new sRenderData;
 
 	renderData->stereo = stereo;
-
-	PrepareData(config);
+	renderData->configuration = config;
 
 	ready = true;
 
@@ -235,49 +233,47 @@ bool cRenderJob::InitImage(int w, int h, const sImageOptional &optional)
 
 void cRenderJob::LoadTextures(int frameNo, const cRenderingConfiguration &config)
 {
-	if (gNetRender->IsClient() && renderData->configuration.UseNetRender())
-	{
-		// get received textures from NetRender buffer
-		if (paramsContainer->Get<bool>("textured_background"))
-			renderData->textures.backgroundTexture.FromQByteArray(
-				gNetRender->GetTexture(paramsContainer->Get<QString>("file_background"), frameNo),
-				cTexture::doNotUseMipmaps);
+	//	if (gNetRender->IsClient() && renderData->configuration.UseNetRender())
+	//	{
+	//		// get received textures from NetRender buffer
+	//		if (paramsContainer->Get<bool>("textured_background"))
+	//			renderData->textures.backgroundTexture.FromQByteArray(
+	//				gNetRender->GetTexture(paramsContainer->Get<QString>("file_background"), frameNo),
+	//				cTexture::doNotUseMipmaps);
+	//
+	//		if (paramsContainer->Get<bool>("env_mapping_enable"))
+	//			renderData->textures.envmapTexture.FromQByteArray(
+	//				gNetRender->GetTexture(paramsContainer->Get<QString>("file_envmap"), frameNo),
+	//				cTexture::doNotUseMipmaps);
+	//
+	//		if (paramsContainer->Get<int>("ambient_occlusion_mode") == params::AOModeMultipleRays
+	//				&& paramsContainer->Get<bool>("ambient_occlusion_enabled"))
+	//			renderData->textures.lightmapTexture.FromQByteArray(
+	//				gNetRender->GetTexture(paramsContainer->Get<QString>("file_lightmap"), frameNo),
+	//				cTexture::doNotUseMipmaps);
+	//	}
+	//	else
+	//	{
+	if (paramsContainer->Get<bool>("textured_background"))
+		renderData->textures.backgroundTexture =
+			cTexture(paramsContainer->Get<QString>("file_background"), cTexture::doNotUseMipmaps, frameNo,
+				config.UseIgnoreErrors(), config.UseNetRender());
 
-		if (paramsContainer->Get<bool>("env_mapping_enable"))
-			renderData->textures.envmapTexture.FromQByteArray(
-				gNetRender->GetTexture(paramsContainer->Get<QString>("file_envmap"), frameNo),
-				cTexture::doNotUseMipmaps);
+	if (paramsContainer->Get<bool>("env_mapping_enable"))
+		renderData->textures.envmapTexture = cTexture(paramsContainer->Get<QString>("file_envmap"),
+			cTexture::doNotUseMipmaps, frameNo, config.UseIgnoreErrors(), config.UseNetRender());
 
-		if (paramsContainer->Get<int>("ambient_occlusion_mode") == params::AOModeMultipleRays
-				&& paramsContainer->Get<bool>("ambient_occlusion_enabled"))
-			renderData->textures.lightmapTexture.FromQByteArray(
-				gNetRender->GetTexture(paramsContainer->Get<QString>("file_lightmap"), frameNo),
-				cTexture::doNotUseMipmaps);
-	}
-	else
-	{
-		if (paramsContainer->Get<bool>("textured_background"))
-			renderData->textures.backgroundTexture =
-				cTexture(paramsContainer->Get<QString>("file_background"), cTexture::doNotUseMipmaps,
-					frameNo, config.UseIgnoreErrors());
-
-		if (paramsContainer->Get<bool>("env_mapping_enable"))
-			renderData->textures.envmapTexture = cTexture(paramsContainer->Get<QString>("file_envmap"),
-				cTexture::doNotUseMipmaps, frameNo, config.UseIgnoreErrors());
-
-		if (paramsContainer->Get<int>("ambient_occlusion_mode") == params::AOModeMultipleRays
-				&& paramsContainer->Get<bool>("ambient_occlusion_enabled"))
-			renderData->textures.lightmapTexture =
-				cTexture(paramsContainer->Get<QString>("file_lightmap"), cTexture::doNotUseMipmaps, frameNo,
-					config.UseIgnoreErrors());
-	}
+	if (paramsContainer->Get<int>("ambient_occlusion_mode") == params::AOModeMultipleRays
+			&& paramsContainer->Get<bool>("ambient_occlusion_enabled"))
+		renderData->textures.lightmapTexture = cTexture(paramsContainer->Get<QString>("file_lightmap"),
+			cTexture::doNotUseMipmaps, frameNo, config.UseIgnoreErrors(), config.UseNetRender());
+	//	}
 }
 
-void cRenderJob::PrepareData(const cRenderingConfiguration &config)
+void cRenderJob::PrepareData()
 {
 	WriteLog("Init renderData", 2);
 	renderData->rendererID = id;
-	renderData->configuration = config;
 
 	if (!canUseNetRender) renderData->configuration.DisableNetRender();
 
@@ -313,14 +309,14 @@ void cRenderJob::PrepareData(const cRenderingConfiguration &config)
 
 	if (loadTextures)
 	{
-		LoadTextures(frameNo, config);
+		LoadTextures(frameNo, renderData->configuration);
 	}
 
 	// assign stop handler
 	renderData->stopRequest = stopRequest;
 
 	CreateMaterialsMap(paramsContainer, &renderData->materials, loadTextures,
-		renderData->configuration.UseIgnoreErrors());
+		renderData->configuration.UseIgnoreErrors(), renderData->configuration.UseNetRender());
 
 	// preparation of lights
 	// connect signal for progress bar update
@@ -343,6 +339,8 @@ bool cRenderJob::Execute()
 
 	bool twoPassStereo = false;
 	int noOfRepeats = GetNumberOfRepeatsOfStereoLoop(&twoPassStereo);
+
+	PrepareData();
 
 	if (!paramsContainer->Get<bool>("opencl_enabled") || !gOpenCl
 			|| cOpenClEngineRenderFractal::enumClRenderEngineMode(
@@ -786,21 +784,17 @@ void cRenderJob::ConnectNetRenderSignalsSlots(const cRenderer *renderer)
 {
 	if (gNetRender->IsClient() && !gNetRender->IsAnimation())
 	{
-		QObject::connect(renderer, SIGNAL(sendRenderedLines(QList<int>, QList<QByteArray>)), gNetRender,
-			SLOT(SendRenderedLines(QList<int>, QList<QByteArray>)));
-		QObject::connect(
-			gNetRender, SIGNAL(ToDoListArrived(QList<int>)), renderer, SLOT(ToDoListArrived(QList<int>)));
-		QObject::connect(renderer, SIGNAL(NotifyClientStatus()), gNetRender, SLOT(NotifyStatus()));
-		QObject::connect(gNetRender, SIGNAL(AckReceived()), renderer, SLOT(AckReceived()));
+		connect(renderer, &cRenderer::sendRenderedLines, gNetRender, &cNetRender::SendRenderedLines);
+		connect(gNetRender, &cNetRender::ToDoListArrived, renderer, &cRenderer::ToDoListArrived);
+		connect(renderer, &cRenderer::NotifyClientStatus, gNetRender, &cNetRender::NotifyStatus);
+		connect(gNetRender, &cNetRender::AckReceived, renderer, &cRenderer::AckReceived);
 	}
 
 	if (gNetRender->IsServer() && !gNetRender->IsAnimation())
 	{
-		QObject::connect(gNetRender, SIGNAL(NewLinesArrived(QList<int>, QList<QByteArray>)), renderer,
-			SLOT(NewLinesArrived(QList<int>, QList<QByteArray>)));
-		QObject::connect(renderer, SIGNAL(SendToDoList(int, QList<int>)), gNetRender,
-			SLOT(SendToDoList(int, QList<int>)));
-		QObject::connect(renderer, SIGNAL(StopAllClients()), gNetRender, SLOT(StopAllClients()));
+		connect(gNetRender, &cNetRender::NewLinesArrived, renderer, &cRenderer::NewLinesArrived);
+		connect(renderer, &cRenderer::SendToDoList, gNetRender, &cNetRender::SendToDoList);
+		connect(renderer, &cRenderer::StopAllClients, gNetRender, &cNetRender::StopAllClients);
 	}
 }
 
@@ -824,8 +818,6 @@ void cRenderJob::UpdateParameters(
 		paramsContainer->Set("image_width", width);
 		paramsContainer->Set("image_height", height);
 	}
-
-	PrepareData(renderData->configuration);
 }
 
 void cRenderJob::ReduceDetail() const

@@ -116,12 +116,16 @@ void cDockRenderingEngine::ConnectSignals() const
 	connect(
 		ui->group_netrender, SIGNAL(toggled(bool)), this, SLOT(slotCheckBoxDisableNetRender(bool)));
 	connect(ui->bu_netrender_connect, SIGNAL(clicked()), this, SLOT(slotNetRenderClientConnect()));
-	connect(gNetRender, SIGNAL(NewStatusClient()), this, SLOT(slotNetRenderStatusClientUpdate()));
-	connect(gNetRender, SIGNAL(NewStatusServer()), this, SLOT(slotNetRenderStatusServerUpdate()));
-	connect(gNetRender, SIGNAL(ClientsChanged()), this, SLOT(slotNetRenderClientListUpdate()));
-	connect(gNetRender, SIGNAL(ClientsChanged(int)), this, SLOT(slotNetRenderClientListUpdate(int)));
-	connect(gNetRender, SIGNAL(ClientsChanged(int, int)), this,
-		SLOT(slotNetRenderClientListUpdate(int, int)));
+	connect(gNetRender, &cNetRender::NewStatusClient, this,
+		&cDockRenderingEngine::slotNetRenderStatusClientUpdate);
+	connect(gNetRender, &cNetRender::NewStatusServer, this,
+		&cDockRenderingEngine::slotNetRenderStatusServerUpdate);
+	connect(gNetRender, &cNetRender::ClientsChanged, this,
+		&cDockRenderingEngine::slotNetRenderClientListUpdate);
+	connect(gNetRender, &cNetRender::ClientsChangedRow, this,
+		&cDockRenderingEngine::slotNetRenderClientListUpdateRow);
+	connect(gNetRender, &cNetRender::ClientsChangedCell, this,
+		&cDockRenderingEngine::slotNetRenderClientListUpdateCell);
 
 	connect(ui->checkBox_connect_detail_level_2, SIGNAL(stateChanged(int)), this,
 		SIGNAL(stateChangedConnectDetailLevel(int)));
@@ -176,7 +180,7 @@ void cDockRenderingEngine::slotNetRenderClientListUpdate() const
 	if (table->columnCount() == 0)
 	{
 		QStringList header;
-		header << tr("Name") << tr("Host") << tr("CPUs") << tr("Status") << tr("Lines done")
+		header << tr("Name") << tr("Host") << tr("CPUs") << tr("Status") << tr("Items done")
 					 << tr("Actions");
 		table->setColumnCount(header.size());
 		table->setHorizontalHeaderLabels(header);
@@ -194,21 +198,21 @@ void cDockRenderingEngine::slotNetRenderClientListUpdate() const
 	// update table
 	for (int i = 0; i < table->rowCount(); i++)
 	{
-		slotNetRenderClientListUpdate(i);
+		slotNetRenderClientListUpdateRow(i);
 	}
 }
 
-void cDockRenderingEngine::slotNetRenderClientListUpdate(int i) const
+void cDockRenderingEngine::slotNetRenderClientListUpdateRow(int i) const
 {
 	// update row i
 	QTableWidget *table = ui->tableWidget_netrender_connected_clients;
 	for (int j = 0; j < table->columnCount(); j++)
 	{
-		slotNetRenderClientListUpdate(i, j);
+		slotNetRenderClientListUpdateCell(i, j);
 	}
 }
 
-void cDockRenderingEngine::slotNetRenderClientListUpdate(int i, int j) const
+void cDockRenderingEngine::slotNetRenderClientListUpdateCell(int i, int j) const
 {
 	// update element in row i, column j
 	QTableWidget *table = ui->tableWidget_netrender_connected_clients;
@@ -235,7 +239,7 @@ void cDockRenderingEngine::slotNetRenderClientListUpdate(int i, int j) const
 			cell->setBackgroundColor(Qt::white);
 			break;
 		}
-		case 4: cell->setText(QString::number(gNetRender->GetClient(i).linesRendered)); break;
+		case 4: cell->setText(QString::number(gNetRender->GetClient(i).itemsRendered)); break;
 		case 5:
 		{
 			QFrame *frame = new QFrame;

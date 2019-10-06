@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Mandelbulber v2, a 3D fractal generator       ,=#MKNmMMKmmßMNWy,
  *                                             ,B" ]L,,p%%%,,,§;, "K
  * Copyright (C) 2014-19 Mandelbulber Team     §R-==%w["'~5]m%=L.=~5N
@@ -251,6 +251,7 @@ void InitParams(cParameterContainer *par)
 	par->addParam("ambient_occlusion_enabled", false, morphLinear, paramStandard);
 	par->addParam(
 		"ambient_occlusion_mode", int(params::AOModeScreenSpace), morphLinear, paramStandard);
+	par->addParam("ambient_occlusion_color", sRGB(65535, 65535, 65535), morphLinear, paramStandard);
 	par->addParam("SSAO_random_mode", false, morphLinear, paramStandard);
 	par->addParam("glow_enabled", true, morphLinear, paramStandard);
 	par->addParam("glow_intensity", 0.2, 0.0, 1e15, morphLinear, paramStandard);
@@ -305,6 +306,8 @@ void InitParams(cParameterContainer *par)
 	par->addParam("hdr_blur_enabled", false, morphLinear, paramStandard);
 	par->addParam("hdr_blur_radius", 10.0, 0.1, 1000.0, morphLinear, paramStandard);
 	par->addParam("hdr_blur_intensity", 0.1, 0.0, 1000.0, morphLinear, paramStandard);
+
+	par->addParam("fill_light_color", sRGB(0, 0, 0), morphLinear, paramStandard);
 
 	// fog
 	par->addParam("basic_fog_enabled", false, morphLinear, paramStandard);
@@ -390,7 +393,7 @@ void InitParams(cParameterContainer *par)
 	par->addParam("fake_lights_enabled", false, morphLinear, paramStandard);
 	par->addParam("fake_lights_intensity", 1.0, 0.0, 1e15, morphLinear, paramStandard);
 	par->addParam("fake_lights_visibility", 1.0, 0.0, 1e15, morphLinear, paramStandard);
-	par->addParam("fake_lights_visibility_size", 5.0, 0.0, 1e15, morphLinear, paramStandard);
+	par->addParam("fake_lights_visibility_size", 5.0, 0.1, 1e15, morphLinear, paramStandard);
 	par->addParam("fake_lights_thickness", 1.0, 1e-6, 1e15, morphLinear, paramStandard);
 	par->addParam("fake_lights_orbit_trap", CVector3(2.0, 0.0, 0.0), morphLinear, paramStandard);
 	par->addParam("fake_lights_min_iter", 1, 0, 250, morphLinear, paramStandard);
@@ -520,6 +523,7 @@ void InitParams(cParameterContainer *par)
 	par->addParam("alpha_enabled", false, morphNone, paramApp);
 	par->addParam("zbuffer_enabled", false, morphNone, paramApp);
 	par->addParam("normal_enabled", false, morphNone, paramApp);
+	par->addParam("normalWorld_enabled", false, morphNone, paramApp);
 	par->addParam("specular_enabled", false, morphNone, paramApp);
 	par->addParam("diffuse_enabled", false, morphNone, paramApp);
 	par->addParam("world_enabled", false, morphNone, paramApp);
@@ -531,6 +535,8 @@ void InitParams(cParameterContainer *par)
 	par->addParam(
 		"normal_quality", int(ImageFileSave::IMAGE_CHANNEL_QUALITY_32), morphNone, paramApp);
 	par->addParam(
+		"normalWorld_quality", int(ImageFileSave::IMAGE_CHANNEL_QUALITY_32), morphNone, paramApp);
+	par->addParam(
 		"specular_quality", int(ImageFileSave::IMAGE_CHANNEL_QUALITY_32), morphNone, paramApp);
 	par->addParam(
 		"diffuse_quality", int(ImageFileSave::IMAGE_CHANNEL_QUALITY_32), morphNone, paramApp);
@@ -540,6 +546,7 @@ void InitParams(cParameterContainer *par)
 	par->addParam("alpha_postfix", QString("_alpha"), morphNone, paramApp);
 	par->addParam("zbuffer_postfix", QString("_zbuffer"), morphNone, paramApp);
 	par->addParam("normal_postfix", QString("_normal"), morphNone, paramApp);
+	par->addParam("normalWorld_postfix", QString("_normalWorld"), morphNone, paramApp);
 	par->addParam("specular_postfix", QString("_specular"), morphNone, paramApp);
 	par->addParam("diffuse_postfix", QString("_diffuse"), morphNone, paramApp);
 	par->addParam("world_postfix", QString("_world"), morphNone, paramApp);
@@ -773,35 +780,21 @@ void InitFractalParams(cParameterContainer *par)
 	par->addParam("Cpara_iterC", 250, morphLinear, paramStandard);
 
 	// analyticDE controls
+	par->addParam("analyticDE_enabled", true, morphLinear, paramStandard);
+	par->addParam("analyticDE_enabled_false", false, morphLinear, paramStandard);
+	par->addParam("analyticDE_scale_1", 1.0, morphAkima, paramStandard);
 	par->addParam("analyticDE_tweak_005", 0.05, morphAkima, paramStandard);
 	par->addParam("analyticDE_offset_0", 0.0, morphAkima, paramStandard);
 	par->addParam("analyticDE_offset_1", 1.0, morphAkima, paramStandard);
 	par->addParam("analyticDE_offset_2", 1.0, morphAkima, paramStandard);
-	// par->addParam("analyticDE_factor_2", 2.0, morphAkima, paramStandard);
-	par->addParam("analyticDE_scale_1", 1.0, morphAkima, paramStandard);
-	par->addParam("analyticDE_enabled", true, morphLinear, paramStandard);
-	par->addParam("analyticDE_enabled_false", false, morphLinear, paramStandard);
-	// par->addParam("analyticDE_enabled_auxR2_false", false, morphLinear, paramStandard);
-	// par->addParam("analyticDE_offset_linear", 1.0, morphAkima, paramStandard);
-	// par->addParam("analyticDE_scale_linear", 1.0, morphAkima, paramStandard);
 
 	// color controls
 	par->addParam("fold_color_aux_color_enabled", true, morphLinear, paramStandard);
+	par->addParam("fold_color_aux_color_enabledA", true, morphLinear, paramStandard);
 	par->addParam("fold_color_aux_color_enabled_false", false, morphLinear, paramStandard);
-
-	par->addParam("fold_color_scaleA0", 0.0, morphAkima, paramStandard);
-	par->addParam("fold_color_scaleB0", 0.0, morphAkima, paramStandard);
-	par->addParam("fold_color_scaleD0", 0.0, morphAkima, paramStandard);
-	par->addParam("fold_color_scaleF0", 0.0, morphAkima, paramStandard);
-	par->addParam("fold_color_scaleA1", 1.0, morphAkima, paramStandard);
-	par->addParam("fold_color_scaleB1", 1.0, morphAkima, paramStandard);
-	par->addParam("fold_color_scaleC1", 1.0, morphAkima, paramStandard);
-
-	par->addParam("fold_color_int_Ax0", 0.0, morphAkima, paramStandard);
-	par->addParam("fold_color_int_Ay0", 0.0, morphAkima, paramStandard);
-	par->addParam("fold_color_int_Az0", 0.0, morphAkima, paramStandard);
-
-	par->addParam("fold_color_distance_enabled_false", false, morphLinear, paramStandard);
+	par->addParam("fold_color_aux_color_enabledA_false", false, morphLinear, paramStandard);
+	par->addParam("fold_color_difs1", 1.0, morphAkima, paramStandard);
+	par->addParam("fold_color_difs_0000",  CVector4(0.0, 0.0, 0.0, 0.0), morphAkima, paramStandard);
 
 	// common parameters for transforming formulas
 	par->addParam("transf_angle_0", 0.0, morphAkimaAngle, paramStandard);
@@ -822,19 +815,35 @@ void InitFractalParams(cParameterContainer *par)
 	par->addParam("transf_offsetB_0", 0.0, morphAkima, paramStandard);
 	par->addParam("transf_offsetC_0", 0.0, morphAkima, paramStandard);
 	par->addParam("transf_offsetD_0", 0.0, morphAkima, paramStandard);
+	par->addParam("transf_offsetE_0", 0.0, morphAkima, paramStandard);
+	par->addParam("transf_offsetF_0", 0.0, morphAkima, paramStandard);
+
+
+	par->addParam("transf_offsetR_0", 0.0, morphAkima, paramStandard);
+
+
+
+
+
 	par->addParam("transf_offset_0005", 0.005, morphAkima, paramStandard);
 	par->addParam("transf_offset_05", 0.5, morphAkima, paramStandard);
 	par->addParam("transf_offset_1", 1.0, morphAkima, paramStandard);
 	par->addParam("transf_offsetA_1", 1.0, morphAkima, paramStandard);
 	par->addParam("transf_offset_105", 1.5, morphAkima, paramStandard);
 	par->addParam("transf_offset_2", 2.0, morphAkima, paramStandard);
+	par->addParam("transf_offsetA_2", 2.0, morphAkima, paramStandard);
+	par->addParam("transf_offsetE_2", 2.0, morphAkima, paramStandard);
+	par->addParam("transf_offsetF_2", 2.0, morphAkima, paramStandard);
 	par->addParam("transf_offset_4", 4.0, morphAkima, paramStandard);
 	par->addParam("transf_pwr_05", 0.5, morphAkima, paramStandard);
 	par->addParam("transf_pwr_4", 4.0, morphAkima, paramStandard);
 	par->addParam("transf_pwr_8", 8.0, morphAkima, paramStandard);
 	par->addParam("transf_pwr_8a", 8.0, morphAkima, paramStandard);
+	par->addParam("transf_radius_1", 1.0, morphAkima, paramStandard);
+	par->addParam("transf_scale_neg1", -1.0, morphAkima, paramStandard);
 	par->addParam("transf_scale", 1.0, morphAkima, paramStandard);
 	par->addParam("transf_scale_0", 0.0, morphAkima, paramStandard);
+	par->addParam("transf_scaleA_0", 0.0, morphAkima, paramStandard);
 	par->addParam("transf_scale_025", 0.25, morphAkima, paramStandard);
 	par->addParam("transf_scale_05", 0.5, morphAkima, paramStandard);
 	par->addParam("transf_scale_08", 0.8, morphAkima, paramStandard);
@@ -863,6 +872,9 @@ void InitFractalParams(cParameterContainer *par)
 	par->addParam("transf_int_1", 1, morphLinear, paramStandard);
 	par->addParam("transf_int_2", 2, morphLinear, paramStandard);
 	par->addParam("transf_int_3", 3, morphLinear, paramStandard);
+	par->addParam("transf_int_3_X", 3, morphLinear, paramStandard);
+	par->addParam("transf_int_3_Y", 3, morphLinear, paramStandard);
+	par->addParam("transf_int_3_Z", 3, morphLinear, paramStandard);
 	par->addParam("transf_int_6", 6, morphLinear, paramStandard);
 	par->addParam("transf_int8_X", 8, morphLinear, paramStandard);
 	par->addParam("transf_int8_Y", 8, morphLinear, paramStandard);
@@ -879,6 +891,12 @@ void InitFractalParams(cParameterContainer *par)
 	par->addParam("transf_start_iterations_C", 0, morphLinear, paramStandard);
 	par->addParam("transf_stop_iterations_C", 250, morphLinear, paramStandard);
 	par->addParam("transf_stop_iterations_C1", 1, morphLinear, paramStandard);
+
+	par->addParam("transf_start_iterations_Cx", 0, morphLinear, paramStandard);
+	par->addParam("transf_stop_iterations_Cx", 250, morphLinear, paramStandard);
+
+	par->addParam("transf_start_iterations_Cy", 0, morphLinear, paramStandard);
+	par->addParam("transf_stop_iterations_Cy", 250, morphLinear, paramStandard);
 	par->addParam("transf_start_iterations_D", 0, morphLinear, paramStandard);
 	par->addParam("transf_stop_iterations_D", 250, morphLinear, paramStandard);
 	par->addParam("transf_stop_iterations_D1", 1, morphLinear, paramStandard);
@@ -896,12 +914,14 @@ void InitFractalParams(cParameterContainer *par)
 	par->addParam("transf_stop_iterations_J", 250, morphLinear, paramStandard);
 	par->addParam("transf_start_iterations_K", 0, morphLinear, paramStandard);
 	par->addParam("transf_stop_iterations_K", 250, morphLinear, paramStandard);
-
 	par->addParam("transf_start_iterations_M", 0, morphLinear, paramStandard);
 	par->addParam("transf_stop_iterations_M", 250, morphLinear, paramStandard);
+	par->addParam("transf_start_iterations_N", 0, morphLinear, paramStandard);
+	par->addParam("transf_stop_iterations_N", 250, morphLinear, paramStandard);
 	par->addParam("transf_start_iterations_O", 0, morphLinear, paramStandard);
 	par->addParam("transf_stop_iterations_O", 250, morphLinear, paramStandard);
 	par->addParam("transf_start_iterations_P", 0, morphLinear, paramStandard);
+	par->addParam("transf_stop_iterations_P", 250, morphLinear, paramStandard);
 	par->addParam("transf_stop_iterations_P1", 1, morphLinear, paramStandard);
 	par->addParam("transf_start_iterations_R", 0, morphLinear, paramStandard);
 	par->addParam("transf_stop_iterations_R", 250, morphLinear, paramStandard);
@@ -1062,19 +1082,28 @@ void InitFractalParams(cParameterContainer *par)
 	par->addParam("transf_function_enabledCx_false", false, morphLinear, paramStandard);
 	par->addParam("transf_function_enabledCy_false", false, morphLinear, paramStandard);
 	par->addParam("transf_function_enabledCz_false", false, morphLinear, paramStandard);
+
+	par->addParam("transf_function_enabledA_false", false, morphLinear, paramStandard);
+	par->addParam("transf_function_enabledB_false", false, morphLinear, paramStandard);
+	par->addParam("transf_function_enabledC_false", false, morphLinear, paramStandard);
 	par->addParam("transf_function_enabledD_false", false, morphLinear, paramStandard);
 	par->addParam("transf_function_enabledE_false", false, morphLinear, paramStandard);
 	par->addParam("transf_function_enabledF_false", false, morphLinear, paramStandard);
+	par->addParam("transf_function_enabledG_false", false, morphLinear, paramStandard);
 	par->addParam("transf_function_enabledJ_false", false, morphLinear, paramStandard);
 	par->addParam("transf_function_enabledK_false", false, morphLinear, paramStandard);
 	par->addParam("transf_function_enabledM", true, morphLinear, paramStandard);
 	par->addParam("transf_function_enabledM_false", false, morphLinear, paramStandard);
-
+	par->addParam("transf_function_enabledN_false", false, morphLinear, paramStandard);
+	par->addParam("transf_function_enabledO_false", false, morphLinear, paramStandard);
 	par->addParam("transf_function_enabledP_false", false, morphLinear, paramStandard);
 	par->addParam("transf_function_enabledR_false", false, morphLinear, paramStandard);
 	par->addParam("transf_function_enabledS_false", false, morphLinear, paramStandard);
 	par->addParam("transf_function_enabledSw_false", false, morphLinear, paramStandard);
+
+	par->addParam("transf_function_enabledT_false", false, morphLinear, paramStandard);
 	par->addParam("transf_function_enabledX_false", false, morphLinear, paramStandard);
+	par->addParam("transf_function_enabledY_false", false, morphLinear, paramStandard);
 	par->addParam("transf_rotation_enabled", false, morphLinear, paramStandard);
 	par->addParam("transf_rotation2_enabled_false", false, morphLinear, paramStandard);
 	par->addParam("transf_sphere_inversion_enabled_false", false, morphLinear, paramStandard);
@@ -1087,6 +1116,11 @@ void InitFractalParams(cParameterContainer *par)
 	par->addParam("platonic_solid_frequency", 1.0, morphAkima, paramStandard);
 	par->addParam("platonic_solid_amplitude", 1.0, morphAkima, paramStandard);
 	par->addParam("platonic_solid_rhoMul", 1.0, morphAkima, paramStandard);
+
+
+
+
+
 
 	// dummy parameter for information group box
 	par->addParam("info", false, morphNone, paramStandard);
@@ -1101,6 +1135,7 @@ void InitPrimitiveParams(
 		QString(primitiveName) + "_position", CVector3(0.0, 0.0, 0.0), morphAkima, paramStandard);
 	par->addParam(
 		QString(primitiveName) + "_rotation", CVector3(0.0, 0.0, 0.0), morphAkimaAngle, paramStandard);
+	par->addParam(QString(primitiveName) + "_boolean_operator", 1, morphLinear, paramStandard);
 
 	// left to keep compatibility with older versions
 	par->addParam(
@@ -1109,6 +1144,7 @@ void InitPrimitiveParams(
 
 	par->addParam(QString(primitiveName) + "_enabled", false, morphAkima, paramStandard);
 	par->addParam(QString(primitiveName) + "_material_id", 1, morphNone, paramStandard);
+	par->addParam(QString(primitiveName) + "_calculation_order", 1, morphNone, paramStandard);
 
 	switch (objectType)
 	{
@@ -1156,6 +1192,8 @@ void InitPrimitiveParams(
 			par->addParam(QString(primitiveName) + "_relative_amplitude", 0.2, morphAkima, paramStandard);
 			par->addParam(QString(primitiveName) + "_length", 0.1, morphAkima, paramStandard);
 			par->addParam(QString(primitiveName) + "_anim_speed", 1.0, morphAkima, paramStandard);
+			par->addParam(
+				QString(primitiveName) + "_anim_progression_speed", 1.0, morphAkima, paramStandard);
 			par->addParam(QString(primitiveName) + "_iterations", 5, morphAkima, paramStandard);
 			par->addParam(QString(primitiveName) + "_empty", false, morphAkima, paramStandard);
 			par->addParam(
@@ -1496,6 +1534,8 @@ void DeletePrimitiveParams(
 	par->DeleteParameter(QString(primitiveName) + "_reflection");
 	par->DeleteParameter(QString(primitiveName) + "_enabled");
 	par->DeleteParameter(QString(primitiveName) + "_material_id");
+	par->DeleteParameter(QString(primitiveName) + "_boolean_operator");
+	par->DeleteParameter(QString(primitiveName) + "_calculation_order");
 
 	switch (objectType)
 	{
@@ -1542,6 +1582,7 @@ void DeletePrimitiveParams(
 			par->DeleteParameter(QString(primitiveName) + "_relative_amplitude");
 			par->DeleteParameter(QString(primitiveName) + "_length");
 			par->DeleteParameter(QString(primitiveName) + "_anim_speed");
+			par->DeleteParameter(QString(primitiveName) + "_anim_progression_speed");
 			par->DeleteParameter(QString(primitiveName) + "_iterations");
 			par->DeleteParameter(QString(primitiveName) + "_empty");
 			par->DeleteParameter(QString(primitiveName) + "_wave_from_objects_enable");

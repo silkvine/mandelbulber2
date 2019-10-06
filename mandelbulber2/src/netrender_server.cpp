@@ -44,6 +44,7 @@
 #include "initparameters.hpp"
 #include "interface.hpp"
 #include "keyframes.hpp"
+#include "netrender_file_receiver.hpp"
 #include "render_window.hpp"
 #include "settings.hpp"
 #include "system.hpp"
@@ -54,7 +55,12 @@ cNetRenderServer::cNetRenderServer()
 	actualId = 0;
 	server = nullptr;
 	portNo = 0;
-	connect(this, SIGNAL(NewClient(int)), this, SLOT(SendVersionToClient(int)));
+	fileReceiver = new cNetRenderFileReceiver(this);
+	connect(this, &cNetRenderServer::NewClient, this, &cNetRenderServer::SendVersionToClient);
+	connect(this, &cNetRenderServer::ReceivedFileHeader, fileReceiver,
+		&cNetRenderFileReceiver::ReceiveHeader);
+	connect(
+		this, &cNetRenderServer::ReceivedFileData, fileReceiver, &cNetRenderFileReceiver::ReceiveChunk);
 }
 
 cNetRenderServer::~cNetRenderServer()
@@ -131,8 +137,8 @@ void cNetRenderServer::HandleNewConnection()
 		client.socket = server->nextPendingConnection();
 		clients.append(client);
 
-		connect(client.socket, SIGNAL(disconnected()), this, SLOT(ClientDisconnected()));
-		connect(client.socket, SIGNAL(readyRead()), this, SLOT(ReceiveFromClient()));
+		connect(client.socket, &QTcpSocket::disconnected, this, &cNetRenderServer::ClientDisconnected);
+		connect(client.socket, &QTcpSocket::readyRead, this, &cNetRenderServer::ReceiveFromClient);
 		emit NewClient(clients.size() - 1);
 		emit ClientsChanged();
 	}
@@ -213,8 +219,15 @@ void cNetRenderServer::ProcessData(QTcpSocket *socket, sMessage *inMsg)
 			case netRenderCmd_WORKER: ProcessRequestWorker(inMsg, index, socket); break;
 			case netRenderCmd_DATA: ProcessRequestData(inMsg, index, socket); break;
 			case netRenderCmd_STATUS: ProcessRequestStatus(inMsg, index, socket); break;
-			case netRenderCmd_BAD: ProcessRequestBad(inMsg, index, socket); return;
-			case netRenderCmd_FRAME_DONE: ProcessRequestFrameDone(inMsg, index, socket); return;
+			case netRenderCmd_BAD: ProcessRequestBad(inMsg, index, socket); break;
+			case netRenderCmd_FRAME_DONE: ProcessRequestFrameDone(inMsg, index, socket); break;
+			case netRenderCmd_SEND_FILE_HEADER:
+				ProcessRequestFrameFileHeader(inMsg, index, socket);
+				break;
+			case netRenderCmd_SEND_FILE_DATA:
+				ProcessRequestFrameFileDataChunk(inMsg, index, socket);
+				break;
+			case netRenderCmd_REQ_FILE: ProcessRequestFile(inMsg, index, socket); break;
 			default:
 				qWarning() << "NetRender - command unknown: " + QString::number(inMsg->command);
 				break;
@@ -321,7 +334,7 @@ void cNetRenderServer::SetCurrentJob(
 		{
 			auto &client = GetClient(i);
 			cNetRenderTransport::SendData(client.socket, msgCurrentJob, actualId);
-			clients[i].linesRendered = 0;
+			clients[i].itemsRendered = 0;
 		}
 	}
 	else
@@ -334,7 +347,8 @@ void cNetRenderServer::SetCurrentAnimation(
 	const cParameterContainer &settings, const cFractalContainer &fractal, bool isFlight)
 {
 	WriteLog(QString("NetRender - Sending animation to %1 client(s)").arg(clients.size()), 2);
-	cSettings settingsData(cSettings::formatCondensedText);
+	cSettings settingsData(cSettings::formatFullText);
+	settingsData.SetListAppSettings(listOfAppSettingToTransfer);
 	size_t dataSize;
 
 	if (isFlight)
@@ -366,7 +380,7 @@ void cNetRenderServer::SetCurrentAnimation(
 	{
 		auto &client = GetClient(i);
 		cNetRenderTransport::SendData(client.socket, msgCurrentJob, actualId);
-		clients[i].linesRendered = 0;
+		clients[i].itemsRendered = 0;
 	}
 }
 
@@ -383,10 +397,9 @@ void cNetRenderServer::ProcessRequestBad(sMessage *inMsg, int index, QTcpSocket 
 
 void cNetRenderServer::ProcessRequestFrameDone(sMessage *inMsg, int index, QTcpSocket *socket)
 {
-	Q_UNUSED(inMsg);
 	Q_UNUSED(socket);
 
-	WriteLog("NetRender - ProcessData(), command DATA", 3);
+	WriteLog("NetRender - ProcessData(), command FRAME_DONE", 2);
 	if (inMsg->id == actualId)
 	{
 		QDataStream stream(&inMsg->payload, QIODevice::ReadOnly);
@@ -401,10 +414,12 @@ void cNetRenderServer::ProcessRequestFrameDone(sMessage *inMsg, int index, QTcpS
 			WriteLog(QString("NetRender - ProcessData(), command FRAME_DONE, frame %1, toDoLength %2")
 								 .arg(frameIndex)
 								 .arg(sizeOfListToDo),
-				3);
+				2);
 		}
 
-		emit FinishedFrame(frameIndex, sizeOfListToDo);
+		emit FinishedFrame(index, frameIndex, sizeOfListToDo);
+
+		clients[index].itemsRendered++;
 	}
 	else
 	{
@@ -414,7 +429,6 @@ void cNetRenderServer::ProcessRequestFrameDone(sMessage *inMsg, int index, QTcpS
 
 void cNetRenderServer::ProcessRequestWorker(sMessage *inMsg, int index, QTcpSocket *socket)
 {
-	Q_UNUSED(inMsg);
 	Q_UNUSED(socket);
 
 	QDataStream stream(&inMsg->payload, QIODevice::ReadOnly);
@@ -432,7 +446,7 @@ void cNetRenderServer::ProcessRequestWorker(sMessage *inMsg, int index, QTcpSock
 	WriteLog("NetRender - new Client #" + QString::number(index) + "(" + GetClient(index).name + " - "
 						 + GetClient(index).socket->peerAddress().toString() + ")",
 		1);
-	emit ClientsChanged(index);
+	emit ClientsChangedRow(index);
 
 	if (systemData.noGui)
 	{
@@ -447,14 +461,13 @@ void cNetRenderServer::ProcessRequestWorker(sMessage *inMsg, int index, QTcpSock
 	if (msgCurrentJob.command != netRender_NONE)
 	{
 		cNetRenderTransport::SendData(GetClient(index).socket, msgCurrentJob, actualId);
-		clients[index].linesRendered = 0;
-		WriteLog("CNetRender::ProcessData(): Send data at reconnect", 3);
+		clients[index].itemsRendered = 0;
+		WriteLog("CNetRender::ProcessData(): Send data at reconnect", 2);
 	}
 }
 
 void cNetRenderServer::ProcessRequestData(sMessage *inMsg, int index, QTcpSocket *socket)
 {
-	Q_UNUSED(inMsg);
 	Q_UNUSED(socket);
 
 	WriteLog("NetRender - ProcessData(), command DATA", 3);
@@ -481,7 +494,7 @@ void cNetRenderServer::ProcessRequestData(sMessage *inMsg, int index, QTcpSocket
 								 .arg(lineLength),
 				3);
 		}
-		clients[index].linesRendered += receivedLineNumbers.size();
+		clients[index].itemsRendered += receivedLineNumbers.size();
 		emit NewLinesArrived(receivedLineNumbers, receivedRenderedLines);
 
 		// send acknowledge
@@ -501,11 +514,168 @@ void cNetRenderServer::ProcessRequestStatus(sMessage *inMsg, int index, QTcpSock
 	Q_UNUSED(inMsg);
 	Q_UNUSED(socket);
 
-	WriteLog("NetRender - ProcessData(), command STATUS", 3);
+	WriteLog("NetRender - ProcessData(), command STATUS", 2);
 	netRenderStatus clientStatus =
 		netRenderStatus(*reinterpret_cast<qint32 *>(inMsg->payload.data()));
 	clients[index].status = clientStatus;
-	emit ClientsChanged(index);
+	emit ClientsChangedRow(index);
+}
+
+void cNetRenderServer::ProcessRequestFrameFileHeader(sMessage *inMsg, int index, QTcpSocket *socket)
+{
+	Q_UNUSED(socket);
+
+	WriteLog("NetRender - ProcessRequestFileHeader(), command SEND_FILE_HEADER", 2);
+	if (inMsg->id == actualId)
+	{
+		QDataStream stream(&inMsg->payload, QIODevice::ReadOnly);
+		qint64 fileSize;
+		qint32 fileNameLength;
+		QString fileName;
+		stream >> fileSize;
+		stream >> fileNameLength;
+
+		if (fileNameLength > 0)
+		{
+			QByteArray bufferForName;
+			bufferForName.resize(fileNameLength);
+			stream.readRawData(bufferForName.data(), fileNameLength);
+			fileName = QString::fromUtf8(bufferForName);
+		}
+
+		WriteLog(QString("NetRender - ProcessRequestFileHeader(), command SEND_FILE_HEADER, fileSize "
+										 "%1, fileName %2")
+							 .arg(fileSize)
+							 .arg(fileName),
+			2);
+
+		emit ReceivedFileHeader(index, fileSize, fileName);
+
+		// send acknowledge
+		sMessage outMsg;
+		outMsg.id = actualId;
+		outMsg.command = netRenderCmd_ACK;
+		cNetRenderTransport::SendData(GetClient(index).socket, outMsg, actualId);
+	}
+	else
+	{
+		WriteLog("NetRender - received SEND_FILE_HEADER message with wrong id", 1);
+	}
+}
+void cNetRenderServer::ProcessRequestFrameFileDataChunk(
+	sMessage *inMsg, int index, QTcpSocket *socket)
+{
+	Q_UNUSED(socket);
+
+	WriteLog("NetRender - ProcessRequestFileDataChunk(), command SEND_FILE_DATA", 2);
+	if (inMsg->id == actualId)
+	{
+		QDataStream stream(&inMsg->payload, QIODevice::ReadOnly);
+		qint32 chunkIndex;
+		qint32 chunkSize;
+		QByteArray chunkData;
+		stream >> chunkIndex;
+		stream >> chunkSize;
+
+		if (chunkSize > 0)
+		{
+			chunkData.resize(chunkSize);
+			stream.readRawData(chunkData.data(), chunkSize);
+		}
+
+		WriteLog(QString("NetRender - ProcessRequestFileHeader(), command SEND_FILE_DATA, chunkIndex "
+										 "%1, chunkSize %2")
+							 .arg(chunkIndex)
+							 .arg(chunkSize),
+			2);
+
+		emit ReceivedFileData(index, chunkIndex, chunkData);
+
+		// send acknowledge
+		sMessage outMsg;
+		outMsg.id = actualId;
+		outMsg.command = netRenderCmd_ACK;
+		cNetRenderTransport::SendData(GetClient(index).socket, outMsg, actualId);
+	}
+	else
+	{
+		WriteLog("NetRender - received SEND_FILE_DATA message with wrong id", 1);
+	}
+}
+
+void cNetRenderServer::ProcessRequestFile(sMessage *inMsg, int index, QTcpSocket *socket)
+{
+	Q_UNUSED(socket);
+
+	WriteLog("NetRender - ProcessRequestFileDataChunk(), command REQ_FILE", 2);
+	if (inMsg->id == actualId)
+	{
+		QDataStream stream(&inMsg->payload, QIODevice::ReadOnly);
+		qint32 frameIndex;
+		qint32 fileNameLength;
+		QString fileName;
+		stream >> frameIndex;
+		stream >> fileNameLength;
+
+		if (fileNameLength > 0)
+		{
+			QByteArray bufferForName;
+			bufferForName.resize(fileNameLength);
+			stream.readRawData(bufferForName.data(), fileNameLength);
+			fileName = QString::fromUtf8(bufferForName);
+		}
+
+		WriteLog(QString("NetRender - ProcessRequestFileHeader(), command REQ_FILE, fileName %1")
+							 .arg(fileName),
+			2);
+
+		// send file
+		sMessage outMsg;
+		outMsg.id = actualId;
+		outMsg.command = netRenderCmd_SEND_REQ_FILE;
+
+		if (frameIndex >= 0)
+		{
+			fileName = AnimatedFileName(fileName, frameIndex);
+		}
+		fileName = FilePathHelperTextures(fileName);
+
+		bool failure = false;
+		if (QFile::exists(fileName))
+		{
+			QFile file(fileName);
+			if (file.open(QIODevice::ReadOnly))
+			{
+				QDataStream stream(&outMsg.payload, QIODevice::WriteOnly);
+				stream << qint64(file.size());
+				QByteArray fileData = file.readAll();
+				stream.writeRawData(fileData.data(), fileData.size());
+				file.close();
+				cNetRenderTransport::SendData(GetClient(index).socket, outMsg, actualId);
+			}
+			else
+			{
+				WriteLog(QString("NetRender REQ_FILE: can't open file %1").arg(fileName), 1);
+				failure = true;
+			}
+		}
+		else
+		{
+			WriteLog(QString("NetRender REQ_FILE: file %1 doesn't exist").arg(fileName), 1);
+			failure = true;
+		}
+
+		if (failure)
+		{
+			QDataStream stream(&outMsg.payload, QIODevice::WriteOnly);
+			stream << qint64(-1); // -1 means that file coudn't be loaded
+			cNetRenderTransport::SendData(GetClient(index).socket, outMsg, actualId);
+		}
+	}
+	else
+	{
+		WriteLog("NetRender - received REQ_FILE message with wrong id", 1);
+	}
 }
 
 void cNetRenderServer::SendToDoList(int clientIndex, const QList<int> &done)
@@ -595,4 +765,28 @@ void cNetRenderServer::SendVersionToClient(int index)
 	stream << qint32(machineName.toUtf8().size());
 	stream.writeRawData(machineName.toUtf8().data(), machineName.toUtf8().size());
 	cNetRenderTransport::SendData(GetClient(index).socket, msg, actualId);
+}
+
+void cNetRenderServer::SendFramesToDoList(int clientIndex, const QList<int> &frameNumbers)
+{
+	WriteLog("NetRender - send frames to do to client", 2);
+	if (clientIndex < GetClientCount())
+	{
+		sMessage msg;
+		msg.command = netRenderCmd_FRAMES_TODO;
+		QDataStream stream(&msg.payload, QIODevice::WriteOnly);
+		stream << qint32(frameNumbers.size());
+		for (int frameNumber : frameNumbers)
+		{
+			stream << qint32(frameNumber);
+		}
+		cNetRenderTransport::SendData(GetClient(clientIndex).socket, msg, actualId);
+	}
+	else
+	{
+		qCritical() << "cNetRenderServer::SendFramesToDoList(int clientIndex, int id, QList<int> "
+									 "startingPositions): "
+									 "Client index out of range:"
+								<< clientIndex;
+	}
 }

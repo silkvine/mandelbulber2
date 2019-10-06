@@ -85,6 +85,7 @@ void cOpenClEngineRenderSSAO::SetParameters(
 	paramsSSAO.random_mode = paramRender->SSAO_random_mode;
 	numberOfPixels = quint64(paramsSSAO.width) * quint64(paramsSSAO.height);
 	intensity = paramRender->ambientOcclusion;
+	aoColor = paramRender->ambientOcclusionColor;
 
 	definesCollector.clear();
 }
@@ -285,9 +286,9 @@ bool cOpenClEngineRenderSSAO::Render(cImage *image, bool *stopRequest)
 					sRGBFloat pixel = image->GetPixelPostImage(xx, yy);
 					float shadeFactor = 1.0f / 256.0f * total_ambient * intensity * (1.0f - opacity);
 					// qDebug() << total_ambient << shadeFactor << opacity << colour.R;
-					pixel.R = pixel.R + colour.R * shadeFactor;
-					pixel.G = pixel.G + colour.G * shadeFactor;
-					pixel.B = pixel.B + colour.B * shadeFactor;
+					pixel.R = pixel.R + colour.R * shadeFactor * aoColor.R;
+					pixel.G = pixel.G + colour.G * shadeFactor * aoColor.G;
+					pixel.B = pixel.B + colour.B * shadeFactor * aoColor.B;
 					image->PutPixelPostImage(xx, yy, pixel);
 				}
 			}

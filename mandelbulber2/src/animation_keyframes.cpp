@@ -48,6 +48,7 @@
 #include "files.h"
 #include "global_data.hpp"
 #include "headless.h"
+#include "initparameters.hpp"
 #include "interface.hpp"
 #include "netrender.hpp"
 #include "render_job.hpp"
@@ -65,6 +66,7 @@
 #include "qt/pushbutton_anim_sound.h"
 #include "qt/system_tray.hpp"
 #include "qt/thumbnail_widget.h"
+#include "settings.hpp"
 
 cKeyframeAnimation *gKeyframeAnimation = nullptr;
 
@@ -145,20 +147,29 @@ cKeyframeAnimation::cKeyframeAnimation(cInterface *_interface, cKeyframes *_fram
 
 		// NetRender for animation
 		// signals to NetRender
-		connect(this, SIGNAL(SendNetRenderSetup(int, QList<int>)), gNetRender,
-			SLOT(SendSetup(int, QList<int>)));
-		connect(this,
-			SIGNAL(
-				NetRenderCurrentAnimation(const cParameterContainer &, const cFractalContainer &, bool)),
-			gNetRender,
-			SLOT(SetCurrentAnimation(const cParameterContainer &, const cFractalContainer &, bool)));
-		connect(this, SIGNAL(NetRenderConfirmRendered(int, int)), gNetRender,
-			SLOT(ConfirmRenderedFrame(int, int)));
+		connect(this, &cKeyframeAnimation::SendNetRenderSetup, gNetRender, &cNetRender::SendSetup);
+		connect(this, &cKeyframeAnimation::NetRenderCurrentAnimation, gNetRender,
+			&cNetRender::SetCurrentAnimation);
+		connect(this, &cKeyframeAnimation::NetRenderConfirmRendered, gNetRender,
+			&cNetRender::ConfirmRenderedFrame);
+		connect(this, &cKeyframeAnimation::NetRenderAddFileToSender, gNetRender,
+			&cNetRender::AddFileToSender);
+		connect(this, &cKeyframeAnimation::NetRenderNotifyClientStatus, gNetRender,
+			&cNetRender::NotifyStatus);
 
 		// signals from NetRender
-		connect(gNetRender, SIGNAL(KeyframeAnimationRender()), this, SLOT(slotRenderKeyframes()));
-		connect(gNetRender, SIGNAL(FinishedFrame(int, int)), this,
-			SLOT(slotNetRenderFinishedFrame(int, int)));
+		connect(gNetRender, &cNetRender::KeyframeAnimationRender, this,
+			&cKeyframeAnimation::slotRenderKeyframes);
+		connect(gNetRender, &cNetRender::FinishedFrame, this,
+			&cKeyframeAnimation::slotNetRenderFinishedFrame);
+		connect(this, &cKeyframeAnimation::NetRenderSendFramesToDoList, gNetRender,
+			&cNetRender::SendFramesToDoList);
+		connect(gNetRender, &cNetRender::UpdateFramesToDo, this,
+			&cKeyframeAnimation::slotNetRenderUpdateFramesToDo);
+		connect(
+			this, &cKeyframeAnimation::NetRenderStopAllClients, gNetRender, &cNetRender::StopAllClients);
+		connect(gNetRender, &cNetRender::animationStopRequest, this,
+			&cKeyframeAnimation::slotAnimationStopRequest);
 
 		table = ui->tableWidget_keyframe_animation;
 
@@ -561,12 +572,14 @@ bool cKeyframeAnimation::RenderKeyframes(bool *stopRequest)
 	if (image->IsUsed())
 	{
 		emit showErrorMessage(
-			QObject::tr("Rendering engine is busy. Stop unfinished rendering before starting new one"),
+			QObject::tr(
+				"Rendering engine is busy. Stop unfinished rendering before starting rendering animation"),
 			cErrorMessage::errorMessage);
 		return false;
 	}
 
 	*stopRequest = false;
+	animationStopRequest = false;
 
 	// preparing Render Job
 	QScopedPointer<cRenderJob> renderJob(
@@ -586,10 +599,9 @@ bool cKeyframeAnimation::RenderKeyframes(bool *stopRequest)
 	if (systemData.noGui)
 	{
 		config.DisableRefresh();
-		config.DisableProgressiveRender();
-		config.EnableNetRender();
 	}
 
+	config.DisableProgressiveRender();
 	renderJob->Init(cRenderJob::keyframeAnim, config);
 
 	cProgressText progressText;
@@ -601,7 +613,9 @@ bool cKeyframeAnimation::RenderKeyframes(bool *stopRequest)
 
 	const int frames_per_keyframe = params->Get<int>("frames_per_keyframe");
 
-	int totalFrames = keyframes->GetNumberOfFrames() * frames_per_keyframe;
+	int totalFrames = (keyframes->GetNumberOfFrames() - 1) * frames_per_keyframe;
+
+	if (totalFrames < 1) totalFrames = 1;
 
 	if (endFrame == 0) endFrame = totalFrames;
 
@@ -614,22 +628,23 @@ bool cKeyframeAnimation::RenderKeyframes(bool *stopRequest)
 		return false;
 	}
 
-	if (!systemData.noGui && image->IsMainImage())
+	if (!systemData.noGui && image->IsMainImage() && !gNetRender->IsClient())
 	{
 		mainInterface->mainWindow->GetWidgetDockNavigation()->LockAllFunctions();
 		imageWidget->SetEnableClickModes(false);
 	}
 
-	QVector<bool> alreadyRenderedFrames;
 	alreadyRenderedFrames.resize(totalFrames);
+	alreadyRenderedFrames.fill(false);
 
-	QVector<bool> reservedFrames;
+	reservedFrames.clear();
 	reservedFrames.resize(totalFrames);
+	reservedFrames.fill(false);
 
 	try
 	{
 		// updating parameters
-		if (!systemData.noGui && image->IsMainImage())
+		if (!systemData.noGui && image->IsMainImage() && !gNetRender->IsClient())
 		{
 			mainInterface->SynchronizeInterface(params, fractalParams, qInterface::read);
 			gUndo.Store(params, fractalParams, nullptr, keyframes);
@@ -640,7 +655,7 @@ bool cKeyframeAnimation::RenderKeyframes(bool *stopRequest)
 		keyframes->RefreshAllAudioTracks(params);
 
 		// checking for collisions
-		if (!systemData.noGui && image->IsMainImage())
+		if (!systemData.noGui && image->IsMainImage() && !gNetRender->IsClient())
 		{
 			if (params->Get<bool>("keyframe_auto_validate"))
 			{
@@ -669,14 +684,17 @@ bool cKeyframeAnimation::RenderKeyframes(bool *stopRequest)
 		{
 			for (int subIndex = 0; subIndex < keyframes->GetFramesPerKeyframe(); subIndex++)
 			{
-				const QString filename = GetKeyframeFilename(index, subIndex);
+				const QString filename = GetKeyframeFilename(index, subIndex, false);
 				const int frameNo = index * keyframes->GetFramesPerKeyframe() + subIndex;
 				alreadyRenderedFrames[frameNo] =
 					(QFile(filename).exists() || frameNo < startFrame || frameNo >= endFrame);
 
 				if (gNetRender->IsClient())
 				{
-					if (frameNo < netRenderListOfFramesToRender[0]) alreadyRenderedFrames[frameNo] = true;
+					if (netRenderListOfFramesToRender.size() > 0)
+					{
+						if (frameNo < netRenderListOfFramesToRender[0]) alreadyRenderedFrames[frameNo] = true;
+					}
 				}
 
 				reservedFrames[frameNo] = alreadyRenderedFrames[frameNo];
@@ -691,61 +709,76 @@ bool cKeyframeAnimation::RenderKeyframes(bool *stopRequest)
 		}
 
 		// message if all frames are already rendered
-		if (keyframes->GetNumberOfFrames() - 1 > 0 && unrenderedTotalBeforeRender == 0)
+		if (!gNetRender->IsClient())
 		{
-			bool deletePreviousRender;
-			const QString questionTitle = QObject::tr("Truncate Image Folder");
-			const QString questionText =
-				QObject::tr(
-					"The animation has already been rendered completely.\n Do you want to purge the output "
-					"folder?\n")
-				+ QObject::tr("This will delete all images in the image folder.\nProceed?");
-
-			if (!systemData.noGui)
+			if (keyframes->GetNumberOfFrames() - 1 > 0 && unrenderedTotalBeforeRender == 0)
 			{
-				QMessageBox::StandardButton reply = QMessageBox::NoButton;
-				emit QuestionMessage(
-					questionTitle, questionText, QMessageBox::Yes | QMessageBox::No, &reply);
-				while (reply == QMessageBox::NoButton)
+				bool deletePreviousRender;
+				const QString questionTitle = QObject::tr("Truncate Image Folder");
+				const QString questionText =
+					QObject::tr(
+						"The animation has already been rendered completely.\n Do you want to purge the output "
+						"folder?\n")
+					+ QObject::tr("This will delete all images in the image folder.\nProceed?");
+
+				if (!systemData.noGui)
 				{
-					gApplication->processEvents();
+					QMessageBox::StandardButton reply = QMessageBox::NoButton;
+					emit QuestionMessage(
+						questionTitle, questionText, QMessageBox::Yes | QMessageBox::No, &reply);
+					while (reply == QMessageBox::NoButton)
+					{
+						gApplication->processEvents();
+					}
+					deletePreviousRender = (reply == QMessageBox::Yes);
 				}
-				deletePreviousRender = (reply == QMessageBox::Yes);
-			}
-			else
-			{
-				// Exit if silent mode
-				if (systemData.silent)
+				else
 				{
-					exit(0);
-				}
+					// Exit if silent mode
+					if (systemData.silent)
+					{
+						exit(0);
+					}
 
-				deletePreviousRender = cHeadless::ConfirmMessage(questionTitle + "\n" + questionText);
-			}
-
-			if (deletePreviousRender)
-			{
-				cAnimationFrames::WipeFramesFromFolder(params->Get<QString>("anim_keyframe_dir"));
-
-				if (!systemData.noGui && image->IsMainImage())
-				{
-					mainInterface->mainWindow->GetWidgetDockNavigation()->UnlockAllFunctions();
-					imageWidget->SetEnableClickModes(true);
+					deletePreviousRender = cHeadless::ConfirmMessage(questionTitle + "\n" + questionText);
 				}
 
-				return RenderKeyframes(stopRequest);
-			}
-			else
-			{
-				throw false;
+				if (deletePreviousRender)
+				{
+					cAnimationFrames::WipeFramesFromFolder(params->Get<QString>("anim_keyframe_dir"));
+
+					if (!systemData.noGui && image->IsMainImage())
+					{
+						mainInterface->mainWindow->GetWidgetDockNavigation()->UnlockAllFunctions();
+						imageWidget->SetEnableClickModes(true);
+					}
+
+					return RenderKeyframes(stopRequest);
+				}
+				else
+				{
+					throw false;
+				}
 			}
 		}
 
 		if (gNetRender->IsServer())
 		{
-			int numberOfFramesForNetRender =
-				unrenderedTotalBeforeRender / gNetRender->GetClientCount() / 2 + 1;
-			if (numberOfFramesForNetRender > 100) numberOfFramesForNetRender = 100;
+			int numberOfFramesForNetRender;
+			if (gNetRender->GetClientCount() == 0)
+			{
+				numberOfFramesForNetRender = 0;
+			}
+			else
+			{
+				numberOfFramesForNetRender =
+					unrenderedTotalBeforeRender / gNetRender->GetClientCount() / 2 + 1;
+				if (numberOfFramesForNetRender < minFramesForNetRender)
+					numberOfFramesForNetRender = minFramesForNetRender;
+			}
+
+			if (numberOfFramesForNetRender > maxFramesForNetRender)
+				numberOfFramesForNetRender = maxFramesForNetRender;
 
 			qint32 renderId = rand();
 			gNetRender->SetCurrentRenderId(renderId);
@@ -758,18 +791,35 @@ bool cKeyframeAnimation::RenderKeyframes(bool *stopRequest)
 				for (int i = 0; i < numberOfFramesForNetRender; i++)
 				{
 					// looking for next unrendered frame
-					while (alreadyRenderedFrames[frameIndex] && frameIndex < totalFrames)
+					bool notFound = false;
+					while (alreadyRenderedFrames[frameIndex])
+					{
 						frameIndex++;
+						if (frameIndex >= totalFrames)
+						{
+							notFound = true;
+							break;
+						}
+					}
 
-					startingFrames.append(frameIndex);
-					reservedFrames[frameIndex] = true;
-					frameIndex++;
+					if (notFound)
+					{
+						break;
+					}
+					else
+					{
+						startingFrames.append(frameIndex);
+						reservedFrames[frameIndex] = true;
+						frameIndex++;
+					}
 				}
-				// storage for number of already rendered frames need to be changed
-				emit SendNetRenderSetup(i, startingFrames);
-
-				emit NetRenderCurrentAnimation(*params, *fractalParams, false);
+				if (startingFrames.size() > 0)
+				{
+					emit SendNetRenderSetup(i, startingFrames);
+				}
 			}
+
+			emit NetRenderCurrentAnimation(*params, *fractalParams, false);
 		}
 
 		// total number of frames
@@ -779,7 +829,7 @@ bool cKeyframeAnimation::RenderKeyframes(bool *stopRequest)
 		keyframes->ClearMorphCache();
 
 		// main loop for rendering of frames
-		int renderedFramesCount = 0;
+		renderedFramesCount = 0;
 		for (int index = 0; index < keyframes->GetNumberOfFrames() - 1; ++index)
 		{
 			//-------------- rendering of interpolated keyframes ----------------
@@ -805,6 +855,11 @@ bool cKeyframeAnimation::RenderKeyframes(bool *stopRequest)
 					if (!frameFound) continue;
 				}
 
+				if (gNetRender->IsServer())
+				{
+					reservedFrames[frameIndex] = true;
+				}
+
 				double percentDoneFrame;
 				if (unrenderedTotalBeforeRender > 0)
 					percentDoneFrame = double(renderedFramesCount) / unrenderedTotalBeforeRender;
@@ -818,7 +873,7 @@ bool cKeyframeAnimation::RenderKeyframes(bool *stopRequest)
 						+ progressTxt,
 					percentDoneFrame, cProgressText::progress_ANIMATION);
 
-				if (*stopRequest || systemData.globalStopRequest) throw false;
+				if (*stopRequest || systemData.globalStopRequest || animationStopRequest) throw false;
 				keyframes->GetInterpolatedFrameAndConsolidate(frameIndex, params, fractalParams);
 
 				// recalculation of camera rotation and distance (just for display purposes)
@@ -829,7 +884,7 @@ bool cKeyframeAnimation::RenderKeyframes(bool *stopRequest)
 				params->Set("camera_rotation", cameraTarget.GetRotation() * 180.0 / M_PI);
 				params->Set("camera_distance_to_target", cameraTarget.GetDistance());
 
-				if (!systemData.noGui && image->IsMainImage())
+				if (!systemData.noGui && image->IsMainImage() && !gNetRender->IsClient())
 				{
 					mainInterface->SynchronizeInterface(params, fractalParams, qInterface::write);
 
@@ -839,25 +894,32 @@ bool cKeyframeAnimation::RenderKeyframes(bool *stopRequest)
 					mainInterface->mainWindow->GetWidgetDockStatistics()->UpdateDistanceToFractal(distance);
 				}
 
-				if (gNetRender->IsServer())
-				{
-					gNetRender->WaitForAllClientsReady(10.0);
-				}
-
 				params->Set("frame_no", frameIndex);
 				renderJob->UpdateParameters(params, fractalParams);
 				const int result = renderJob->Execute();
 				if (!result) throw false;
-				const QString filename = GetKeyframeFilename(index, subIndex);
+				const QString filename = GetKeyframeFilename(index, subIndex, gNetRender->IsClient());
 				const ImageFileSave::enumImageFileType fileType =
 					ImageFileSave::enumImageFileType(params->Get<int>("keyframe_animation_image_type"));
-				SaveImage(filename, fileType, image, gMainInterface->mainWindow);
+				QStringList listOfSavedFiles =
+					SaveImage(filename, fileType, image, gMainInterface->mainWindow);
 
 				renderedFramesCount++;
 				alreadyRenderedFrames[frameIndex] = true;
 
-				emit NetRenderConfirmRendered(frameIndex, netRenderListOfFramesToRender.size());
-				netRenderListOfFramesToRender.removeAll(frameIndex);
+				qDebug() << "Finished rendering frame" << frameIndex;
+
+				if (gNetRender->IsClient())
+				{
+					emit NetRenderConfirmRendered(frameIndex, netRenderListOfFramesToRender.size());
+					netRenderListOfFramesToRender.removeAll(frameIndex);
+					emit NetRenderNotifyClientStatus();
+
+					for (QString channelFileName : listOfSavedFiles)
+					{
+						emit NetRenderAddFileToSender(channelFileName);
+					}
+				}
 
 				gApplication->processEvents();
 			}
@@ -872,6 +934,17 @@ bool cKeyframeAnimation::RenderKeyframes(bool *stopRequest)
 	}
 	catch (bool ex)
 	{
+		if (gNetRender->IsServer())
+		{
+			emit NetRenderStopAllClients();
+		}
+
+		if (gNetRender->IsClient())
+		{
+			gNetRender->SetStatus(netRenderSts_READY);
+			emit NetRenderNotifyClientStatus();
+		}
+
 		QString resultStatus = QObject::tr("Rendering terminated");
 		if (ex) resultStatus += " - " + QObject::tr("Error occured, see log output");
 		emit updateProgressAndStatus(
@@ -887,10 +960,16 @@ bool cKeyframeAnimation::RenderKeyframes(bool *stopRequest)
 		return false;
 	}
 
-	if (!systemData.noGui && image->IsMainImage())
+	if (!systemData.noGui && image->IsMainImage() && !gNetRender->IsClient())
 	{
 		mainInterface->mainWindow->GetWidgetDockNavigation()->UnlockAllFunctions();
 		imageWidget->SetEnableClickModes(true);
+	}
+
+	if (gNetRender->IsClient())
+	{
+		gNetRender->SetStatus(netRenderSts_READY);
+		emit NetRenderNotifyClientStatus();
 	}
 
 	return true;
@@ -1236,14 +1315,25 @@ void cKeyframeAnimation::slotRefreshTable()
 	RefreshTable();
 }
 
-QString cKeyframeAnimation::GetKeyframeFilename(int index, int subIndex) const
+QString cKeyframeAnimation::GetKeyframeFilename(int index, int subIndex, bool netRenderCache) const
 {
 	const int frameIndex = index * keyframes->GetFramesPerKeyframe() + subIndex;
-	QString filename = params->Get<QString>("anim_keyframe_dir") + "frame_"
-										 + QString("%1").arg(frameIndex, 7, 10, QChar('0'));
+
+	QString dir;
+	if (netRenderCache)
+	{
+		dir = systemData.GetNetrenderFolder() + QDir::separator()
+					+ QString("pid%1_").arg(QCoreApplication::applicationPid());
+	}
+	else
+	{
+		dir = params->Get<QString>("anim_keyframe_dir");
+	}
+
+	QString filename = dir + "frame_" + QString("%1").arg(frameIndex, 7, 10, QChar('0'));
 	filename += "."
 							+ ImageFileSave::ImageFileExtension(ImageFileSave::enumImageFileType(
-									params->Get<int>("keyframe_animation_image_type")));
+								params->Get<int>("keyframe_animation_image_type")));
 	return filename;
 }
 
@@ -1547,8 +1637,78 @@ void cKeyframeAnimation::SetNetRenderStartingFrames(const QVector<int> &starting
 	netRenderListOfFramesToRender.append(startingFrames.toList());
 }
 
-void cKeyframeAnimation::slotNetRenderFinishedFrame(int frameIndex, int sizeOfToDoList)
+void cKeyframeAnimation::slotNetRenderFinishedFrame(
+	int clientIndex, int frameIndex, int sizeOfToDoList)
 {
-	qDebug() << frameIndex;
-	qDebug() << sizeOfToDoList;
+	Q_UNUSED(frameIndex);
+
+	qDebug() << "Server: got information about finished frame" << frameIndex << sizeOfToDoList;
+
+	renderedFramesCount++;
+	if (frameIndex < alreadyRenderedFrames.size())
+	{
+		alreadyRenderedFrames[frameIndex] = true;
+	}
+
+	if (!animationStopRequest)
+	{
+
+		// counting left frames
+		int countLeft = reservedFrames.count(false);
+
+		// calculate maximum list size
+		int numberOfFramesForNetRender = countLeft / gNetRender->GetClientCount() / 2;
+		if (numberOfFramesForNetRender < minFramesForNetRender)
+			numberOfFramesForNetRender = minFramesForNetRender;
+		if (numberOfFramesForNetRender > maxFramesForNetRender)
+			numberOfFramesForNetRender = maxFramesForNetRender;
+
+		// calculate number for frames to supplement
+		int numberOfNewFrames = numberOfFramesForNetRender - sizeOfToDoList;
+
+		if (numberOfNewFrames > 0)
+		{
+			QList<int> toDoList;
+
+			// looking for not reserved frame
+			for (int f = 0; f < reservedFrames.size(); f++)
+			{
+				if (!reservedFrames[f])
+				{
+					toDoList.append(f);
+					reservedFrames[f] = true;
+				}
+				if (toDoList.size() >= numberOfNewFrames) break;
+			}
+			NetRenderSendFramesToDoList(clientIndex, toDoList);
+			qDebug() << "Server: new toDo list" << toDoList;
+		}
+	}
+}
+
+void cKeyframeAnimation::slotNetRenderUpdateFramesToDo(QList<int> listOfFrames)
+{
+	netRenderListOfFramesToRender.append(listOfFrames);
+	qDebug() << "Client: got frames toDo:" << listOfFrames;
+}
+
+void cKeyframeAnimation::slotAnimationStopRequest()
+{
+	animationStopRequest = true;
+}
+
+cKeyframeRenderThread::cKeyframeRenderThread(QString &_settingsText) : QThread()
+{
+	settingsText = _settingsText;
+}
+
+void cKeyframeRenderThread::startAnimationRender()
+{
+	cSettings parSettings(cSettings::formatFullText);
+	parSettings.BeQuiet(true);
+	parSettings.LoadFromString(settingsText);
+	parSettings.Decode(gPar, gParFractal, nullptr, gKeyframes);
+	gNetRender->SetAnimation(true);
+	gKeyframeAnimation->RenderKeyframes(&gMainInterface->stopRequest);
+	emit renderingFinished();
 }

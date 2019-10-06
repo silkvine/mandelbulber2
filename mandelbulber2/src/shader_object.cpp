@@ -47,11 +47,17 @@ sRGBAfloat cRenderWorker::ObjectShader(const sShaderInputData &_input, sRGBAfloa
 	cMaterial *mat = input.material;
 	input.normal = vn;
 
+	// fill light
+	sRGBAfloat fillLight;
+	fillLight.R = params->fillLightColor.R;
+	fillLight.G = params->fillLightColor.G;
+	fillLight.B = params->fillLightColor.B;
+
 	// main light
 	sRGBAfloat mainLight;
-	mainLight.R = params->mainLightIntensity * params->mainLightColour.R / 65536.0f;
-	mainLight.G = params->mainLightIntensity * params->mainLightColour.G / 65536.0f;
-	mainLight.B = params->mainLightIntensity * params->mainLightColour.B / 65536.0f;
+	mainLight.R = params->mainLightIntensity * params->mainLightColour.R;
+	mainLight.G = params->mainLightIntensity * params->mainLightColour.G;
+	mainLight.B = params->mainLightIntensity * params->mainLightColour.B;
 
 	// calculate shading based on angle of incidence
 	sRGBAfloat shade;
@@ -106,9 +112,9 @@ sRGBAfloat cRenderWorker::ObjectShader(const sShaderInputData &_input, sRGBAfloa
 		}
 	}
 	sRGBAfloat ambient2;
-	ambient2.R = ambient.R * params->ambientOcclusion;
-	ambient2.G = ambient.G * params->ambientOcclusion;
-	ambient2.B = ambient.B * params->ambientOcclusion;
+	ambient2.R = ambient.R * params->ambientOcclusion * params->ambientOcclusionColor.R;
+	ambient2.G = ambient.G * params->ambientOcclusion * params->ambientOcclusionColor.G;
+	ambient2.B = ambient.B * params->ambientOcclusion * params->ambientOcclusionColor.B;
 
 	// environment mapping
 	sRGBAfloat envMapping(0.0, 0.0, 0.0, 0.0);
@@ -147,11 +153,11 @@ sRGBAfloat cRenderWorker::ObjectShader(const sShaderInputData &_input, sRGBAfloa
 	else
 	{
 		luminosity.R = input.texLuminosity.R * mat->luminosityTextureIntensity
-									 + mat->luminosity * mat->luminosityColor.R / 65536.0f;
+									 + mat->luminosity * mat->luminosityColor.R;
 		luminosity.G = input.texLuminosity.G * mat->luminosityTextureIntensity
-									 + mat->luminosity * mat->luminosityColor.G / 65536.0f;
+									 + mat->luminosity * mat->luminosityColor.G;
 		luminosity.B = input.texLuminosity.B * mat->luminosityTextureIntensity
-									 + mat->luminosity * mat->luminosityColor.B / 65536.0f;
+									 + mat->luminosity * mat->luminosityColor.B;
 	}
 
 	sRGBFloat iridescence(1.0, 1.0, 1.0);
@@ -162,9 +168,12 @@ sRGBAfloat cRenderWorker::ObjectShader(const sShaderInputData &_input, sRGBAfloa
 	*iridescenceOut = iridescence;
 
 	// total shader
-	output.R = envMapping.R + (ambient2.R + mainLight.R * shade.R * shadow.R) * colour.R;
-	output.G = envMapping.G + (ambient2.G + mainLight.G * shade.G * shadow.G) * colour.G;
-	output.B = envMapping.B + (ambient2.B + mainLight.B * shade.B * shadow.B) * colour.B;
+	output.R =
+		envMapping.R + (fillLight.R + ambient2.R + mainLight.R * shade.R * shadow.R) * colour.R;
+	output.G =
+		envMapping.G + (fillLight.G + ambient2.G + mainLight.G * shade.G * shadow.G) * colour.G;
+	output.B =
+		envMapping.B + (fillLight.B + ambient2.B + mainLight.B * shade.B * shadow.B) * colour.B;
 
 	output.R += (auxLights.R + fakeLights.R) * colour.R;
 	output.G += (auxLights.G + fakeLights.G) * colour.G;

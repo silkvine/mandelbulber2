@@ -239,6 +239,7 @@ bool InitSystem()
 	systemData.supportedLanguages.insert("de_DE", "Deutsch");
 	systemData.supportedLanguages.insert("it_IT", "Italiano");
 	systemData.supportedLanguages.insert("nl_NL", "Nederlands");
+	systemData.supportedLanguages.insert("es_ES", "Español");
 
 	// get number of columns of console
 	systemData.terminalWidth = 80;
@@ -399,6 +400,10 @@ bool CreateDefaultFolders()
 		systemData.sharedDir + "textures" + QDir::separator() + "colour palette.jpg";
 	actualFileNames.actualFilenamePalette =
 		QDir::toNativeSeparators(actualFileNames.actualFilenamePalette);
+
+	ClearNetRenderCache();
+	DeleteOldChache(systemData.GetThumbnailsFolder(), 90);
+	DeleteOldChache(systemData.GetHttpCacheFolder(), 10);
 
 	return result;
 }
@@ -876,4 +881,51 @@ bool IsOutputTty()
 #else
 	return isatty(fileno(stdout));
 #endif
+}
+
+void ClearNetRenderCache()
+{
+	QDir dir(systemData.GetNetrenderFolder());
+	if (dir.exists())
+	{
+		QDirIterator it(dir);
+		while (it.hasNext())
+		{
+			QFile file(it.next());
+			file.remove();
+		}
+	}
+}
+
+void DeleteOldChache(const QString &directoryPath, int maxDays)
+{
+	QDir dir(directoryPath);
+	int counter = 0;
+	qint64 totalSize = 0;
+	if (dir.exists())
+	{
+		QDirIterator it(dir);
+		while (it.hasNext())
+		{
+			QFile file(it.next());
+			QFileInfo fileInfo(file);
+			QDateTime dateTime = fileInfo.lastModified();
+			qint64 days = dateTime.daysTo(QDateTime::currentDateTime());
+			if (days > maxDays)
+			{
+				totalSize += file.size();
+				file.remove();
+				counter++;
+			}
+		}
+	}
+	if (counter > 0)
+	{
+		QString message = QString("Removed %1 old files from %2. Saved %3 MB")
+												.arg(counter)
+												.arg(directoryPath)
+												.arg(totalSize / 1024 / 1024);
+		qInfo() << message;
+		WriteLog(message, 2);
+	}
 }

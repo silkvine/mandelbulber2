@@ -77,7 +77,7 @@ struct sExtendedAux
 	CVector4 c;
 	CVector4 const_c;
 	CVector4 old_z;
-	CVector4 sum_z;
+	//CVector4 sum_z;
 	double pos_neg;
 	double cw;
 
@@ -100,27 +100,16 @@ struct sExtendedAux
 struct sFoldColor
 {
 	CVector3 factor;
-
 	CVector4 factor4D;
+	CVector4 difs0000;
 	double factorR;
 	double factorSp1;
 	double factorSp2;
-	double scaleA0;
-	double scaleB0;
-	double scaleD0;
-	double scaleF0;
-	double scaleA1;
-	double scaleB1;
-	double scaleC1;
-
-	int intAx0;
-	int intAy0;
-	int intAz0;
-
+	double difs1;
 	bool auxColorEnabled;
+	bool auxColorEnabledA;
 	bool auxColorEnabledFalse;
-
-	bool distanceEnabledFalse;
+	bool auxColorEnabledAFalse;
 };
 
 struct sFractalGeneralizedFoldBox
@@ -477,15 +466,11 @@ struct sFractalAnalyticDE
 {
 	bool enabled;
 	bool enabledFalse;
-	// bool enabledAuxR2False; // only used once. Remove
 	double scale1;
 	double tweak005;
 	double offset0;
 	double offset1;
 	double offset2;
-	// double factor2;
-	// double scaleLin; // out of date name, only 4 uses. Remove
-	// double offsetLin; // out of date name, only 4 uses. Remove
 };
 
 // common parameters for transforming formulas
@@ -502,12 +487,18 @@ struct sFractalTransformCommon
 	double offsetB0;
 	double offsetC0;
 	double offsetD0;
+	double offsetE0;
+	double offsetF0;
+	double offsetR0;
 	double offset0005;
 	double offset05;
 	double offset1;
 	double offsetA1;
 	double offset105;
 	double offset2;
+	double offsetA2;
+	double offsetE2;
+	double offsetF2;
 	double offset4;
 	double multiplication;
 	double minR0;
@@ -516,8 +507,11 @@ struct sFractalTransformCommon
 	double minR2p25;
 	double maxR2d1;
 	double maxMinR2factor;
+	double radius1;
+	double scaleNeg1;
 	double scale;
 	double scale0;
+	double scaleA0;
 	double scale025;
 	double scale05;
 	double scale08;
@@ -537,7 +531,6 @@ struct sFractalTransformCommon
 	double scaleB3;
 	double scale4;
 	double scale8;
-
 	double scaleMain2;
 	double scaleVary0;
 
@@ -559,6 +552,10 @@ struct sFractalTransformCommon
 	int startIterationsC;
 	int stopIterationsC;
 	int stopIterationsC1;
+	int startIterationsCx;
+	int stopIterationsCx;
+	int startIterationsCy;
+	int stopIterationsCy;
 	int startIterationsD;
 	int stopIterationsD;
 	int stopIterationsD1;
@@ -578,9 +575,12 @@ struct sFractalTransformCommon
 	int stopIterationsK;
 	int startIterationsM;
 	int stopIterationsM;
+	int startIterationsN;
+	int stopIterationsN;
 	int startIterationsO;
 	int stopIterationsO;
 	int startIterationsP;
+	int stopIterationsP;
 	int stopIterationsP1;
 	int startIterationsR;
 	int stopIterationsR;
@@ -607,6 +607,9 @@ struct sFractalTransformCommon
 	int int1;
 	int int2;
 	int int3;
+	int int3X;
+	int int3Y;
+	int int3Z;
 	int int6;
 	int int8X;
 	int int8Y;
@@ -727,18 +730,26 @@ struct sFractalTransformCommon
 	bool functionEnabledCxFalse;
 	bool functionEnabledCyFalse;
 	bool functionEnabledCzFalse;
+	bool functionEnabledAFalse;
+	bool functionEnabledBFalse;
+	bool functionEnabledCFalse;
 	bool functionEnabledDFalse;
 	bool functionEnabledEFalse;
 	bool functionEnabledFFalse;
+	bool functionEnabledGFalse;
 	bool functionEnabledJFalse;
 	bool functionEnabledKFalse;
 	bool functionEnabledM;
 	bool functionEnabledMFalse;
+	bool functionEnabledNFalse;
+	bool functionEnabledOFalse;
 	bool functionEnabledPFalse;
 	bool functionEnabledRFalse;
 	bool functionEnabledSFalse;
 	bool functionEnabledSwFalse;
+	bool functionEnabledTFalse;
 	bool functionEnabledXFalse;
+	bool functionEnabledYFalse;
 	bool juliaMode;
 	bool rotationEnabled;
 	bool rotation2EnabledFalse;
@@ -747,6 +758,7 @@ struct sFractalTransformCommon
 
 	// bool functionEnabledTempFalse;
 };
+
 
 struct sFractal
 {
@@ -778,6 +790,7 @@ struct sFractal
 	sFractalCombo4 combo4;
 	sFractalCombo5 combo5;
 	sFractalCombo6 combo6;
+
 
 #ifdef USE_OPENCL
 //	double customParameters[15];

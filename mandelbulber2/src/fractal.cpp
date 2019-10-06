@@ -245,29 +245,20 @@ sFractal::sFractal(const cParameterContainer *container)
 	Cpara.iterB = container->Get<int>("Cpara_iterB");
 	Cpara.iterC = container->Get<int>("Cpara_iterC");
 
+	analyticDE.enabled = container->Get<bool>("analyticDE_enabled");
+	analyticDE.enabledFalse = container->Get<bool>("analyticDE_enabled_false");
 	analyticDE.scale1 = container->Get<double>("analyticDE_scale_1");
 	analyticDE.tweak005 = container->Get<double>("analyticDE_tweak_005");
 	analyticDE.offset0 = container->Get<double>("analyticDE_offset_0");
 	analyticDE.offset1 = container->Get<double>("analyticDE_offset_1");
 	analyticDE.offset2 = container->Get<double>("analyticDE_offset_2");
-	analyticDE.enabled = container->Get<bool>("analyticDE_enabled");
-	analyticDE.enabledFalse = container->Get<bool>("analyticDE_enabled_false");
 
 	foldColor.auxColorEnabled = container->Get<bool>("fold_color_aux_color_enabled");
+	foldColor.auxColorEnabledA = container->Get<bool>("fold_color_aux_color_enabledA");
 	foldColor.auxColorEnabledFalse = container->Get<bool>("fold_color_aux_color_enabled_false");
-
-	foldColor.scaleA0 = container->Get<double>("fold_color_scaleA0");
-	foldColor.scaleB0 = container->Get<double>("fold_color_scaleB0");
-	foldColor.scaleD0 = container->Get<double>("fold_color_scaleD0");
-	foldColor.scaleF0 = container->Get<double>("fold_color_scaleF0");
-	foldColor.scaleA1 = container->Get<double>("fold_color_scaleA1");
-	foldColor.scaleB1 = container->Get<double>("fold_color_scaleB1");
-
-	foldColor.intAx0 = container->Get<int>("fold_color_int_Ax0");
-	foldColor.intAy0 = container->Get<int>("fold_color_int_Ay0");
-	foldColor.intAz0 = container->Get<int>("fold_color_int_Az0");
-
-	foldColor.distanceEnabledFalse = container->Get<bool>("fold_color_distance_enabled_false");
+	foldColor.auxColorEnabledAFalse = container->Get<bool>("fold_color_aux_color_enabledA_false");
+	foldColor.difs1 = container->Get<double>("fold_color_difs1");
+	foldColor.difs0000 = container->Get<CVector4>("fold_color_difs_0000");
 
 	// common parameters for transforming formulas
 	transformCommon.angle0 = container->Get<double>("transf_angle_0");
@@ -287,19 +278,32 @@ sFractal::sFractal(const cParameterContainer *container)
 	transformCommon.offsetB0 = container->Get<double>("transf_offsetB_0");
 	transformCommon.offsetC0 = container->Get<double>("transf_offsetC_0");
 	transformCommon.offsetD0 = container->Get<double>("transf_offsetD_0");
+	transformCommon.offsetE0 = container->Get<double>("transf_offsetE_0");
+	transformCommon.offsetF0 = container->Get<double>("transf_offsetF_0");
+
+
+	transformCommon.offsetR0 = container->Get<double>("transf_offsetR_0");
+
+
 	transformCommon.offset0005 = container->Get<double>("transf_offset_0005");
 	transformCommon.offset05 = container->Get<double>("transf_offset_05");
 	transformCommon.offset1 = container->Get<double>("transf_offset_1");
 	transformCommon.offsetA1 = container->Get<double>("transf_offsetA_1");
 	transformCommon.offset105 = container->Get<double>("transf_offset_105");
 	transformCommon.offset2 = container->Get<double>("transf_offset_2");
+	transformCommon.offsetA2 = container->Get<double>("transf_offsetA_2");
+	transformCommon.offsetE2 = container->Get<double>("transf_offsetE_2");
+	transformCommon.offsetF2 = container->Get<double>("transf_offsetF_2");
 	transformCommon.offset4 = container->Get<double>("transf_offset_4");
 	transformCommon.pwr05 = container->Get<double>("transf_pwr_05");
 	transformCommon.pwr4 = container->Get<double>("transf_pwr_4");
 	transformCommon.pwr8 = container->Get<double>("transf_pwr_8");
 	transformCommon.pwr8a = container->Get<double>("transf_pwr_8a");
+	transformCommon.radius1 = container->Get<double>("transf_radius_1");
+	transformCommon.scaleNeg1 = container->Get<double>("transf_scale_neg1");
 	transformCommon.scale = container->Get<double>("transf_scale");
 	transformCommon.scale0 = container->Get<double>("transf_scale_0");
+	transformCommon.scaleA0 = container->Get<double>("transf_scaleA_0");
 	transformCommon.scale025 = container->Get<double>("transf_scale_025");
 	transformCommon.scale05 = container->Get<double>("transf_scale_05");
 	transformCommon.scale08 = container->Get<double>("transf_scale_08");
@@ -328,6 +332,9 @@ sFractal::sFractal(const cParameterContainer *container)
 	transformCommon.int1 = container->Get<int>("transf_int_1");
 	transformCommon.int2 = container->Get<int>("transf_int_2");
 	transformCommon.int3 = container->Get<int>("transf_int_3");
+	transformCommon.int3X = container->Get<int>("transf_int_3_X");
+	transformCommon.int3Y = container->Get<int>("transf_int_3_Y");
+	transformCommon.int3Z = container->Get<int>("transf_int_3_Z");
 	transformCommon.int6 = container->Get<int>("transf_int_6");
 	transformCommon.int8X = container->Get<int>("transf_int8_X");
 	transformCommon.int8Y = container->Get<int>("transf_int8_Y");
@@ -343,6 +350,12 @@ sFractal::sFractal(const cParameterContainer *container)
 	transformCommon.stopIterationsB = container->Get<int>("transf_stop_iterations_B");
 	transformCommon.startIterationsC = container->Get<int>("transf_start_iterations_C");
 	transformCommon.stopIterationsC = container->Get<int>("transf_stop_iterations_C");
+	transformCommon.stopIterationsCx = container->Get<int>("transf_stop_iterations_Cx");
+	transformCommon.startIterationsCx = container->Get<int>("transf_start_iterations_Cx");
+	transformCommon.stopIterationsCy = container->Get<int>("transf_stop_iterations_Cy");
+	transformCommon.startIterationsCy = container->Get<int>("transf_start_iterations_Cy");
+
+
 	transformCommon.stopIterationsC1 = container->Get<int>("transf_stop_iterations_C1");
 	transformCommon.startIterationsD = container->Get<int>("transf_start_iterations_D");
 	transformCommon.stopIterationsD = container->Get<int>("transf_stop_iterations_D");
@@ -364,9 +377,12 @@ sFractal::sFractal(const cParameterContainer *container)
 
 	transformCommon.startIterationsM = container->Get<int>("transf_start_iterations_M");
 	transformCommon.stopIterationsM = container->Get<int>("transf_stop_iterations_M");
+	transformCommon.startIterationsN = container->Get<int>("transf_start_iterations_N");
+	transformCommon.stopIterationsN = container->Get<int>("transf_stop_iterations_N");
 	transformCommon.startIterationsO = container->Get<int>("transf_start_iterations_O");
 	transformCommon.stopIterationsO = container->Get<int>("transf_stop_iterations_O");
 	transformCommon.startIterationsP = container->Get<int>("transf_start_iterations_P");
+	transformCommon.stopIterationsP = container->Get<int>("transf_stop_iterations_P");
 	transformCommon.stopIterationsP1 = container->Get<int>("transf_stop_iterations_P1");
 	transformCommon.startIterationsR = container->Get<int>("transf_start_iterations_R");
 	transformCommon.stopIterationsR = container->Get<int>("transf_stop_iterations_R");
@@ -379,8 +395,6 @@ sFractal::sFractal(const cParameterContainer *container)
 	transformCommon.stopIterationsT1 = container->Get<int>("transf_stop_iterationsT_1");
 	transformCommon.startIterationsTM = container->Get<int>("transf_start_iterationsTM");
 	transformCommon.stopIterationsTM1 = container->Get<int>("transf_stop_iterationsTM_1");
-
-
 
 	transformCommon.startIterationsX = container->Get<int>("transf_start_iterations_X");
 	transformCommon.stopIterationsX = container->Get<int>("transf_stop_iterations_X");
@@ -530,18 +544,26 @@ sFractal::sFractal(const cParameterContainer *container)
 	transformCommon.functionEnabledCxFalse = container->Get<bool>("transf_function_enabledCx_false");
 	transformCommon.functionEnabledCyFalse = container->Get<bool>("transf_function_enabledCy_false");
 	transformCommon.functionEnabledCzFalse = container->Get<bool>("transf_function_enabledCz_false");
+	transformCommon.functionEnabledAFalse = container->Get<bool>("transf_function_enabledA_false");
+	transformCommon.functionEnabledBFalse = container->Get<bool>("transf_function_enabledB_false");
+	transformCommon.functionEnabledCFalse = container->Get<bool>("transf_function_enabledC_false");
 	transformCommon.functionEnabledDFalse = container->Get<bool>("transf_function_enabledD_false");
 	transformCommon.functionEnabledEFalse = container->Get<bool>("transf_function_enabledE_false");
 	transformCommon.functionEnabledFFalse = container->Get<bool>("transf_function_enabledF_false");
+	transformCommon.functionEnabledGFalse = container->Get<bool>("transf_function_enabledG_false");
 	transformCommon.functionEnabledJFalse = container->Get<bool>("transf_function_enabledJ_false");
 	transformCommon.functionEnabledKFalse = container->Get<bool>("transf_function_enabledK_false");
 	transformCommon.functionEnabledM = container->Get<bool>("transf_function_enabledM");
 	transformCommon.functionEnabledMFalse = container->Get<bool>("transf_function_enabledM_false");
+	transformCommon.functionEnabledNFalse = container->Get<bool>("transf_function_enabledN_false");
+	transformCommon.functionEnabledOFalse = container->Get<bool>("transf_function_enabledO_false");
 	transformCommon.functionEnabledPFalse = container->Get<bool>("transf_function_enabledP_false");
 	transformCommon.functionEnabledRFalse = container->Get<bool>("transf_function_enabledR_false");
 	transformCommon.functionEnabledSFalse = container->Get<bool>("transf_function_enabledS_false");
 	transformCommon.functionEnabledSwFalse = container->Get<bool>("transf_function_enabledSw_false");
+	transformCommon.functionEnabledTFalse = container->Get<bool>("transf_function_enabledT_false");
 	transformCommon.functionEnabledXFalse = container->Get<bool>("transf_function_enabledX_false");
+	transformCommon.functionEnabledYFalse = container->Get<bool>("transf_function_enabledY_false");
 	transformCommon.juliaMode = container->Get<bool>("transf_constant_julia_mode");
 	transformCommon.rotationEnabled = container->Get<bool>("transf_rotation_enabled");
 	transformCommon.rotation2EnabledFalse = container->Get<bool>("transf_rotation2_enabled_false");
@@ -552,7 +574,8 @@ sFractal::sFractal(const cParameterContainer *container)
 	// transformCommon.functionEnabledTempFalse =
 	//	container->Get<bool>("transf_function_enabled_temp_false");
 
-	WriteLog("cFractal::RecalculateFractalParams(void)", 2);
+
+	WriteLog("cFractal::RecalculateFractalParams(void)", 3);
 
 	RecalculateFractalParams();
 }
@@ -566,7 +589,7 @@ void sFractal::RecalculateFractalParams()
 		IFS.direction[i].Normalize();
 	}
 
-	mandelbox.mainRot.SetRotation2(mandelbox.rotationMain * M_PI_180);
+	mandelbox.mainRot.SetRotation2(mandelbox.rotationMain * M_PI_180); // Rotation
 
 	for (int fold = 0; fold < MANDELBOX_FOLDS; ++fold)
 	{
@@ -589,10 +612,9 @@ void sFractal::RecalculateFractalParams()
 		transformCommon.rotation44a * (M_PI / 180.0)); // ..........................
 	transformCommon.rotationMatrix44.SetRotation44b(
 		transformCommon.rotation44b * (M_PI / 180.0)); // ...............................
-	transformCommon.rotationMatrix.SetRotation2(transformCommon.rotation * (M_PI / 180.0));
-	transformCommon.rotationMatrix2.SetRotation2(transformCommon.rotation2 * (M_PI / 180.0));
-	transformCommon.rotationMatrixVary.SetRotation2(transformCommon.rotationVary * M_PI_180);
-
+	transformCommon.rotationMatrix.SetRotation2(transformCommon.rotation * (M_PI_180)); // T>Rotation
+	transformCommon.rotationMatrix2.SetRotation2(transformCommon.rotation2 * (M_PI_180)); // T>Rotation2
+	transformCommon.rotationMatrixVary.SetRotation2(transformCommon.rotationVary * M_PI_180); // TODO check
 	transformCommon.sqtR = sqrt(transformCommon.minR05);
 	transformCommon.mboxFactor1 = 1.0 / transformCommon.sqtR; // for orig. abox asurf
 

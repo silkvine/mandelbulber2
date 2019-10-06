@@ -88,7 +88,7 @@ enumObjectType PrimitiveNameToEnum(const QString &primitiveType)
 
 cPrimitives::cPrimitives(const cParameterContainer *par, QVector<cObjectData> *objectData)
 {
-	WriteLog("cPrimitives::cPrimitives(const cParameterContainer *par) started", 2);
+	WriteLog("cPrimitives::cPrimitives(const cParameterContainer *par) started", 3);
 	isAnyPrimitive = false;
 
 	QList<QString> listOfParameters = par->GetListOfParameters();
@@ -121,6 +121,18 @@ cPrimitives::cPrimitives(const cParameterContainer *par, QVector<cObjectData> *o
 			{
 				listOfPrimitives.append(sPrimitiveItem(type, index, primitiveName));
 			}
+		}
+	}
+
+	// bubble sort by calculation order
+	for (int i = listOfPrimitives.size() - 1; i > 0; i--)
+	{
+		for (int j = 0; j < listOfPrimitives.size() - 1; j++)
+		{
+			int order1 = par->Get<int>(listOfPrimitives.at(j).name + "_calculation_order");
+			int order2 = par->Get<int>(listOfPrimitives.at(j + 1).name + "_calculation_order");
+
+			if (order1 > order2) listOfPrimitives.swap(j, j + 1);
 		}
 	}
 
@@ -167,6 +179,7 @@ cPrimitives::cPrimitives(const cParameterContainer *par, QVector<cObjectData> *o
 				obj->relativeAmplitude = par->Get<double>(item.name + "_relative_amplitude");
 				obj->length = par->Get<double>(item.name + "_length");
 				obj->animSpeed = par->Get<double>(item.name + "_anim_speed");
+				obj->animProgressionSpeed = par->Get<double>(item.name + "_anim_progression_speed");
 				obj->iterations = par->Get<int>(item.name + "_iterations");
 				obj->waveFromObjectsEnable = par->Get<bool>(item.name + "_wave_from_objects_enable");
 				obj->waveFromObjectsRelativeAmplitude =
@@ -246,8 +259,8 @@ cPrimitives::cPrimitives(const cParameterContainer *par, QVector<cObjectData> *o
 		primitive->objectType = item.type;
 		primitive->SetRotation(par->Get<CVector3>(item.name + "_rotation"));
 		primitive->enable = par->Get<bool>(item.name + "_enabled");
-		// primitive->reflect = par->Get<double>(item.name + "_reflection");
-		// primitive->color = par->Get<sRGB>(item.name + "_color");
+		primitive->booleanOperator =
+			enumPrimitiveBooleanOperator(par->Get<int>(item.name + "_boolean_operator"));
 
 		if (objectData)
 		{
@@ -261,7 +274,7 @@ cPrimitives::cPrimitives(const cParameterContainer *par, QVector<cObjectData> *o
 	allPrimitivesRotation = par->Get<CVector3>("all_primitives_rotation");
 	mRotAllPrimitivesRotation.SetRotation2(allPrimitivesRotation / 180.0 * M_PI);
 
-	WriteLog("cPrimitives::cPrimitives(const cParameterContainer *par) finished", 2);
+	WriteLog("cPrimitives::cPrimitives(const cParameterContainer *par) finished", 3);
 }
 
 cPrimitives::~cPrimitives()
@@ -400,7 +413,9 @@ double sPrimitiveWater::PrimitiveDistanceWater(CVector3 _point, double distanceF
 		double p = 1.0;
 		double p2 = 0.05;
 
-		point.x += phase * 0.05;
+		point.x += phase * 0.05
+							 * (animProgressionSpeed * 3.0
+									- 3.0); // 3.0 to keep compatibility and to have 0.0 stopping moving
 
 		for (int i = 1; i <= iterations; i++)
 		{
@@ -434,8 +449,8 @@ double sPrimitiveTorus::PrimitiveDistance(CVector3 _point) const
 	return empty ? fabs(dist) : dist;
 }
 
-double cPrimitives::TotalDistance(
-	CVector3 point, double fractalDistance, int *closestObjectId, sRenderData *data) const
+double cPrimitives::TotalDistance(CVector3 point, double fractalDistance, double detailSize,
+	bool normalCalculationMode, int *closestObjectId, sRenderData *data) const
 {
 	using namespace fractal;
 	int closestObject = *closestObjectId;
@@ -461,13 +476,93 @@ double cPrimitives::TotalDistance(
 					distTemp = primitive->PrimitiveDistance(point2);
 				}
 				distTemp = DisplacementMap(distTemp, point2, primitive->objectId, data);
-				if (distTemp < distance)
+
+				switch (primitive->booleanOperator)
 				{
-					closestObject = primitive->objectId;
-					// color = plane.color;
-					// reflect = plane.reflect;
-				}
-				distance = min(distance, distTemp);
+					case primBooleanOperatorOR:
+					{
+						if (distTemp < distance)
+						{
+							closestObject = primitive->objectId;
+						}
+						distance = min(distance, distTemp);
+						break;
+					}
+					case primBooleanOperatorAND:
+					{
+						if (distTemp > distance)
+						{
+							closestObject = primitive->objectId;
+						}
+						distance = max(distance, distTemp);
+						break;
+					}
+					case primBooleanOperatorSUB:
+					{
+						const double limit = 1.5;
+						if (distance < detailSize) // if inside 1st
+						{
+							if (distTemp < detailSize * limit * 1.5)
+							{
+								closestObject = primitive->objectId;
+							}
+
+							if (distTemp < detailSize * limit) // if inside 2nd
+							{
+								if (normalCalculationMode)
+								{
+									distance = max(detailSize * limit - distTemp, distance);
+								}
+								else
+								{
+									distance = detailSize * limit;
+								}
+							}
+							else // if outside of 2nd
+							{
+								distance = max(detailSize * limit - distTemp, distance);
+								if (distance < 0) distance = 0;
+							}
+						}
+						break;
+					}
+					case primBooleanOperatorRevSUB:
+					{
+						int closestObjectTemp = closestObject;
+						closestObject = primitive->objectId;
+						const double limit = 1.5;
+						if (distTemp < detailSize) // if inside 2nd
+						{
+							if (distance < detailSize * limit * 1.5)
+							{
+								closestObject = closestObjectTemp;
+							}
+
+							if (distance < detailSize * limit) // if inside 1st
+							{
+								if (normalCalculationMode)
+								{
+									distance = max(detailSize * limit - distance, distTemp);
+								}
+								else
+								{
+									distance = detailSize * limit;
+								}
+							}
+							else // if outside of 1st
+							{
+								distTemp = max(detailSize * limit - distance, distTemp);
+								distance = distTemp;
+								if (distance < 0) distance = 0;
+							}
+						}
+						else
+						{
+							distance = distTemp;
+						}
+						break;
+					}
+				} // switch
 			}
 		}
 

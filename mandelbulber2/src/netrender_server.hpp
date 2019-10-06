@@ -43,6 +43,7 @@
 
 // forward declarations
 struct sRenderData;
+class cNetRenderFileReceiver;
 
 class cNetRenderServer : public QObject
 {
@@ -75,14 +76,14 @@ public:
 	const sClient &GetClient(int index);
 	// in cli mode this method enables waiting for the clients before start of rendering
 	bool WaitForAllClientsReady(double timeout);
-
 	// send parameters and textures to all clients and start rendering
 	void SetCurrentJob(const cParameterContainer &settings, const cFractalContainer &fractal,
 		QStringList listOfTextures);
-
 	// send parameters and start rendering animation from frame n
 	void SetCurrentAnimation(
 		const cParameterContainer &settings, const cFractalContainer &fractal, bool isFlight);
+	// send list of frames to render next
+	void SendFramesToDoList(int clientIndex, const QList<int> &frameNumbers);
 
 private slots:
 	// received data from client
@@ -97,11 +98,13 @@ signals:
 	void Deleted();
 	// request to update table of clients
 	void ClientsChanged();
-	void ClientsChanged(int i);
-	void ClientsChanged(int i, int j);
+	void ClientsChangedRow(int i);
+	void ClientsChangedCell(int i, int j);
 	// send data of newly rendered lines to cRenderer
 	void NewLinesArrived(QList<int> lineNumbers, QList<QByteArray> lines);
-	void FinishedFrame(int frameIndex, int sizeOfDoDoList);
+	void FinishedFrame(int clientIndex, int frameIndex, int sizeOfDoDoList);
+	void ReceivedFileHeader(int index, qint64 fileSize, QString fileName);
+	void ReceivedFileData(int index, int chunkIndex, QByteArray chunkData);
 
 private:
 	// process received data and send response if needed
@@ -115,6 +118,9 @@ private:
 	void ProcessRequestData(sMessage *inMsg, int index, QTcpSocket *socket);
 	void ProcessRequestStatus(sMessage *inMsg, int index, QTcpSocket *socket);
 	void ProcessRequestFrameDone(sMessage *inMsg, int index, QTcpSocket *socket);
+	void ProcessRequestFrameFileHeader(sMessage *inMsg, int index, QTcpSocket *socket);
+	void ProcessRequestFrameFileDataChunk(sMessage *inMsg, int index, QTcpSocket *socket);
+	void ProcessRequestFile(sMessage *inMsg, int index, QTcpSocket *socket);
 
 	QList<sClient> clients;
 	sClient nullClient; // dummy client for fail-safe purposes
@@ -122,6 +128,15 @@ private:
 	QTcpServer *server;
 	sMessage msgCurrentJob;
 	qint32 actualId;
+	cNetRenderFileReceiver *fileReceiver;
+
+public:
+	const QStringList listOfAppSettingToTransfer = {"opencl_mode", "color_enabled", "alpha_enabled",
+		"zbuffer_enabled", "normal_enabled", "normalWorld_enabled", "specular_enabled", "diffuse_enabled", "world_enabled",
+		"color_quality", "alpha_quality", "zbuffer_quality", "normal_postfix", "specular_postfix",
+		"diffuse_postfix", "world_postfix", "append_alpha_png", "linear_colorspace", "jpeg_quality",
+		"stereoscopic_in_separate_files", "optional_image_channels_enabled",
+		"flight_animation_image_type", "keyframe_animation_image_type"};
 };
 
 #endif /* MANDELBULBER2_SRC_NETRENDER_SERVER_HPP_ */

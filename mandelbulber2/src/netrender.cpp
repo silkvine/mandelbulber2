@@ -50,6 +50,13 @@
 
 cNetRender *gNetRender = nullptr;
 
+// TODO: to check why cliect hangs after loading mp3 file (second rendering)
+// TODO: to check headless mode
+// TODO: to add sending of rendering preview
+// TODO: to modify NetRender status table
+// TODO: to implement NetRender for flight animation rendering
+// FIXME: animated textures are not transfered
+
 cNetRender::cNetRender() : QObject(nullptr)
 {
 	deviceType = netRenderDevuceType_UNKNOWN;
@@ -59,28 +66,33 @@ cNetRender::cNetRender() : QObject(nullptr)
 	netRenderClient = new CNetRenderClient();
 
 	// client signals
-	connect(netRenderClient, SIGNAL(changeClientStatus(netRenderStatus)), this,
-		SLOT(clientStatusChanged(netRenderStatus)));
-	connect(netRenderClient, SIGNAL(Deleted()), this, SLOT(ResetDeviceType()));
-	connect(netRenderClient, SIGNAL(ToDoListArrived(QList<int>)), this,
-		SIGNAL(ToDoListArrived(QList<int>)));
-	connect(netRenderClient, SIGNAL(AckReceived()), this, SIGNAL(AckReceived()));
-	connect(netRenderClient, SIGNAL(NotifyStatus()), this, SLOT(NotifyStatus()));
 	connect(
-		netRenderClient, SIGNAL(KeyframeAnimationRender()), this, SIGNAL(KeyframeAnimationRender()));
+		netRenderClient, &CNetRenderClient::changeClientStatus, this, &cNetRender::clientStatusChanged);
+	connect(netRenderClient, &CNetRenderClient::Deleted, this, &cNetRender::ResetDeviceType);
+	connect(netRenderClient, &CNetRenderClient::ToDoListArrived, this, &cNetRender::ToDoListArrived);
+	connect(netRenderClient, &CNetRenderClient::AckReceived, this, &cNetRender::AckReceived);
+	connect(netRenderClient, &CNetRenderClient::NotifyStatus, this, &cNetRender::NotifyStatus);
+	connect(netRenderClient, &CNetRenderClient::KeyframeAnimationRender, this,
+		&cNetRender::KeyframeAnimationRender);
+	connect(
+		netRenderClient, &CNetRenderClient::UpdateFramesToDo, this, &cNetRender::UpdateFramesToDo);
+	connect(netRenderClient, &CNetRenderClient::animationStopRequest, this,
+		&cNetRender::animationStopRequest);
+	connect(this, &cNetRender::AddFileToSender, netRenderClient, &CNetRenderClient::AddFileToSender);
 
 	// server signals
 	netRenderServer = new cNetRenderServer();
-	connect(netRenderServer, SIGNAL(changeServerStatus(netRenderStatus)), this,
-		SLOT(serverStatusChanged(netRenderStatus)));
-	connect(netRenderServer, SIGNAL(ClientsChanged()), this, SLOT(ClientsHaveChanged()));
-	connect(netRenderServer, SIGNAL(ClientsChanged(int)), this, SIGNAL(ClientsChanged(int)));
 	connect(
-		netRenderServer, SIGNAL(ClientsChanged(int, int)), this, SIGNAL(ClientsChanged(int, int)));
-	connect(netRenderServer, SIGNAL(Deleted()), this, SLOT(ResetDeviceType()));
-	connect(netRenderServer, SIGNAL(NewLinesArrived(QList<int>, QList<QByteArray>)), this,
-		SIGNAL(NewLinesArrived(QList<int>, QList<QByteArray>)));
-	connect(netRenderServer, SIGNAL(FinishedFrame(int, int)), this, SIGNAL(FinishedFrame(int, int)));
+		netRenderServer, &cNetRenderServer::changeServerStatus, this, &cNetRender::serverStatusChanged);
+	connect(
+		netRenderServer, &cNetRenderServer::ClientsChanged, this, &cNetRender::ClientsHaveChanged);
+	connect(
+		netRenderServer, &cNetRenderServer::ClientsChangedRow, this, &cNetRender::ClientsChangedRow);
+	connect(
+		netRenderServer, &cNetRenderServer::ClientsChangedCell, this, &cNetRender::ClientsChangedCell);
+	connect(netRenderServer, &cNetRenderServer::Deleted, this, &cNetRender::ResetDeviceType);
+	connect(netRenderServer, &cNetRenderServer::NewLinesArrived, this, &cNetRender::NewLinesArrived);
+	connect(netRenderServer, &cNetRenderServer::FinishedFrame, this, &cNetRender::FinishedFrame);
 }
 
 cNetRender::~cNetRender()
@@ -164,6 +176,11 @@ void cNetRender::KickAndKillClient(int clientIndex)
 	netRenderServer->KickAndKillClient(clientIndex);
 }
 
+void cNetRender::SendFramesToDoList(int clientIndex, QList<int> frameNumbers)
+{
+	netRenderServer->SendFramesToDoList(clientIndex, frameNumbers);
+}
+
 // send rendered lines
 void cNetRender::SendRenderedLines(const QList<int> &lineNumbers, const QList<QByteArray> &lines)
 {
@@ -174,6 +191,11 @@ void cNetRender::NotifyStatus()
 {
 	emit NewStatusClient();
 	netRenderClient->SendStatusToServer(status);
+}
+
+void cNetRender::ConfirmRenderedFrame(int frameIndex, int sizeOfToDoList)
+{
+	netRenderClient->ConfirmRenderedFrame(frameIndex, sizeOfToDoList);
 }
 
 QString cNetRender::GetStatusText(netRenderStatus displayStatus)
@@ -258,7 +280,33 @@ void cNetRender::ResetDeviceType()
 	emit NotifyStatus();
 }
 
-void cNetRender::ConfirmRenderedFrame(int frameIndex, int sizeOfToDoList)
+QString cNetRender::GetFileFromNetRender(QString requiredFileName, int frameIndex)
 {
-	netRenderClient->ConfirmRenderedFrame(frameIndex, sizeOfToDoList);
+	// this method need to be thread safe!
+
+	QCryptographicHash hashCrypt(QCryptographicHash::Md4);
+	hashCrypt.addData(requiredFileName.toLocal8Bit());
+	if (requiredFileName.contains('%'))
+	{
+		QString stringFrameNumber = QString::number(frameIndex);
+		hashCrypt.addData(stringFrameNumber.toLocal8Bit());
+	}
+	else
+	{
+		frameIndex = -1;
+	}
+
+	QByteArray hash = hashCrypt.result();
+	QString hashString = hash.toHex();
+	QString fileInCache = systemData.GetNetrenderFolder() + QDir::separator() + hashString + "."
+												+ QFileInfo(requiredFileName).suffix();
+	if (QFile::exists(fileInCache))
+	{
+		return fileInCache;
+	}
+	else
+	{
+		netRenderClient->RequestFileFromServer(requiredFileName, frameIndex);
+		return fileInCache;
+	}
 }

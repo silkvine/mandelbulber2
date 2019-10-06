@@ -104,6 +104,8 @@ public:
 		IMAGE_CONTENT_DIFFUSE = 5,
 
 		IMAGE_CONTENT_WORLD_POSITION = 6,
+
+		IMAGE_CONTENT_NORMAL_WORLD = 7
 	};
 
 	enum enumImageChannelQualityType
@@ -140,7 +142,7 @@ public:
 	static enumImageFileType ImageFileType(QString imageFileExtension);
 	static ImageFileSave *create(
 		QString filename, enumImageFileType fileType, cImage *image, ImageConfig imageConfig);
-	virtual void SaveImage() = 0;
+	virtual QStringList SaveImage() = 0;
 	virtual QString getJobName() = 0;
 	static const uint64_t SAVE_CHUNK_SIZE = 64;
 	QString CreateFullFileNameAndMakeDir(const QString &filename, enumImageContentType contentType,
@@ -179,14 +181,14 @@ public:
 		appendAlphaCustom = _appendAlphaCustom;
 		hasAppendAlphaCustom = true;
 	}
-	void SaveImage() override;
+	QStringList SaveImage() override;
 	QString getJobName() override { return tr("Saving %1").arg("PNG"); }
 	void SavePNG(
 		QString filename, cImage *image, structSaveImageChannel imageChannel, bool appendAlpha = false);
 	static void SavePNG16(QString filename, int width, int height, sRGB16 *image16);
 	static void SaveFromTilesPNG16(const char *filename, int width, int height, int tiles);
 	static bool SavePNGQtBlackAndWhite(QString filename, unsigned char *image, int width, int height);
-	void SavePngRgbPixel(structSaveImageChannel imageChannel, char *colorPtr, sRGBFloat pixel);
+	void SavePngRgbPixel(structSaveImageChannel imageChannel, char *colorPtr, sRGBFloat pixel, bool signedInput);
 
 private:
 	bool hasAppendAlphaCustom;
@@ -201,15 +203,14 @@ public:
 			: ImageFileSave(filename, image, imageConfig)
 	{
 	}
-	void SaveImage() override;
+	QStringList SaveImage() override;
 	QString getJobName() override { return tr("Saving %1").arg("JPG"); }
 	static bool SaveJPEGQt(QString filename, unsigned char *image, int width, int height, int quality,
 		QMap<QString, QString> meta = {});
 	static bool SaveJPEGQtGreyscale(QString filename, unsigned char *image, int width, int height,
 		int quality, QMap<QString, QString> meta = {});
-	bool SaveJPEGQt32(QString filename, structSaveImageChannel imageChannel, int width, int height, int quality,
-		QMap<QString, QString> meta = {});
-
+	bool SaveJPEGQt32(QString filename, structSaveImageChannel imageChannel, int width, int height,
+		int quality, QMap<QString, QString> meta = {});
 };
 
 #ifdef USE_TIFF
@@ -221,7 +222,7 @@ public:
 			: ImageFileSave(filename, image, imageConfig)
 	{
 	}
-	void SaveImage() override;
+	QStringList SaveImage() override;
 	QString getJobName() override { return tr("Saving %1").arg("TIFF"); }
 	bool SaveTIFF(
 		QString filename, cImage *image, structSaveImageChannel imageChannel, bool appendAlpha = false);
@@ -238,7 +239,7 @@ public:
 			: ImageFileSave(filename, image, imageConfig)
 	{
 	}
-	void SaveImage() override;
+	QStringList SaveImage() override;
 	QString getJobName() override { return tr("Saving %1").arg("EXR"); }
 	void SaveEXR(QString filename, cImage *image,
 		QMap<enumImageContentType, structSaveImageChannel> imageConfig);

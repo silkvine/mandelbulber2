@@ -45,23 +45,32 @@
 #include "files.h"
 #include "qimage.h"
 #include "resource_http_provider.hpp"
+#include "netrender.hpp"
 
 // constructor
-cTexture::cTexture(QString filename, enumUseMipmaps mode, int frameNo, bool beQuiet)
+cTexture::cTexture(
+	QString filename, enumUseMipmaps mode, int frameNo, bool beQuiet, bool useNetRender)
 {
 	bitmap = nullptr;
 
 	WriteLogString("Loading texture", filename, 2);
 
-	WriteLogString("Loading texture - AnimatedFileName()", filename, 3);
-	filename = AnimatedFileName(filename, frameNo);
+	if (gNetRender->IsClient() && useNetRender)
+	{
+		filename = gNetRender->GetFileFromNetRender(filename, frameNo);
+	}
+	else
+	{
+		WriteLogString("Loading texture - AnimatedFileName()", filename, 3);
+		filename = AnimatedFileName(filename, frameNo);
 
-	WriteLogString("Loading texture - FilePathHelperTextures()", filename, 3);
-	filename = FilePathHelperTextures(filename);
+		WriteLogString("Loading texture - FilePathHelperTextures()", filename, 3);
+		filename = FilePathHelperTextures(filename);
 
-	WriteLogString("Loading texture - httpProvider()", filename, 3);
-	cResourceHttpProvider httpProvider(filename);
-	if (httpProvider.IsUrl()) filename = httpProvider.cacheAndGetFilename();
+		WriteLogString("Loading texture - httpProvider()", filename, 3);
+		cResourceHttpProvider httpProvider(filename);
+		if (httpProvider.IsUrl()) filename = httpProvider.cacheAndGetFilename();
+	}
 
 	// try to load image if it's PNG format (this one supports 16-bit depth images)
 	WriteLogString("Loading texture - LoadPNG()", filename, 3);
@@ -105,8 +114,8 @@ cTexture::cTexture(QString filename, enumUseMipmaps mode, int frameNo, bool beQu
 	}
 	else
 	{
-		if (!beQuiet)
-			cErrorMessage::showMessage(
+		if (!beQuiet && !useNetRender)
+			gErrorMessage->showMessageFromOtherThread(
 				QObject::tr("Can't load texture!\n") + filename, cErrorMessage::errorMessage);
 		width = 100;
 		height = 100;

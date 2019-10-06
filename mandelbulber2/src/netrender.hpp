@@ -158,6 +158,8 @@ public slots:
 	void KickAndKillClient(int clientIndex);
 	// set the identification of the current render job
 	void SetCurrentRenderId(qint32 actualId);
+	// send numbers of next frames to render
+	void SendFramesToDoList(int clientIndex, QList<int> frameNumbers);
 
 	//++++++++++++++++++ Client related  +++++++++++++++++
 	// send to server a list of numbers and image data of already rendered lines
@@ -166,6 +168,8 @@ public slots:
 	void NotifyStatus();
 	// notify server that frame was just rendered
 	void ConfirmRenderedFrame(int frameIndex, int sizeOfToDoList);
+	// get file from NetRender cache or from server (returns file path in cache)
+	QString GetFileFromNetRender(QString requiredFileName, int frameIndex);
 
 	//------------------- private slots ------------------
 private slots:
@@ -179,20 +183,29 @@ private slots:
 	void ResetDeviceType();
 
 signals:
+	//++++++++++++++++ Server related ++++++++++++++++
 	// request to update table of clients
 	void ClientsChanged();
-	void ClientsChanged(int i);
-	void ClientsChanged(int i, int j);
+	void ClientsChangedRow(int i);
+	void ClientsChangedCell(int i, int j);
 	// send data of newly rendered lines to cRenderer
 	void NewLinesArrived(QList<int> lineNumbers, QList<QByteArray> lines);
+	// signal to animation about finished frame
+	void FinishedFrame(int clientIndex, int frameIndex, int sizeOfToDoList);
+	// add file to file sender queue
+	void AddFileToSender(QString fileName);
+
+	//++++++++++++++++ Client related ++++++++++++++++
 	// send list of rendered lines to cRenderer
 	void ToDoListArrived(QList<int> done);
 	// confirmation of data receive
 	void AckReceived();
 	// signal to start rendering keyframe animation
 	void KeyframeAnimationRender();
-	// signal to animation about finished frame
-	void FinishedFrame(int, int);
+	// signal to update list of frames to render
+	void UpdateFramesToDo(QList<int> listOfFrames);
+	// stop rendering animation;
+	void animationStopRequest();
 
 	void NewStatusClient();
 	void NewStatusServer();

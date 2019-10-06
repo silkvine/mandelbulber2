@@ -91,7 +91,7 @@ void cRenderer::InitializeThreadData(cRenderWorker::sThreadData *threadData)
 	for (int i = 0; i < data->configuration.GetNumberOfThreads(); i++)
 	{
 		threadData[i].id = i + 1;
-		if (data->configuration.UseNetRender())
+		if (data->configuration.UseNetRender() && !gNetRender->IsAnimation())
 		{
 			if (i < data->netRenderStartingPositions.size())
 			{
@@ -285,7 +285,7 @@ void cRenderer::RenderSSAO()
 	connect(&rendererSSAO, SIGNAL(updateImage()), this, SIGNAL(updateImage()));
 	if (data->stereo.isEnabled()
 			&& (data->stereo.GetMode() == cStereo::stereoLeftRight
-					 || data->stereo.GetMode() == cStereo::stereoTopBottom))
+					|| data->stereo.GetMode() == cStereo::stereoTopBottom))
 	{
 		cRegion<int> region;
 		region = data->stereo.GetRegion(
@@ -311,7 +311,7 @@ void cRenderer::RenderDOF()
 	connect(&dof, SIGNAL(updateImage()), this, SIGNAL(updateImage()));
 	if (data->stereo.isEnabled()
 			&& (data->stereo.GetMode() == cStereo::stereoLeftRight
-					 || data->stereo.GetMode() == cStereo::stereoTopBottom))
+					|| data->stereo.GetMode() == cStereo::stereoTopBottom))
 	{
 		cRegion<int> region;
 		region = data->stereo.GetRegion(
@@ -473,7 +473,7 @@ bool cRenderer::RenderImage()
 		image->NullPostEffect();
 
 		// post efects
-		if (!((gNetRender->IsClient() || gNetRender->IsAnimation())
+		if (!((gNetRender->IsClient() && !gNetRender->IsAnimation())
 					&& data->configuration.UseNetRender()))
 		{
 			if (params->ambientOcclusionEnabled
@@ -564,6 +564,8 @@ void cRenderer::CreateLineData(int y, QByteArray *lineData) const
 			lineOfImage[x].opacityBuffer = image->GetPixelOpacity(x, y);
 			if (image->GetImageOptional()->optionalNormal)
 				lineOfImage[x].normalFloat = image->GetPixelNormal(x, y);
+			if (image->GetImageOptional()->optionalNormalWorld)
+				lineOfImage[x].normalFloat = image->GetPixelNormalWorld(x, y);
 			if (image->GetImageOptional()->optionalSpecular)
 				lineOfImage[x].normalSpecular = image->GetPixelSpecular(x, y);
 			if (image->GetImageOptional()->optionalWorld)
@@ -596,6 +598,8 @@ void cRenderer::NewLinesArrived(QList<int> lineNumbers, QList<QByteArray> lines)
 				image->PutPixelOpacity(x, y, lineOfImage[x].opacityBuffer);
 				if (image->GetImageOptional()->optionalNormal)
 					image->PutPixelNormal(x, y, lineOfImage[x].normalFloat);
+				if (image->GetImageOptional()->optionalNormalWorld)
+					image->PutPixelNormalWorld(x, y, lineOfImage[x].normalFloatWorld);
 				if (image->GetImageOptional()->optionalSpecular)
 					image->PutPixelSpecular(x, y, lineOfImage[x].normalSpecular);
 				if (image->GetImageOptional()->optionalWorld)

@@ -444,7 +444,7 @@ void cOpenClDynamicData::BuildAOVectorsData(const sVectorsAround *AOVectors, cl_
 
 		sVectorsAroundCl vector;
 		vector.v = toClFloat3(AOVectors[i].v);
-		vector.color = toClFloat3(sRGB(AOVectors[i].R, AOVectors[i].G, AOVectors[i].B));
+		vector.color = toClFloat3(AOVectors[i].color);
 		vector.alpha = AOVectors[i].alpha;
 		vector.beta = AOVectors[i].beta;
 
@@ -587,6 +587,8 @@ QString cOpenClDynamicData::BuildPrimitivesData(const cPrimitives *primitivesCon
 		primitiveCl.object.position = toClFloat3(primitive->position);
 		primitiveCl.object.rotationMatrix = toClMatrix33(primitive->rotationMatrix);
 		primitiveCl.object.size = toClFloat3(primitive->size);
+		primitiveCl.booleanOperator =
+			static_cast<enumClPrimitiveBooleanOperator>(primitive->booleanOperator);
 
 		try
 		{
@@ -644,6 +646,7 @@ QString cOpenClDynamicData::BuildPrimitivesData(const cPrimitives *primitivesCon
 						primitiveCl.data.water.waveFromObjectsEnable = water->waveFromObjectsEnable;
 						primitiveCl.data.water.relativeAmplitude = water->relativeAmplitude;
 						primitiveCl.data.water.animSpeed = water->animSpeed;
+						primitiveCl.data.water.animProgressionSpeed = water->animProgressionSpeed;
 						primitiveCl.data.water.length = water->length;
 						primitiveCl.data.water.waveFromObjectsRelativeAmplitude =
 							water->waveFromObjectsRelativeAmplitude;

@@ -109,7 +109,7 @@ enum enumFractalFormula
 	benesiPineTree = 66,	 // updated addCpixel V2.16
 	benesiT1PineTree = 67, // updated V2.09, rot2 v2.14
 	msltoeSym3Mod = 68,
-	msltoeSym4Mod = 69,
+	msltoeSym4Mod = 69, // fix scal , add mult
 	eiffieMsltoe = 70, // updated V2.08. DE v2.15
 	riemannSphereMsltoeV1 = 71,
 	riemannSphereMsltoe = 72,
@@ -172,7 +172,7 @@ enum enumFractalFormula
 	quaternionCubic4d = 124,
 	boxFoldBulbPow2V2 = 125,
 	boxFoldBulbPow2V3 = 126, // added sphere invert
-	aboxMod13 = 127,
+	aboxMod13 = 127, // add missing sphere fold iter controls
 	boxFoldQuat = 128,
 	// 2.13
 	coastalbrot = 129,
@@ -203,9 +203,6 @@ enum enumFractalFormula
 	mandelbulbPower1234 = 148,
 	mengerPolyFold = 149,
 	ifsXY = 150,
-	// 2.20
-	riemannSphereHobold = 151,
-
 
 	// 152 to 172 reserved for scator
 	scatorPower2Imaginary = 152, // fixed r calc v2.14
@@ -213,12 +210,19 @@ enum enumFractalFormula
 	scatorPower2 = 173, // added V2.15
 	scatorPower2StdR = 174, // added V2.15
 
+	// 2.20
+	riemannSphereHoboldPow4 = 180,
+	riemannSphereHoboldPow8 = 181,
+	mandelbulbKosalos = 182,
+	mandelbulbKosalosV2 = 183,
+	riemannSphereHoboldMulti = 184,
+
 	// mandelbulber dIFS
 	dIFSBoxDiagonalV1 = 600,
-	dIFSBoxDiagonalV2 = 601,
+	dIFSBoxV1 = 601,
 	dIFSBoxDiagonalV3 = 602,
-
-
+	dIFSCylinder = 603,
+	dIFSSphere = 604,
 
 
 	mandelbulbEye = 800,
@@ -320,7 +324,7 @@ enum enumFractalFormula
 	transfAddCpixelSinOrCos = 1087,
 	// 2.16
 	transfSurfBoxFoldV2 = 1088,
-	transfSurfBoxFoldV24d = 1089,
+	//transfSurfBoxFoldV24d = 1089,
 	// 2.17
 	transfBoxWrap4d = 1089,
 	transfSphericalInvV2 = 1090,
@@ -337,6 +341,10 @@ enum enumFractalFormula
 	transfPolyFoldAtan = 1099,
 	transfPolyFoldAtan2 = 1100,
 	transfAbsAddConditional2 = 1101,
+	// 2.20
+	transfAddConstantMod2 = 1102,
+	transfAddConstantRotV1 = 1103,
+	transfSurfBoxFoldV24d = 1104, // duplicated number 1089
 
 	// hybrid color trial
 	transfHybridColor = 2000,
@@ -344,7 +352,7 @@ enum enumFractalFormula
 	testing = 2100,
 	testing4d = 2101,
 	testingLog = 2103,
-
+	testingTransform = 2104,
 
 
 };

@@ -43,6 +43,7 @@
 
 // forward declarations
 struct sRenderData;
+class cNetRenderFileSender;
 
 class CNetRenderClient : public QObject
 {
@@ -65,6 +66,8 @@ public:
 	QString GetServerName() const { return serverName; }
 	// notify server that frame was just rendered
 	void ConfirmRenderedFrame(int frameIndex, int sizeOfToDoList);
+	// request for file from server
+	void RequestFileFromServer(QString filename, int frameIndex);
 
 private slots:
 	// try to connect to server
@@ -73,6 +76,12 @@ private slots:
 	void ServerDisconnected();
 	// received data from server
 	void ReceiveFromServer();
+	// send file header
+	void SendFileHeader(qint64 fileSize, QString nameWithoutPath);
+	// send file data chunk
+	void SendFileDataChunk(int chunkIndex, QByteArray data);
+	// request for file from server
+	void SlotRequestFileFromServer(QString filename, int frameIndex);
 
 signals:
 	// The client has been deleted
@@ -87,6 +96,14 @@ signals:
 	void NotifyStatus();
 	// signal to start rendering keyframe animation
 	void KeyframeAnimationRender();
+	// signal to update list of frames to render
+	void UpdateFramesToDo(QList<int> listOfFrames);
+	// add file to file sender queue
+	void AddFileToSender(QString fileName);
+	// request for file from server
+	void SignalRequestFileFromServer(QString filename, int frameIndex);
+	// stop rendering animation;
+	void animationStopRequest();
 
 private:
 	void ProcessData();
@@ -101,6 +118,8 @@ private:
 	void ProcessRequestAck(sMessage *inMsg);
 	void ProcessRequestKickAndKill(sMessage *inMsg);
 	void ProcessRequestRenderAnimation(sMessage *inMsg);
+	void ProcessRequestFramesToDo(sMessage *inMsg);
+	void ProcessRequestReceivedFile(sMessage *inMsg);
 
 	QTcpSocket *clientSocket;
 	QTimer *reconnectTimer;
@@ -113,6 +132,11 @@ private:
 	QVector<int> startingPositions;
 	QList<int> framesToRender;
 	QMap<QString, QByteArray> textures;
+	cNetRenderFileSender *fileSender;
+
+	bool fileReceived = false;
+	QString requestedFileName;
+	int frameIndexForRequestedFile = -1;
 };
 
 #endif /* MANDELBULBER2_SRC_NETRENDER_CLIENT_HPP_ */

@@ -96,7 +96,8 @@ public slots:
 	void slotIncreaseCurrentTableIndex();
 	void slotDecreaseCurrentTableIndex();
 	void slotModifyKeyframe();
-	void slotNetRenderFinishedFrame(int frameIndex, int sizeOfToDoList);
+	void slotNetRenderFinishedFrame(int clientIndex, int frameIndex, int sizeOfToDoList);
+	void slotNetRenderUpdateFramesToDo(QList<int> listOfFrames);
 
 private slots:
 	void slotSelectKeyframeAnimImageDir() const;
@@ -112,6 +113,7 @@ private slots:
 	void slotCellClicked(int row, int column) const;
 	void slotSetConstantTargetDistance();
 	void slotUpdateAnimationPathSelection();
+	void slotAnimationStopRequest();
 
 private:
 	void PrepareTable();
@@ -121,7 +123,7 @@ private:
 	int AddColumn(const cAnimationFrames::sAnimationFrame &frame, int index = -1);
 	void AddRow(int row, const QString &fullParameterName, int index);
 	void NewKeyframe(int index);
-	QString GetKeyframeFilename(int index, int subIndex) const;
+	QString GetKeyframeFilename(int index, int subIndex, bool netRenderCache) const;
 	static QColor MorphType2Color(parameterContainer::enumMorphType morphType);
 	void AddAnimSoundColumn() const;
 	void UpdateAnimationPath() const;
@@ -142,6 +144,12 @@ private:
 	QSize previewSize;
 	CVector3 actualCameraPosition;
 	QList<int> netRenderListOfFramesToRender;
+	QVector<bool> alreadyRenderedFrames;
+	QVector<bool> reservedFrames;
+	int renderedFramesCount = 0; // used for countig frames rendered with NetRender
+	const int maxFramesForNetRender = 50;
+	const int minFramesForNetRender = 5;
+	bool animationStopRequest = false;
 
 signals:
 	void updateProgressAndStatus(const QString &text, const QString &progressText, double progress,
@@ -159,8 +167,29 @@ signals:
 	void NetRenderCurrentAnimation(
 		const cParameterContainer &settings, const cFractalContainer &fractal, bool isFlight);
 	void NetRenderConfirmRendered(int frameIndex, int toDoListLength);
+	void NetRenderSendFramesToDoList(int clientIndex, QList<int> frameNumbers);
+	void NetRenderAddFileToSender(QString);
+	void NetRenderStopAllClients();
+	void NetRenderNotifyClientStatus();
 };
 
 extern cKeyframeAnimation *gKeyframeAnimation;
+
+class cKeyframeRenderThread : public QThread
+{
+	Q_OBJECT;
+
+public:
+	cKeyframeRenderThread(QString &settingsText);
+
+public slots:
+	void startAnimationRender();
+
+private:
+	QString settingsText;
+
+signals:
+	void renderingFinished();
+};
 
 #endif /* MANDELBULBER2_SRC_ANIMATION_KEYFRAMES_HPP_ */

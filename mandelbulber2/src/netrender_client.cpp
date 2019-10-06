@@ -44,6 +44,7 @@
 #include "headless.h"
 #include "initparameters.hpp"
 #include "interface.hpp"
+#include "netrender_file_sender.hpp"
 #include "render_window.hpp"
 #include "settings.hpp"
 #include "system.hpp"
@@ -54,9 +55,20 @@ CNetRenderClient::CNetRenderClient()
 	clientSocket = nullptr;
 	reconnectTimer = new QTimer;
 	reconnectTimer->setInterval(1000);
-	connect(reconnectTimer, SIGNAL(timeout()), this, SLOT(TryServerConnect()));
+	connect(reconnectTimer, &QTimer::timeout, this, &CNetRenderClient::TryServerConnect);
 	actualId = 0;
 	portNo = 0;
+	fileSender = new cNetRenderFileSender(this);
+	connect(fileSender, &cNetRenderFileSender::NetRenderSendHeader, this,
+		&CNetRenderClient::SendFileHeader);
+	connect(fileSender, &cNetRenderFileSender::NetRenderSendChunk, this,
+		&CNetRenderClient::SendFileDataChunk);
+	connect(
+		this, &CNetRenderClient::AddFileToSender, fileSender, &cNetRenderFileSender::AddFileToQueue);
+	connect(
+		this, &CNetRenderClient::AckReceived, fileSender, &cNetRenderFileSender::AcknowledgeReceived);
+	connect(this, &CNetRenderClient::SignalRequestFileFromServer, this,
+		&CNetRenderClient::SlotRequestFileFromServer, Qt::QueuedConnection);
 }
 
 CNetRenderClient::~CNetRenderClient()
@@ -111,8 +123,10 @@ void CNetRenderClient::SetClient(QString _address, int _portNo)
 	address = _address;
 	portNo = _portNo;
 	clientSocket = new QTcpSocket(this);
-	connect(clientSocket, SIGNAL(disconnected()), this, SLOT(ServerDisconnected()));
-	connect(clientSocket, SIGNAL(readyRead()), this, SLOT(ReceiveFromServer()));
+	connect(clientSocket, &QTcpSocket::disconnected, this, &CNetRenderClient::ServerDisconnected);
+	connect(clientSocket, &QTcpSocket::readyRead, this, &CNetRenderClient::ReceiveFromServer);
+
+	fileSender->ClearState();
 
 	reconnectTimer->start();
 	QTimer::singleShot(50, this, SLOT(TryServerConnect()));
@@ -211,6 +225,8 @@ void CNetRenderClient::ProcessData()
 		case netRenderCmd_KICK_AND_KILL: ProcessRequestKickAndKill(inMsg); break;
 		case netRenderCmd_ANIM_FLIGHT: ProcessRequestRenderAnimation(inMsg); break;
 		case netRenderCmd_ANIM_KEY: ProcessRequestRenderAnimation(inMsg); break;
+		case netRenderCmd_FRAMES_TODO: ProcessRequestFramesToDo(inMsg); break;
+		case netRenderCmd_SEND_REQ_FILE: ProcessRequestReceivedFile(inMsg); break;
 		default: qWarning() << "NetRender - command unknown: " + QString::number(inMsg->command); break;
 	}
 }
@@ -272,13 +288,15 @@ void CNetRenderClient::ProcessRequestStop(sMessage *inMsg)
 	// status = netRender_READY;
 	gMainInterface->stopRequest = true;
 	// NotifyStatus();
+	emit animationStopRequest();
+
 	WriteLog("NetRender - ProcessData(), command STOP", 2);
 }
 
 void CNetRenderClient::ProcessRequestAskStatus(sMessage *inMsg)
 {
 	Q_UNUSED(inMsg);
-	WriteLog("NetRender - ProcessData(), command STATUS", 3);
+	WriteLog("NetRender - ProcessData(), command STATUS", 2);
 	NotifyStatus();
 }
 
@@ -298,7 +316,7 @@ void CNetRenderClient::ProcessRequestJob(sMessage *inMsg)
 		stream.readRawData(buffer.data(), size);
 		QString settingsText = QString::fromUtf8(buffer.data(), buffer.size());
 		WriteLog(QString("NetRender - ProcessData(), command JOB, settings size: %1").arg(size), 2);
-		WriteLog(QString("NetRender - ProcessData(), command JOB, settings: %1").arg(settingsText), 3);
+		WriteLog(QString("NetRender - ProcessData(), command JOB, settings: %1").arg(settingsText), 2);
 
 		// getting textures from server
 		textures.clear();
@@ -359,14 +377,14 @@ void CNetRenderClient::ProcessRequestJob(sMessage *inMsg)
 
 			auto *thread = new QThread; // deleted by deleteLater()
 			gMainInterface->headless->moveToThread(thread);
-			QObject::connect(thread, SIGNAL(started()), gMainInterface->headless, SLOT(slotNetRender()));
+			connect(thread, &QThread::started, gMainInterface->headless, &cHeadless::slotNetRender);
 			thread->setObjectName("RenderJob");
 			thread->start();
 
-			QObject::connect(gMainInterface->headless, SIGNAL(finished()), gMainInterface->headless,
-				SLOT(deleteLater()));
-			QObject::connect(gMainInterface->headless, SIGNAL(finished()), thread, SLOT(quit()));
-			QObject::connect(thread, SIGNAL(finished()), thread, SLOT(deleteLater()));
+			connect(gMainInterface->headless, &cHeadless::finished, gMainInterface->headless,
+				&cHeadless::deleteLater);
+			connect(gMainInterface->headless, &cHeadless::finished, thread, &QThread::quit);
+			connect(thread, &QThread::finished, thread, &QThread::deleteLater);
 		}
 	}
 	else
@@ -379,7 +397,7 @@ void CNetRenderClient::ProcessRequestJob(sMessage *inMsg)
 
 void CNetRenderClient::ProcessRequestRender(sMessage *inMsg)
 {
-	WriteLog("NetRender - ProcessData(), command RENDER", 3);
+	WriteLog("NetRender - ProcessData(), command RENDER", 2);
 	if (inMsg->id == actualId)
 	{
 		QDataStream stream(&inMsg->payload, QIODevice::ReadOnly);
@@ -393,7 +411,7 @@ void CNetRenderClient::ProcessRequestRender(sMessage *inMsg)
 			done.append(line);
 		}
 		WriteLog(
-			QString("NetRender - ProcessData(), command RENDER, done list size: %1").arg(done.size()), 3);
+			QString("NetRender - ProcessData(), command RENDER, done list size: %1").arg(done.size()), 2);
 		emit ToDoListArrived(done);
 	}
 	else
@@ -420,13 +438,13 @@ void CNetRenderClient::ProcessRequestSetup(sMessage *inMsg)
 		stream >> line;
 		startingPositions.append(line);
 		WriteLog(
-			QString("NetRender - ProcessData(), command SETUP, start line %1 = %2").arg(i).arg(line), 3);
+			QString("NetRender - ProcessData(), command SETUP, start line %1 = %2").arg(i).arg(line), 2);
 	}
 }
 
 void CNetRenderClient::ProcessRequestAck(sMessage *inMsg)
 {
-	WriteLog("NetRender - ProcessData(), command ACK", 3);
+	WriteLog("NetRender - ProcessData(), command ACK", 2);
 	if (inMsg->id == actualId)
 	{
 		emit AckReceived();
@@ -465,30 +483,33 @@ void CNetRenderClient::ProcessRequestRenderAnimation(sMessage *inMsg)
 			QString settingsText = QString::fromUtf8(buffer.data(), buffer.size());
 			WriteLog(QString("NetRender - ProcessData(), command JOB, settings size: %1").arg(size), 2);
 			WriteLog(
-				QString("NetRender - ProcessData(), command JOB, settings: %1").arg(settingsText), 3);
-
-			cSettings parSettings(cSettings::formatCondensedText);
-			parSettings.BeQuiet(true);
-
-			gInterfaceReadyForSynchronization = false;
-			parSettings.LoadFromString(settingsText);
-
-			if (inMsg->command == netRenderCmd_ANIM_KEY)
-			{
-				parSettings.Decode(gPar, gParFractal, nullptr, gKeyframes);
-			}
-			if (inMsg->command == netRenderCmd_ANIM_FLIGHT)
-			{
-				parSettings.Decode(gPar, gParFractal, gAnimFrames, nullptr);
-			}
+				QString("NetRender - ProcessData(), command JOB, settings: %1").arg(settingsText), 2);
 
 			WriteLog("NetRender - ProcessData(), command ANIM_KEY, starting rendering", 2);
 
-			gInterfaceReadyForSynchronization = true;
 			if (!systemData.noGui)
 			{
-				gMainInterface->SynchronizeInterface(gPar, gParFractal, qInterface::write);
-				emit KeyframeAnimationRender();
+				// gMainInterface->SynchronizeInterface(gPar, gParFractal, qInterface::write);
+				// emit KeyframeAnimationRender();
+
+				auto keyframesRenderThread =
+					new cKeyframeRenderThread(settingsText); // deleted by deleteLater()
+				auto *thread = new QThread;								 // deleted by deleteLater()
+				keyframesRenderThread->moveToThread(thread);
+
+				connect(thread, &QThread::started, keyframesRenderThread,
+					&cKeyframeRenderThread::startAnimationRender);
+
+				thread->setObjectName("KeyframesRender");
+				thread->start();
+
+				connect(keyframesRenderThread, &cKeyframeRenderThread::renderingFinished,
+					keyframesRenderThread, &cKeyframeRenderThread::deleteLater);
+				connect(
+					keyframesRenderThread, &cKeyframeRenderThread::renderingFinished, thread, &QThread::quit);
+				connect(thread, &QThread::finished, thread, &QThread::deleteLater);
+
+				// gKeyframeAnimation->RenderKeyframes(&gMainInterface->stopRequest);
 			}
 			else
 			{
@@ -500,17 +521,108 @@ void CNetRenderClient::ProcessRequestRenderAnimation(sMessage *inMsg)
 
 				auto *thread = new QThread; // deleted by deleteLater()
 				gMainInterface->headless->moveToThread(thread);
-				QObject::connect(
-					thread, SIGNAL(started()), gMainInterface->headless, SLOT(slotNetRender()));
+				connect(thread, &QThread::started, gMainInterface->headless, &cHeadless::slotNetRender);
 				thread->setObjectName("RenderJob");
 				thread->start();
 
-				QObject::connect(gMainInterface->headless, SIGNAL(finished()), gMainInterface->headless,
-					SLOT(deleteLater()));
-				QObject::connect(gMainInterface->headless, SIGNAL(finished()), thread, SLOT(quit()));
-				QObject::connect(thread, SIGNAL(finished()), thread, SLOT(deleteLater()));
+				connect(gMainInterface->headless, &cHeadless::finished, gMainInterface->headless,
+					&cHeadless::deleteLater);
+				connect(gMainInterface->headless, &cHeadless::finished, thread, &QThread::quit);
+				connect(thread, &QThread::finished, thread, &QThread::deleteLater);
 			}
 		}
+	}
+}
+
+void CNetRenderClient::ProcessRequestFramesToDo(sMessage *inMsg)
+{
+	WriteLog("NetRender - ProcessRequestRenderAnimation()", 2);
+	if (inMsg->id == actualId)
+	{
+		QDataStream stream(&inMsg->payload, QIODevice::ReadOnly);
+
+		QList<int> frameList;
+		qint32 frameListSize;
+		stream >> frameListSize;
+		startingPositions.clear();
+		for (int i = 0; i < frameListSize; i++)
+		{
+			qint32 frame;
+			stream >> frame;
+			frameList.append(frame);
+			WriteLog(QString("NetRender - ProcessData(), command FRAMES_TODO, start line %1 = %2")
+								 .arg(i)
+								 .arg(frame),
+				2);
+		}
+		emit UpdateFramesToDo(frameList);
+	}
+	else
+	{
+		WriteLog(
+			QString("NetRender - received FRAMES_TODO message with wrong id. Local %1 vs Remote %2")
+				.arg(QString::number(actualId), QString::number(inMsg->id)),
+			1);
+	}
+}
+
+void CNetRenderClient::ProcessRequestReceivedFile(sMessage *inMsg)
+{
+	WriteLog("NetRender - ProcessRequestReceivedFile()", 2);
+	if (inMsg->id == actualId)
+	{
+		QDataStream stream(&inMsg->payload, QIODevice::ReadOnly);
+
+		qint64 fileSize;
+		stream >> fileSize;
+
+		WriteLog(QString("NetRender - ProcessRequestReceivedFile(), file size: %1").arg(fileSize), 2);
+		if (fileSize > 0)
+		{
+			QByteArray buffer;
+			buffer.resize(fileSize);
+			stream.readRawData(buffer.data(), fileSize);
+
+			QCryptographicHash hashCrypt(QCryptographicHash::Md4);
+			hashCrypt.addData(requestedFileName.toLocal8Bit());
+			if (frameIndexForRequestedFile >= 0)
+			{
+				QString stringFrameNumber = QString::number(frameIndexForRequestedFile);
+				hashCrypt.addData(stringFrameNumber.toLocal8Bit());
+			}
+			QByteArray hash = hashCrypt.result();
+			QString hashString = hash.toHex();
+			QString fileInCache = systemData.GetNetrenderFolder() + QDir::separator() + hashString + "."
+														+ QFileInfo(requestedFileName).suffix();
+
+			QFile file(fileInCache);
+			if (file.open(QIODevice::WriteOnly))
+			{
+				file.write(buffer);
+				file.close();
+				fileReceived = true;
+			}
+			else
+			{
+				WriteLog(
+					QString("NetRender SEND_REQ_FILE: cannot open file %1 for writing %1").arg(fileInCache),
+					1);
+			}
+		}
+		else
+		{
+			WriteLog(QString("NetRender SEND_REQ_FILE: cannot get file %1 from NetRender")
+								 .arg(requestedFileName),
+				1);
+			fileReceived = true;
+		}
+	}
+	else
+	{
+		WriteLog(
+			QString("NetRender - received SEND_REQ_FILE message with wrong id. Local %1 vs Remote %2")
+				.arg(QString::number(actualId), QString::number(inMsg->id)),
+			1);
 	}
 }
 
@@ -523,6 +635,71 @@ void CNetRenderClient::ConfirmRenderedFrame(int frameIndex, int sizeOfToDoList)
 	stream << qint32(frameIndex);
 	stream << qint32(sizeOfToDoList);
 
-	WriteLog(QString("NetRender - ConfirmRenderedFrame(), frame %1").arg(frameIndex), 3);
+	WriteLog(QString("NetRender - ConfirmRenderedFrame(), frame %1").arg(frameIndex), 2);
+	cNetRenderTransport::SendData(clientSocket, msg, actualId);
+}
+
+void CNetRenderClient::SendFileHeader(qint64 fileSize, QString nameWithoutPath)
+{
+	sMessage msg;
+	msg.command = netRenderCmd_SEND_FILE_HEADER;
+	QDataStream stream(&msg.payload, QIODevice::WriteOnly);
+
+	stream << qint64(fileSize);
+	stream << qint32(nameWithoutPath.toUtf8().size());
+	stream.writeRawData(nameWithoutPath.toUtf8().data(), nameWithoutPath.toUtf8().size());
+
+	WriteLog(
+		QString("NetRender - SendFileHeader(), name %1 size %2").arg(nameWithoutPath).arg(fileSize), 2);
+
+	cNetRenderTransport::SendData(clientSocket, msg, actualId);
+}
+
+void CNetRenderClient::SendFileDataChunk(int chunkIndex, QByteArray data)
+{
+	sMessage msg;
+	msg.command = netRenderCmd_SEND_FILE_DATA;
+	QDataStream stream(&msg.payload, QIODevice::WriteOnly);
+
+	stream << qint32(chunkIndex);
+	stream << qint32(data.size());
+	stream.writeRawData(data.data(), data.size());
+
+	WriteLog(QString("NetRender - SendFileDataChunk(), chunk index %1 size %2")
+						 .arg(chunkIndex)
+						 .arg(data.size()),
+		2);
+
+	cNetRenderTransport::SendData(clientSocket, msg, actualId);
+}
+
+void CNetRenderClient::RequestFileFromServer(QString filename, int frameIndex)
+{
+	emit SignalRequestFileFromServer(filename, frameIndex);
+	QElapsedTimer timerForTimeOut;
+	timerForTimeOut.start();
+	while (!fileReceived && !systemData.globalStopRequest && timerForTimeOut.elapsed() < 180000)
+	{
+		Wait(10);
+		gApplication->processEvents();
+	}
+	fileReceived = false;
+}
+
+void CNetRenderClient::SlotRequestFileFromServer(QString filename, int frameIndex)
+{
+	sMessage msg;
+	msg.command = netRenderCmd_REQ_FILE;
+	QDataStream stream(&msg.payload, QIODevice::WriteOnly);
+
+	stream << qint32(frameIndex);
+	stream << qint32(filename.toUtf8().size());
+	stream.writeRawData(filename.toUtf8().data(), filename.toUtf8().size());
+
+	requestedFileName = filename;
+	frameIndexForRequestedFile = frameIndex;
+
+	WriteLog(QString("NetRender - SlotRequestFileFromServer(), name %1").arg(filename), 2);
+
 	cNetRenderTransport::SendData(clientSocket, msg, actualId);
 }
